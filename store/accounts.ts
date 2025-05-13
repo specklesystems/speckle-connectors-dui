@@ -15,7 +15,6 @@ import { onError, type ErrorResponse } from '@apollo/client/link/error'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context'
 import { useHostAppStore } from '~/store/hostApp'
-import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
 
 export type DUIAccount = {
@@ -86,7 +85,7 @@ export const useAccountStore = defineStore('accountStore', () => {
       try {
         await acc.client.query({ query: accountTestQuery })
         acc.isValid = true
-      } catch (error) {
+      } catch {
         // TODO: properly dispose and kill this client. It's unclear how to do it.
         acc.isValid = false
         // NOTE: we do not want to delete the client, as we might want to "refresh" in
@@ -116,7 +115,7 @@ export const useAccountStore = defineStore('accountStore', () => {
         if (res.graphQLErrors) {
           if (
             res.graphQLErrors?.some(
-              (err) => err.extensions.code === 'SSO_SESSION_MISSING_OR_EXPIRED_ERROR'
+              (err) => err.extensions?.code === 'SSO_SESSION_MISSING_OR_EXPIRED_ERROR'
             )
           ) {
             hostAppStore.setNotification({

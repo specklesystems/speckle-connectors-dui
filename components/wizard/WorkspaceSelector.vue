@@ -23,7 +23,7 @@
               : item.role === 'workspace:guest'
               ? 'You do not have write access on this workspace.'
               : undefined,
-            disabled: !(item.readOnly || item.role === 'workspace:guest')
+            disabled: !(item.readOnly || item.role === 'workspace:guest'),
           }"
           class="flex items-center"
         >
@@ -41,45 +41,51 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useQuery } from '@vue/apollo-composable'
-import { workspacesListQuery } from '~/lib/graphql/mutationsAndQueries'
-import type { WorkspaceListWorkspaceItemFragment } from 'lib/common/generated/gql/graphql'
-import { storeToRefs } from 'pinia'
-import { useAccountStore } from '~/store/accounts'
+import { ref, computed } from "vue";
+import { useQuery } from "@vue/apollo-composable";
+import { workspacesListQuery } from "~/lib/graphql/mutationsAndQueries";
+import type { WorkspaceListWorkspaceItemFragment } from "~/lib/common/generated/gql/graphql";
+import { storeToRefs } from "pinia";
+import { useAccountStore } from "~/store/accounts";
 
 const emit = defineEmits<{
   (
-    e: 'update:selectedWorkspace',
+    e: "update:selectedWorkspace",
     value: WorkspaceListWorkspaceItemFragment | undefined
-  ): void
-}>()
+  ): void;
+}>();
 
-const accountStore = useAccountStore()
-const { activeAccount } = storeToRefs(accountStore)
-const accountId = computed(() => activeAccount.value.accountInfo.id)
+const accountStore = useAccountStore();
+const { activeAccount } = storeToRefs(accountStore);
+const accountId = computed(() => activeAccount.value.accountInfo.id);
 
-const searchText = ref<string>()
+const searchText = ref<string>();
 
 const { result: workspacesResult } = useQuery(
   workspacesListQuery,
   () => ({
     limit: 5,
     filter: {
-      search: (searchText.value || '').trim() || null
-    }
+      search: (searchText.value || "").trim() || null,
+    },
   }),
-  () => ({ clientId: accountId.value, debounce: 500, fetchPolicy: 'network-only' })
-)
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: "network-only",
+  })
+);
 
-const workspaces = computed(() => workspacesResult.value?.activeUser?.workspaces.items)
-const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>()
+const workspaces = computed(
+  () => workspacesResult.value?.activeUser?.workspaces.items
+);
+const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>();
 
 watch(selectedWorkspace, (newVal) => {
-  emit('update:selectedWorkspace', newVal)
-})
+  emit("update:selectedWorkspace", newVal);
+});
 
 // Utility function to check if the user cannot create a workspace
 const userCantCreateWorkspace = (item: WorkspaceListWorkspaceItemFragment) =>
-  (!!item?.role && item.role === 'workspace:guest') || !!item.readOnly
+  (!!item?.role && item.role === "workspace:guest") || !!item.readOnly;
 </script>

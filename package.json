@@ -55,11 +55,11 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.5",
     "@graphql-codegen/client-preset": "^4.3.0",
-    "@nuxt/eslint": "^0.3.13",
+    "@nuxt/eslint": "^1.3.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@parcel/watcher": "^2.5.1",
     "@types/apollo-upload-client": "^17.0.1",
-    "@types/eslint": "^8.56.10",
+    "@types/eslint": "^9.6.1",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
@@ -89,7 +89,9 @@
   },
   "resolutions": {
     "core-js": "3.22.4",
-    "core-js-compat/semver": "^7.5.4"
+    "core-js-compat/semver": "^7.5.4",
+    "@babel/plugin-transform-classes/globals": "13.13.0",
+    "@babel/traverse/globals": "13.13.0"
   },
   "packageManager": "yarn@4.9.1"
 }

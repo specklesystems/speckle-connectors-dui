@@ -1,7 +1,19 @@
 import { omit } from 'lodash-es'
-import { baseConfigs, globals, getESMDirname } from '../../eslint.config.mjs'
 import withNuxt from './.nuxt/eslint.config.mjs'
 import pluginVueA11y from 'eslint-plugin-vuejs-accessibility'
+import globals from 'globals'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+import prettierConfig from 'eslint-config-prettier'
+import js from '@eslint/js'
+
+/**
+ * Feed in import.meta.url in your .mjs module to get the equivalent of __dirname
+ * @param {string} importMetaUrl
+ */
+export const getESMDirname = (importMetaUrl) => {
+  return dirname(fileURLToPath(importMetaUrl))
+}
 
 const configs = await withNuxt([
   {
@@ -62,6 +74,7 @@ const configs = await withNuxt([
       '@typescript-eslint/require-await': 'error',
       'no-undef': 'off',
 
+      '@typescript-eslint/no-empty-object-type': 'off', // too restrictive
       '@typescript-eslint/unified-signatures': 'off', // DX sucks in vue event definitions
       '@typescript-eslint/no-dynamic-delete': 'off', // too restrictive
       '@typescript-eslint/restrict-template-expressions': 'off', // too restrictive
@@ -78,10 +91,7 @@ const configs = await withNuxt([
   {
     files: ['**/*.vue'],
     rules: {
-      'vue/component-tags-order': [
-        'error',
-        { order: ['docs', 'template', 'script', 'style'] }
-      ],
+      'vue/block-order': ['error', { order: ['docs', 'template', 'script', 'style'] }],
       'vue/require-default-prop': 'off',
       'vue/multi-word-component-names': 'off',
       'vue/component-name-in-template-casing': [
@@ -116,10 +126,46 @@ const configs = await withNuxt([
       './lib/common/generated/**/*',
       'storybook-static',
       '.nuxt/**',
-      '.output/**'
+      '.output/**',
+      '**/dist/**',
+      '**/dist-*/**',
+      '**/public/**',
+      '**/events.json',
+      '**/generated/**/*'
     ]
   },
-  ...baseConfigs
+  {
+    files: ['**/*.mjs'],
+    languageOptions: {
+      sourceType: 'module'
+    }
+  },
+  {
+    files: ['**/*.cjs'],
+    languageOptions: {
+      sourceType: 'commonjs'
+    }
+  },
+  {
+    files: ['**/*.{js,mjs,cjs}', '**/.*.{js,mjs,cjs}'],
+    ...js.configs.recommended
+  },
+  prettierConfig,
+  {
+    rules: {
+      camelcase: [
+        1,
+        {
+          properties: 'always'
+        }
+      ],
+      'no-var': 'error',
+      'no-alert': 'error',
+      eqeqeq: 'error',
+      'prefer-const': 'warn',
+      'object-shorthand': 'warn'
+    }
+  }
 ])
 
 export default configs

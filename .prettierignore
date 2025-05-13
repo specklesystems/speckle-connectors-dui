@@ -1,0 +1,47 @@
+node_modules
+build
+dist
+dist2
+dist-*
+coverage
+.nyc_output
+packages/server/reports*
+packages/preview-service/public/**/*
+packages/objectloader/examples/browser/objectloader.web.js
+packages/viewer/example/speckleviewer.web.js
+
+.output
+.nuxt
+**/nuxt-modules/**/templates/*.js
+packages/frontend-2/lib/common/generated/**/*
+packages/dui3/lib/common/generated/**/*
+packages/server/introspected-schema.graphql
+
+package-lock.json
+yarn.lock
+.yarn
+
+# Profiler output
+events.json
+
+# Prettier doesn't understand the syntax inside the Yaml files, because of the brackets
+utils/helm/speckle-server/templates
+
+# Optional eslint cache
+.eslintcache
+.venv
+venv
+
+.*.{ts,js,vue,tsx,jsx}
+**/generated/**/*
+**/generated/graphql.ts
+
+storybook-static
+.tshy
+.tshy-build
+
+packages/fileimport-service/ifc-dotnet/
+packages/fileimport-service/stl/
+packages/fileimport-service/obj/
+
+packages/shared/html

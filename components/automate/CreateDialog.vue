@@ -84,6 +84,7 @@ import { useAccountStore } from '~/store/accounts'
 import type { ApolloError } from '@apollo/client/errors'
 import { formatVersionParams } from '~/lib/common/helpers/jsonSchema'
 import { useJsonFormsChangeHandler } from '~/lib/core/composables/jsonSchema'
+import {isArray} from 'lodash-es'
 
 const props = defineProps<{
   projectId: string
