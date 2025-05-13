@@ -33,7 +33,7 @@
     "@speckle/objectloader": "^2.24.0",
     "@speckle/objectsender": "^2.24.0",
     "@speckle/shared": "^2.24.0",
-    "@speckle/tailwind-theme": "^2.24.0",
+    "@speckle/tailwind-theme": "2.24.1-alpha.0",
     "@speckle/ui-components": "^2.24.0",
     "@speckle/ui-components-nuxt": "^2.24.0",
     "@vue/apollo-composable": "^4.0.0-beta.5",

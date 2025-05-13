@@ -3974,16 +3974,16 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@speckle/tailwind-theme@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/tailwind-theme@npm:2.24.0"
+"@speckle/tailwind-theme@npm:2.24.1-alpha.0":
+  version: 2.24.1-alpha.0
+  resolution: "@speckle/tailwind-theme@npm:2.24.1-alpha.0"
   dependencies:
     "@tailwindcss/forms": "npm:^0.5.3"
   peerDependencies:
     postcss: ^8.4.18
     postcss-nesting: ^10.2.0
     tailwindcss: ^3.3.2
-  checksum: 10c0/1baa5dd59988cfcc9b451c13f5fcc6ba50a8f5b676240fb5509aa5e676286c8d9e9f5cda5af56de3d216a651c3515a0dcbfea21c9315dfcdf920959089523d8e
+  checksum: 10c0/ece3ecfa80162f0a4dc0f6bcb28839331e2c4208bf922c478d00c859248f6e77b8267e06f4c505f98fd625682006b22f8c5f63c2749c7b4efa277dcab75c2d0f
   languageName: node
   linkType: hard
 
@@ -15060,7 +15060,7 @@ __metadata:
     "@speckle/objectloader": "npm:^2.24.0"
     "@speckle/objectsender": "npm:^2.24.0"
     "@speckle/shared": "npm:^2.24.0"
-    "@speckle/tailwind-theme": "npm:^2.24.0"
+    "@speckle/tailwind-theme": "npm:2.24.1-alpha.0"
     "@speckle/ui-components": "npm:^2.24.0"
     "@speckle/ui-components-nuxt": "npm:^2.24.0"
     "@types/apollo-upload-client": "npm:^17.0.1"

@@ -197,7 +197,6 @@ import {
   modelDetailsQuery,
   modelViewingSubscription
 } from '~/lib/graphql/mutationsAndQueries'
-import { CommonLoadingProgressBar } from '@speckle/ui-components'
 import { ArrowUpTrayIcon, ArrowDownTrayIcon } from '@heroicons/vue/24/solid'
 import type { ProjectModelGroup } from '~~/store/hostApp'
 import { useHostAppStore } from '~~/store/hostApp'

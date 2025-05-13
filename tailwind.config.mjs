@@ -1,4 +1,4 @@
-import speckleTheme from '@speckle/tailwind-theme'
+import {plugin as speckleThemePlugin} from '@speckle/tailwind-theme'
 import { tailwindContentEntries as themeEntries } from '@speckle/tailwind-theme/tailwind-configure'
 import { tailwindContentEntries as uiLibEntries } from '@speckle/ui-components/tailwind-configure'
 import formsPlugin from '@tailwindcss/forms'
@@ -20,7 +20,7 @@ const config = {
     ...uiLibEntries()
     // `./lib/**/*.{js,ts,vue}`, // TODO: Wait for fix https://github.com/nuxt/framework/issues/2886#issuecomment-1108312903
   ],
-  plugins: [speckleTheme, formsPlugin]
+  plugins: [speckleThemePlugin, formsPlugin]
 }
 
 export default config
