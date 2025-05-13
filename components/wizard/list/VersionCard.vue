@@ -5,7 +5,7 @@
   >
     <UserAvatar
       v-tippy="`Authored by ${version.authorUser?.name}`"
-      :user="version.authorUser"
+      :user="{ avatar: version.authorUser?.avatar, name: version.authorUser?.name as string }"
       size="sm"
       class="absolute inset-1"
     />

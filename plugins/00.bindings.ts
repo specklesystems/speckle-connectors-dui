@@ -1,5 +1,5 @@
 import type { IRawBridge } from '~/lib/bridge/definitions'
-import { GenericBridge } from '~/lib/bridge/generic-v2'
+import { GenericBridge } from '~/lib/bridge/generic'
 import { SketchupBridge } from '~/lib/bridge/sketchup'
 
 import type { IBasicConnectorBinding } from '~/lib/bindings/definitions/IBasicConnectorBinding'

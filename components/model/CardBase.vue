@@ -159,7 +159,7 @@
               >
                 <UserAvatarGroup
                   size="xs"
-                  :users="[latestCommentNotification.comment?.author]"
+                  :users="[latestCommentNotification.comment?.author as AvatarUserWithId]"
                 />
                 <span class="line-clamp-1">
                   {{ latestCommentNotification.comment?.author.name }} just left a
@@ -208,6 +208,7 @@ import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import type { ProjectCommentsUpdatedMessage } from '~/lib/common/generated/gql/graphql'
 import { useFunctionRunsStatusSummary } from '~/lib/automate/runStatus'
 import { CursorArrowRaysIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import type { AvatarUserWithId } from '@speckle/ui-components'
 
 const app = useNuxtApp()
 const store = useHostAppStore()
@@ -430,7 +431,8 @@ const { start: startCommentClearTimeout, stop: stopCommentClearTimeout } = useTi
 )
 
 onCommentResult((res) => {
-  latestCommentNotification.value = res.data?.projectCommentsUpdated
+  latestCommentNotification.value = res.data
+    ?.projectCommentsUpdated as ProjectCommentsUpdatedMessage
   startCommentClearTimeout()
 })
 
