@@ -20,7 +20,7 @@
           mount-menu-on-body
         >
           <template #something-selected="{ value }">
-            <span>{{ value.name }}</span>
+            <span>{{ isArray(value) ? value[0].name : value.name }}</span>
           </template>
           <template #option="{ item }">
             <div class="flex items-center">
@@ -84,7 +84,7 @@ import { useAccountStore } from '~/store/accounts'
 import type { ApolloError } from '@apollo/client/errors'
 import { formatVersionParams } from '~/lib/common/helpers/jsonSchema'
 import { useJsonFormsChangeHandler } from '~/lib/core/composables/jsonSchema'
-import {isArray} from 'lodash-es'
+import { isArray } from 'lodash-es'
 
 const props = defineProps<{
   projectId: string

@@ -86,7 +86,7 @@ export class SketchupBridge extends BaseBridge {
   }
 
   // NOTE: Overriden emit as we do not need to parse the data back - the Sketchup bridge already parses it for us.
-  emit(eventName: string, payload: string): void {
+  override emit(eventName: string, payload: string): void {
     const eventPayload = payload as unknown as Record<string, unknown>
 
     if (eventName === 'sendViaBrowser')
@@ -124,7 +124,7 @@ export class SketchupBridge extends BaseBridge {
       serverUrl: account?.accountInfo.serverInfo.url as string,
       token: account?.accountInfo.token as string,
       streamId: eventPayload.projectId,
-      objectId: result.data.project.model.version.referencedObject
+      objectId: result.data.project.model.version.referencedObject as string
     })
 
     const updateProgress = (e: {
