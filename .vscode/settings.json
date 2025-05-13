@@ -4,10 +4,58 @@
   "scss.validate": false,
   "stylelint.validate": ["css", "scss", "vue", "postcss"],
   "stylelint.enable": true,
-  "stylelint.configFile": "${workspaceFolder}/stylelint.config.js",
-  "volar.completion.preferredTagNameCase": "pascal",
   "javascript.suggest.autoImports": true,
   "typescript.suggest.autoImports": true,
   "typescript.preferences.importModuleSpecifier": "non-relative",
-  "javascript.preferences.importModuleSpecifier": "non-relative"
+  "javascript.preferences.importModuleSpecifier": "non-relative",
+
+  "explorer.confirmDelete": false,
+  "files.associations": {
+    "*.vue": "vue"
+  },
+  "editor.formatOnPaste": true,
+  "editor.multiCursorModifier": "ctrlCmd",
+  "editor.snippetSuggestions": "top",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "search.useParentIgnoreFiles": true,
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "files.eol": "\n",
+  "cSpell.words": [
+    "Automations",
+    "Bursty",
+    "discoverability",
+    "Encryptor",
+    "Gendo",
+    "GENDOAI",
+    "Insertable",
+    "mjml",
+    "multiregion",
+    "OIDC",
+    "Prorotation"
+  ],
+  "editor.tabSize": 2,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/*.code-search": true,
+    "**/.nuxt": true,
+    "**/.output": true
+  },
+  "[vue]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[dockercompose]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "vue.complete.casing.props": "kebab",
+  "vue.inlayHints.missingProps": true
 }
