@@ -1,0 +1,18 @@
+node_modules
+*.log*
+.nuxt
+.nitro
+.cache
+.output
+.env
+dist
+.DS_Store
+.env
+
+# Ignore Yarn Zero-Install files and folders
+.yarn/cache/
+.yarn/releases/
+.yarn/plugins/
+.yarn/sdks/
+.pnp.*
+.yarn/versions/
