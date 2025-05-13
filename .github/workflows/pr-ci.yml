@@ -17,10 +17,15 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.14.0"
-          cache: "yarn"
+
+      - name: Enable Corepack and Install Correct Yarn Version
+        run: |
+          corepack enable
+          corepack prepare yarn@$(jq -r .packageManager package.json | cut -d'@' -f2) --activate
+          yarn --version
 
       - name: Install Dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Run Linter
         run: yarn lint
