@@ -47,7 +47,10 @@
 
 <script setup lang="ts">
 import { useTimeoutFn } from '@vueuse/core'
-import type { ModelCardNotification, ModelCardNotificationLevel } from '~/lib/models/card/notification'
+import type {
+  ModelCardNotification,
+  ModelCardNotificationLevel
+} from '~/lib/models/card/notification'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 const props = defineProps<{
   notification: ModelCardNotification
@@ -70,7 +73,7 @@ const notificationButtonColor = (notificationLevel: ModelCardNotificationLevel) 
     case 'warning':
       return 'danger'
     default:
-       return 'outline'
+      return 'outline'
   }
 }
 
