@@ -53,6 +53,7 @@ export default defineNuxtConfig({
     ]
   },
   ssr: false,
+  devtools: { enabled: false },
   build: {
     transpile: [
       /^@apollo\/client/,

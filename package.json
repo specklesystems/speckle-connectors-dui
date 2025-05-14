@@ -15,7 +15,7 @@
     "postinstall": "nuxt prepare",
     "lint:js": "eslint .",
     "lint:tsc": "vue-tsc --noEmit",
-    "lint:prettier": "prettier --config ../../.prettierrc --ignore-path ../../.prettierignore --check .",
+    "lint:prettier": "prettier --config .prettierrc --ignore-path .prettierignore --check .",
     "lint:css": "stylelint \"**/*.{css,vue}\"",
     "lint": "yarn lint:js && yarn lint:tsc && yarn lint:prettier && yarn lint:css",
     "lint:ci": "yarn lint:tsc && yarn lint:css",
@@ -55,11 +55,11 @@
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.5",
     "@graphql-codegen/client-preset": "^4.3.0",
-    "@nuxt/eslint": "^0.3.13",
+    "@nuxt/eslint": "^1.3.1",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@parcel/watcher": "^2.5.1",
     "@types/apollo-upload-client": "^17.0.1",
-    "@types/eslint": "^8.56.10",
+    "@types/eslint": "^9.6.1",
     "@types/lodash-es": "^4.17.6",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^8.20.0",
@@ -77,10 +77,9 @@
     "postcss-html": "^1.8.0",
     "postcss-nesting": "^13.0.1",
     "prettier": "^2.8.7",
-    "stylelint": "^15.10.1",
-    "stylelint-config-prettier": "^9.0.3",
-    "stylelint-config-recommended-vue": "^1.4.0",
-    "stylelint-config-standard": "^26.0.0",
+    "stylelint": "^16.19.1",
+    "stylelint-config-recommended-vue": "^1.6.0",
+    "stylelint-config-standard": "^38.0.0",
     "tailwindcss": "^3.4.17",
     "type-fest": "^3.5.1",
     "typescript": "^5.7.3",
@@ -89,7 +88,9 @@
   },
   "resolutions": {
     "core-js": "3.22.4",
-    "core-js-compat/semver": "^7.5.4"
+    "core-js-compat/semver": "^7.5.4",
+    "@babel/plugin-transform-classes/globals": "13.13.0",
+    "@babel/traverse/globals": "13.13.0"
   },
   "packageManager": "yarn@4.9.1"
 }

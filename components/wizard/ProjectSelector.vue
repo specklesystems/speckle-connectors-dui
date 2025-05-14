@@ -149,7 +149,7 @@ import { useMutation, provideApolloClient, useQuery } from '@vue/apollo-composab
 import type {
   ProjectListProjectItemFragment,
   WorkspaceListWorkspaceItemFragment
-} from 'lib/common/generated/gql/graphql'
+} from '~/lib/common/generated/gql/graphql'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
 
@@ -210,7 +210,11 @@ const handleProjectCreated = (result: ProjectListProjectItemFragment) => {
 const { result: serverInfoResult, refetch: refetchServerInfo } = useQuery(
   serverInfoQuery,
   () => ({}),
-  () => ({ clientId: accountId.value, debounce: 500, fetchPolicy: 'network-only' })
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
 )
 
 const workspacesEnabled = computed(
@@ -222,7 +226,11 @@ const { result: workspacesResult, refetch: refetchWorkspaces } = useQuery(
   () => ({
     limit: 100
   }),
-  () => ({ clientId: accountId.value, debounce: 500, fetchPolicy: 'network-only' })
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
 )
 
 const workspaces = computed(() => workspacesResult.value?.activeUser?.workspaces.items)
@@ -230,7 +238,11 @@ const workspaces = computed(() => workspacesResult.value?.activeUser?.workspaces
 const { result: activeWorkspaceResult, refetch: refetchActiveWorkspace } = useQuery(
   activeWorkspaceQuery,
   () => ({}),
-  () => ({ clientId: accountId.value, debounce: 500, fetchPolicy: 'network-only' })
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
 )
 
 const activeWorkspace = computed(() => {

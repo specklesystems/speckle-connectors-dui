@@ -60,7 +60,7 @@
 <script setup lang="ts">
 import type { DUIAccount } from '~~/store/accounts'
 import { TrashIcon } from '@heroicons/vue/24/outline'
-import { type BaseBridge } from '~/lib/bridge/base'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 const { $accountBinding } = useNuxtApp()
 

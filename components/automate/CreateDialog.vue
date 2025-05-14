@@ -20,7 +20,7 @@
           mount-menu-on-body
         >
           <template #something-selected="{ value }">
-            <span>{{ value.name }}</span>
+            <span>{{ isArray(value) ? value[0].name : value.name }}</span>
           </template>
           <template #option="{ item }">
             <div class="flex items-center">
@@ -80,10 +80,11 @@ import {
   createAutomationMutation
 } from '~/lib/graphql/mutationsAndQueries'
 import { provideApolloClient, useMutation, useQuery } from '@vue/apollo-composable'
-import { useAccountStore } from '~/store/accounts'
+import { useAccountStore, type DUIAccount } from '~/store/accounts'
 import type { ApolloError } from '@apollo/client/errors'
 import { formatVersionParams } from '~/lib/common/helpers/jsonSchema'
 import { useJsonFormsChangeHandler } from '~/lib/core/composables/jsonSchema'
+import { isArray } from 'lodash-es'
 
 const props = defineProps<{
   projectId: string
@@ -106,7 +107,7 @@ const toggleDialog = () => {
   showAutomateDialog.value = !showAutomateDialog.value
 }
 
-const { mutate } = provideApolloClient(activeAccount.value.client)(() =>
+const { mutate } = provideApolloClient((activeAccount.value as DUIAccount).client)(() =>
   useMutation(createAutomationMutation)
 )
 

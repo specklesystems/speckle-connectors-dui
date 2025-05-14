@@ -79,7 +79,7 @@
       </p>
     </div>
     <FormButton
-      color="card"
+      :color="'outline'"
       full-width
       class="sticky top-10 top-16"
       @click="runTests()"

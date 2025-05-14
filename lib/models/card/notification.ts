@@ -1,9 +1,11 @@
-import type { ConversionResult } from 'lib/conversions/conversionResult'
+import type { ConversionResult } from '~/lib/conversions/conversionResult'
+
+export type ModelCardNotificationLevel = 'info' | 'danger' | 'warning' | 'success'
 
 export type ModelCardNotification = {
   modelCardId: string
   text: string
-  level: 'info' | 'danger' | 'warning' | 'success'
+  level: ModelCardNotificationLevel
   cta?: {
     name: string
     action: () => void

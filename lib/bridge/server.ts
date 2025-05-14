@@ -189,7 +189,7 @@ export class ArchicadBridge {
     const body: ArchicadReceiveRequest = {
       accountId: eventPayload.accountId,
       projectId: eventPayload.projectId,
-      referencedObject: result.data.project.model.version.referencedObject,
+      referencedObject: result.data.project.model.version.referencedObject as string,
       xmlConverterPath: eventPayload.xmlConverterPath
     }
 
@@ -272,7 +272,7 @@ export class ArchicadBridge {
       serverUrl: account?.accountInfo.serverInfo.url as string,
       token: account?.accountInfo.token as string,
       streamId: eventPayload.projectId,
-      objectId: result.data.project.model.version.referencedObject
+      objectId: result.data.project.model.version.referencedObject as string
     })
 
     const updateProgress = (e: {
@@ -313,7 +313,7 @@ export class ArchicadBridge {
     })
 
     // CONVERSION WILL START AFTER THAT
-    await runMethod('afterGetObjects', args as unknown as unknown[])
+    await runMethod('afterGetObjects', args as unknown as unknown[], false)
   }
 
   private queuedPromises = {} as Record<string, Promise<Response>[]>
@@ -373,7 +373,7 @@ export class ArchicadBridge {
       this.queuedPromises[modelCardId] = []
       console.log(`🚀 Upload is completed in ${(performance.now() - start) / 1000} s!`)
       const args = [eventPayload.modelCardId, referencedObjectId]
-      await runMethod('afterSendObjects', args as unknown as unknown[])
+      await runMethod('afterSendObjects', args as unknown as unknown[], false)
     }
   }
 

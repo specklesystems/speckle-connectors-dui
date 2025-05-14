@@ -13,7 +13,7 @@
       mount-menu-on-body
     >
       <template #something-selected="{ value }">
-        <span>{{ value.name }}</span>
+        <span>{{ isArray(value) ? value[0].name : value.name }}</span>
       </template>
       <template #option="{ item }">
         <div
@@ -44,9 +44,10 @@
 import { ref, computed } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
 import { workspacesListQuery } from '~/lib/graphql/mutationsAndQueries'
-import type { WorkspaceListWorkspaceItemFragment } from 'lib/common/generated/gql/graphql'
+import type { WorkspaceListWorkspaceItemFragment } from '~/lib/common/generated/gql/graphql'
 import { storeToRefs } from 'pinia'
 import { useAccountStore } from '~/store/accounts'
+import { isArray } from 'lodash-es'
 
 const emit = defineEmits<{
   (
@@ -69,7 +70,11 @@ const { result: workspacesResult } = useQuery(
       search: (searchText.value || '').trim() || null
     }
   }),
-  () => ({ clientId: accountId.value, debounce: 500, fetchPolicy: 'network-only' })
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
 )
 
 const workspaces = computed(() => workspacesResult.value?.activeUser?.workspaces.items)

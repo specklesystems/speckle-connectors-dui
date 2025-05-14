@@ -329,6 +329,7 @@ onUnmounted(() => {
 html.dialog-open {
   overflow: visible !important;
 }
+
 html.dialog-open body {
   overflow: hidden !important;
 }
