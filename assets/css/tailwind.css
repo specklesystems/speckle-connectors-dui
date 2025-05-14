@@ -1,5 +1,6 @@
 /* stylelint-disable selector-id-pattern */
-@import '@speckle/ui-components/style.css';
+@import url('@speckle/ui-components/style.css');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

@@ -1,9 +1,5 @@
 module.exports = {
-  extends: [
-    'stylelint-config-standard',
-    'stylelint-config-recommended-vue',
-    'stylelint-config-prettier'
-  ],
+  extends: ['stylelint-config-standard', 'stylelint-config-recommended-vue'],
   // add your custom config here
   // https://stylelint.io/user-guide/configuration
   rules: {
@@ -14,7 +10,7 @@ module.exports = {
         ignoreAtRules: ['tailwind', 'apply', 'variants', 'responsive', 'screen']
       }
     ],
-    'declaration-block-trailing-semicolon': null,
+    'at-rule-no-deprecated': [true, { ignoreAtRules: ['apply'] }],
     'no-descending-specificity': null
   },
   overrides: [
