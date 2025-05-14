@@ -14713,7 +14713,6 @@ __metadata:
     postcss-nesting: "npm:^13.0.1"
     prettier: "npm:^2.8.7"
     stylelint: "npm:^16.19.1"
-    stylelint-config-prettier: "npm:^9.0.5"
     stylelint-config-recommended-vue: "npm:^1.6.0"
     stylelint-config-standard: "npm:^38.0.0"
     subscriptions-transport-ws: "npm:^0.11.0"
@@ -14940,18 +14939,6 @@ __metadata:
     postcss-html: ^1.0.0
     stylelint: ">=14.0.0"
   checksum: 10c0/7af0875554608fd17cf04b5ede54186123f7cd2d94a41e79bb3d67796a1a643ce543f1248cec8122a5551f93d59ef0ebec44169779a06a6812b49294439ce8e0
-  languageName: node
-  linkType: hard
-
-"stylelint-config-prettier@npm:^9.0.5":
-  version: 9.0.5
-  resolution: "stylelint-config-prettier@npm:9.0.5"
-  peerDependencies:
-    stylelint: ">= 11.x < 15"
-  bin:
-    stylelint-config-prettier: bin/check.js
-    stylelint-config-prettier-check: bin/check.js
-  checksum: 10c0/4fb049b3ea00a9fff009b83583d42b7c76978d1befe8e3132ab2722deb25601931b076902a2fab4d4570ece03ec0cb8ba062cc59a9440251a32eb71d1b29803c
   languageName: node
   linkType: hard
 
