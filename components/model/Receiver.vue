@@ -19,7 +19,7 @@
         color="subtle"
         class="block text-foreground-2 hover:text-foreground overflow-hidden max-w-full !justify-start"
         full-width
-        :disabled="!!modelCard.progress || noReadAccess"
+        :disabled="!!modelCard.progress || !canEdit"
         @click.stop="openVersionsDialog = true"
       >
         <span>
@@ -267,10 +267,6 @@ const latestVersionCreatedAt = computed(() => {
   // eslint-disable-next-line @typescript-eslint/no-unused-expressions
   createdAgoUpdater.value
   return dayjs(props.modelCard.latestVersionCreatedAt).from(dayjs())
-})
-
-const noReadAccess = computed(() => {
-  return props.canEdit
 })
 
 onMounted(() => {
