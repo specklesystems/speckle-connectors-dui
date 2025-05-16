@@ -18,18 +18,24 @@
         </div>
       </div>
 
-      <div class="opacity-0 group-hover:opacity-100 transition flex">
+      <div
+        :class="
+          isPersonalProject ? '' : 'opacity-0 group-hover:opacity-100 transition flex'
+        "
+      >
         <button
-          v-tippy="'Open project in browser'"
-          class="hover:text-primary flex items-center space-x-2 p-2"
+          v-tippy="projectNavigatorTippy"
+          class="hover:text-primary flex items-center space-x-2 p-2 relative animate-pulse"
         >
-          <ArrowTopRightOnSquareIcon
-            class="w-4"
-            @click.stop="
-              $openUrl(projectUrl),
-                trackEvent('DUI3 Action', { name: 'Project View' }, project.accountId)
-            "
-          />
+          <div class="relative w-4 h-4">
+            <ArrowTopRightOnSquareIcon
+              class="w-4 h-4"
+              @click.stop="
+                $openUrl(projectUrl),
+                  trackEvent('DUI3 Action', { name: 'Project View' }, project.accountId)
+              "
+            />
+          </div>
         </button>
       </div>
     </button>
@@ -128,6 +134,13 @@ const projectIsAccesible = ref<boolean | undefined>(undefined)
 
 const projectAccount = computed(() =>
   accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
+)
+
+const isPersonalProject = computed(() => !projectDetails.value?.workspace)
+const projectNavigatorTippy = computed(() =>
+  isPersonalProject.value
+    ? 'Move personal project into a workspace'
+    : 'Open project in browser'
 )
 
 const clientId = projectAccount.value.accountInfo.id

@@ -6,6 +6,7 @@
         class="flex items-center space-x-2 bg-foundation -mx-3 -mt-2 px-3 py-2 shadow-sm border-b"
       >
         <div class="flex-grow min-w-0">
+          <!-- NO WORKSPACE YET -->
           <div v-if="workspaces.length === 0">
             <FormButton
               full-width
@@ -50,16 +51,6 @@
           />
         </div>
       </div>
-      <!-- we can message to user about the non-workspace scenario -->
-      <!-- <div v-if="workspaces && workspaces.length === 0">
-        <CommonAlert size="xs" :color="'warning'">
-          <template #description>
-            You are listing legacy personal projects which will be deprecated end of
-            2025. We suggest you to move your personal projects into a workspace before
-            then.
-          </template>
-        </CommonAlert>
-      </div> -->
       <div class="space-y-2">
         <div class="flex items-center space-x-1 justify-between">
           <FormTextInput
@@ -109,6 +100,16 @@
               />
             </div>
           </div>
+        </div>
+        <div v-if="isPersonalProjectsAsWorkspace">
+          <!-- <CommonAlert size="xs" :color="'warning'">
+            <template #description>
+              You are listing legacy personal projects which will be deprecated end of
+              2025. We suggest you to move your personal projects into a workspace
+              before then.
+            </template>
+          </CommonAlert> -->
+          <WizardPersonalProjectsWarning />
         </div>
         <CommonLoadingBar v-if="loading" loading />
       </div>
@@ -255,13 +256,28 @@ const activeWorkspace = computed(() => {
       return previouslySelectedWorkspace
     }
   }
-  // fallback to activeWorkspace query result
-  return activeWorkspaceResult.value?.activeUser
+
+  const activeWorkspace = activeWorkspaceResult.value?.activeUser
     ?.activeWorkspace as WorkspaceListWorkspaceItemFragment
+
+  // fallback to activeWorkspace query result
+  if (activeWorkspace) {
+    return activeWorkspace
+  }
+
+  // if activeWorkspace is null will mean that it is personal projects - this fallback wont be the case soon
+  return {
+    id: 'personalProject',
+    name: 'Personal Projects'
+  } as WorkspaceListWorkspaceItemFragment
 })
 
 const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment | undefined>(
   activeWorkspace.value
+)
+
+const isPersonalProjectsAsWorkspace = computed(
+  () => selectedWorkspace.value?.id === 'personalProject'
 )
 
 watch(
@@ -332,12 +348,11 @@ const {
     limit: 10, // stupid hack, increased it since we do manual filter to be able to see more project, see below TODO note, once we have `personalOnly` filter, decrease back to 10
     filter: {
       search: (searchText.value || '').trim() || null,
-      workspaceId:
-        selectedWorkspace.value?.id === 'personalProject'
-          ? null
-          : selectedWorkspace.value?.id,
+      workspaceId: isPersonalProjectsAsWorkspace.value
+        ? null
+        : selectedWorkspace.value?.id,
       includeImplicitAccess: true,
-      personalOnly: selectedWorkspace.value?.id === 'personalProject'
+      personalOnly: isPersonalProjectsAsWorkspace.value
     }
   }),
   () => ({
@@ -349,7 +364,7 @@ const {
 )
 
 const projects = computed(() =>
-  selectedWorkspace.value?.id === 'personalProject' // TODO: we need to replace this logic with `personalOnly` filter when it is implemented into app.speckle.systems
+  isPersonalProjectsAsWorkspace.value // TODO: we need to replace this logic with `personalOnly` filter when it is implemented into app.speckle.systems
     ? projectsResult.value?.activeUser?.projects.items.filter(
         (i) => i.workspaceId === null
       )
