@@ -1,7 +1,7 @@
 <template>
   <div>
     <div
-      class="px-3 py-1 rounded-md shadow transition overflow-hidden bg-foundation border-foundation-2 hover:shadow-md border-2 group"
+      class="px-3 py-1 rounded-md shadow transition overflow-hidden bg-foundation border-foundation-2 hover:shadow-md border-1 group"
     >
       <div class="flex flex-col sm:flex-row sm:gap-2 text-foreground">
         <div class="flex flex-col gap-4">
