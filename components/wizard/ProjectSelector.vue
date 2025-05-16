@@ -6,6 +6,7 @@
         class="flex items-center space-x-2 bg-foundation -mx-3 -mt-2 px-3 py-2 shadow-sm border-b"
       >
         <div class="flex-grow min-w-0">
+          <!-- NO WORKSPACE YET -->
           <div v-if="workspaces.length === 0">
             <FormButton
               full-width
@@ -255,9 +256,20 @@ const activeWorkspace = computed(() => {
       return previouslySelectedWorkspace
     }
   }
-  // fallback to activeWorkspace query result
-  return activeWorkspaceResult.value?.activeUser
+
+  const activeWorkspace = activeWorkspaceResult.value?.activeUser
     ?.activeWorkspace as WorkspaceListWorkspaceItemFragment
+
+  // fallback to activeWorkspace query result
+  if (activeWorkspace) {
+    return activeWorkspace
+  }
+
+  // if activeWorkspace is null will mean that it is personal projects - this fallback wont be the case soon
+  return {
+    id: 'personalProject',
+    name: 'Personal Projects'
+  } as WorkspaceListWorkspaceItemFragment
 })
 
 const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment | undefined>(
