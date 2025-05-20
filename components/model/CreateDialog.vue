@@ -95,7 +95,7 @@ const hostAppStore = useHostAppStore()
 const { activeAccount } = storeToRefs(accountStore)
 
 const accountId = computed(() => activeAccount.value.accountInfo.id)
-const newModelName = ref<string>()
+const newModelName = ref<string>(hostAppStore.documentInfo?.name ?? 'unnamed model')
 const errorMessage = ref<WorkspacePermissionMessage>()
 
 const toggleDialog = () => {
