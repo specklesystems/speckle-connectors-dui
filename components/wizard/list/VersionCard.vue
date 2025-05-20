@@ -103,7 +103,6 @@
   </button>
 </template>
 <script setup lang="ts">
-import { CubeTransparentIcon } from '@heroicons/vue/20/solid'
 import { LockClosedIcon } from '@heroicons/vue/24/solid'
 import dayjs from 'dayjs'
 import type { SourceAppName } from '@speckle/shared'
