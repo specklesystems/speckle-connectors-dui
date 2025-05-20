@@ -161,7 +161,4 @@ const previewUrl = computedAsync(async () => {
 // })
 
 // const showCompatWarning = ref(false)
-onMounted(() => {
-  console.log(props.version)
-})
 </script>
