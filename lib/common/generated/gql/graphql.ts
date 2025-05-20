@@ -2022,6 +2022,8 @@ export type Project = {
   commentThreads: ProjectCommentCollection;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
+  /** Public project-level configuration for embedded viewer */
+  embedOptions: ProjectEmbedOptions;
   id: Scalars['ID']['output'];
   invitableCollaborators: WorkspaceCollaboratorCollection;
   /** Collaborators who have been invited, but not yet accepted. */
@@ -2060,7 +2062,7 @@ export type Project = {
   versions: VersionCollection;
   /** Return metadata about resources being requested in the viewer */
   viewerResources: Array<ViewerResourceGroup>;
-  visibility: SimpleProjectVisibility;
+  visibility: ProjectVisibility;
   webhooks: WebhookCollection;
   workspace?: Maybe<Workspace>;
   workspaceId?: Maybe<Scalars['String']['output']>;
@@ -2353,6 +2355,11 @@ export type ProjectCreateInput = {
   visibility?: InputMaybe<ProjectVisibility>;
 };
 
+export type ProjectEmbedOptions = {
+  __typename?: 'ProjectEmbedOptions';
+  hideSpeckleBranding: Scalars['Boolean']['output'];
+};
+
 export type ProjectFileImportUpdatedMessage = {
   __typename?: 'ProjectFileImportUpdatedMessage';
   /** Upload ID */
@@ -2573,6 +2580,7 @@ export type ProjectPermissionChecks = {
   canCreateComment: PermissionCheckResult;
   canCreateModel: PermissionCheckResult;
   canDelete: PermissionCheckResult;
+  canInvite: PermissionCheckResult;
   canLeave: PermissionCheckResult;
   canLoad: PermissionCheckResult;
   canMoveToWorkspace: PermissionCheckResult;
@@ -2671,9 +2679,14 @@ export enum ProjectVersionsUpdatedMessageType {
 }
 
 export enum ProjectVisibility {
+  /** Only accessible to explicit collaborators */
   Private = 'PRIVATE',
+  /** Accessible to everyone (even non-logged in users) */
   Public = 'PUBLIC',
-  Unlisted = 'UNLISTED'
+  /** Legacy - same as public */
+  Unlisted = 'UNLISTED',
+  /** Accessible to everyone in the project's workspace */
+  Workspace = 'WORKSPACE'
 }
 
 export type Query = {
@@ -3219,12 +3232,6 @@ export type SetPrimaryUserEmailInput = {
   id: Scalars['ID']['input'];
 };
 
-/** Visibility without the "discoverable" option */
-export enum SimpleProjectVisibility {
-  Private = 'PRIVATE',
-  Unlisted = 'UNLISTED'
-}
-
 export type SmartTextEditorValue = {
   __typename?: 'SmartTextEditorValue';
   /** File attachments, if any */
@@ -3300,6 +3307,7 @@ export type Stream = {
   /**
    * Whether the stream (if public) can be found on public stream exploration pages
    * and searches
+   * @deprecated Discoverability as a feature has been removed.
    */
   isDiscoverable: Scalars['Boolean']['output'];
   /** Whether the stream can be viewed by non-contributors */
@@ -4178,6 +4186,7 @@ export type UserUpdateInput = {
 };
 
 export type UserWorkspacesFilter = {
+  completed?: InputMaybe<Scalars['Boolean']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -4443,6 +4452,8 @@ export type Workspace = {
   domainBasedMembershipProtectionEnabled: Scalars['Boolean']['output'];
   /** Verified workspace domains */
   domains?: Maybe<Array<WorkspaceDomain>>;
+  /** Workspace-level configuration for models in embedded viewer */
+  embedOptions: WorkspaceEmbedOptions;
   hasAccessToFeature: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
   /** Only available to workspace owners/members */
@@ -4594,6 +4605,11 @@ export type WorkspaceDomainDeleteInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type WorkspaceEmbedOptions = {
+  __typename?: 'WorkspaceEmbedOptions';
+  hideSpeckleBranding: Scalars['Boolean']['output'];
+};
+
 export enum WorkspaceFeatureName {
   DomainBasedSecurityPolicies = 'domainBasedSecurityPolicies',
   OidcSso = 'oidcSso',
@@ -4721,7 +4737,6 @@ export type WorkspaceMutations = {
   /** Dismiss a workspace from the discoverable list, behind the scene a join request is created with the status "dismissed" */
   dismiss: Scalars['Boolean']['output'];
   invites: WorkspaceInviteMutations;
-  join: Workspace;
   leave: Scalars['Boolean']['output'];
   projects: WorkspaceProjectMutations;
   requestToJoin: Scalars['Boolean']['output'];
@@ -4729,6 +4744,7 @@ export type WorkspaceMutations = {
   setDefaultRegion: Workspace;
   update: Workspace;
   updateCreationState: Scalars['Boolean']['output'];
+  updateEmbedOptions: WorkspaceEmbedOptions;
   updateRole: Workspace;
   updateSeatType: Workspace;
 };
@@ -4764,11 +4780,6 @@ export type WorkspaceMutationsDismissArgs = {
 };
 
 
-export type WorkspaceMutationsJoinArgs = {
-  input: JoinWorkspaceInput;
-};
-
-
 export type WorkspaceMutationsLeaveArgs = {
   id: Scalars['ID']['input'];
 };
@@ -4792,6 +4803,11 @@ export type WorkspaceMutationsUpdateArgs = {
 
 export type WorkspaceMutationsUpdateCreationStateArgs = {
   input: WorkspaceCreationStateInput;
+};
+
+
+export type WorkspaceMutationsUpdateEmbedOptionsArgs = {
+  input: WorkspaceUpdateEmbedOptionsInput;
 };
 
 
@@ -4821,6 +4837,8 @@ export enum WorkspacePaymentMethod {
 export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
   canCreateProject: PermissionCheckResult;
+  canEditEmbedOptions: PermissionCheckResult;
+  canInvite: PermissionCheckResult;
   canMoveProjectToWorkspace: PermissionCheckResult;
 };
 
@@ -5052,6 +5070,11 @@ export type WorkspaceTeamFilter = {
   seatType?: InputMaybe<WorkspaceSeatType>;
 };
 
+export type WorkspaceUpdateEmbedOptionsInput = {
+  hideSpeckleBranding: Scalars['Boolean']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
 export type WorkspaceUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   discoverabilityEnabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -5076,11 +5099,6 @@ export type WorkspaceUpdatedMessage = {
   /** Workspace itself */
   workspace: Workspace;
 };
-
-export type AcccountTestQueryQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type AcccountTestQueryQuery = { __typename?: 'Query', serverInfo: { __typename?: 'ServerInfo', version?: string | null, name: string, company?: string | null } };
 
 export type SetActiveWorkspaceMutationMutationVariables = Exact<{
   slug?: InputMaybe<Scalars['String']['input']>;
@@ -5254,7 +5272,7 @@ export type ProjectDetailsQueryVariables = Exact<{
 }>;
 
 
-export type ProjectDetailsQuery = { __typename?: 'Query', project: { __typename?: 'Project', id: string, role?: string | null, name: string, visibility: SimpleProjectVisibility, workspace?: { __typename?: 'Workspace', name: string, slug: string, readOnly: boolean, role?: string | null } | null, team: Array<{ __typename?: 'ProjectCollaborator', user: { __typename?: 'LimitedUser', avatar?: string | null, id: string, name: string } }>, permissions: { __typename?: 'ProjectPermissionChecks', canLoad: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canPublish: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string } } } };
+export type ProjectDetailsQuery = { __typename?: 'Query', project: { __typename?: 'Project', id: string, role?: string | null, name: string, visibility: ProjectVisibility, workspace?: { __typename?: 'Workspace', name: string, slug: string, readOnly: boolean, role?: string | null } | null, team: Array<{ __typename?: 'ProjectCollaborator', user: { __typename?: 'LimitedUser', avatar?: string | null, id: string, name: string } }>, permissions: { __typename?: 'ProjectPermissionChecks', canLoad: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canPublish: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string } } } };
 
 export type AutomateFunctionsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -5300,14 +5318,14 @@ export type ProjectTriggeredAutomationsStatusUpdatedSubscription = { __typename?
 export type OnUserProjectsUpdatedSubscriptionVariables = Exact<{ [key: string]: never; }>;
 
 
-export type OnUserProjectsUpdatedSubscription = { __typename?: 'Subscription', userProjectsUpdated: { __typename?: 'UserProjectsUpdatedMessage', id: string, project?: { __typename?: 'Project', id: string, visibility: SimpleProjectVisibility, team: Array<{ __typename?: 'ProjectCollaborator', id: string, role: string }> } | null } };
+export type OnUserProjectsUpdatedSubscription = { __typename?: 'Subscription', userProjectsUpdated: { __typename?: 'UserProjectsUpdatedMessage', id: string, project?: { __typename?: 'Project', id: string, visibility: ProjectVisibility, team: Array<{ __typename?: 'ProjectCollaborator', id: string, role: string }> } | null } };
 
 export type ProjectUpdatedSubscriptionVariables = Exact<{
   projectId: Scalars['String']['input'];
 }>;
 
 
-export type ProjectUpdatedSubscription = { __typename?: 'Subscription', projectUpdated: { __typename?: 'ProjectUpdatedMessage', id: string, project?: { __typename?: 'Project', visibility: SimpleProjectVisibility } | null } };
+export type ProjectUpdatedSubscription = { __typename?: 'Subscription', projectUpdated: { __typename?: 'ProjectUpdatedMessage', id: string, project?: { __typename?: 'Project', visibility: ProjectVisibility } | null } };
 
 export type SubscriptionSubscriptionVariables = Exact<{
   target: ViewerUpdateTrackingTarget;
@@ -5330,7 +5348,6 @@ export const AutomationRunItemFragmentDoc = {"kind":"Document","definitions":[{"
 export const ProjectListProjectItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ProjectListProjectItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Project"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"workspaceId"}},{"kind":"Field","name":{"kind":"Name","value":"workspace"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"role"}}]}},{"kind":"Field","name":{"kind":"Name","value":"models"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}}]}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canLoad"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canPublish"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]} as unknown as DocumentNode<ProjectListProjectItemFragment, unknown>;
 export const VersionListItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VersionListItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Version"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"referencedObject"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"sourceApplication"}},{"kind":"Field","name":{"kind":"Name","value":"authorUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"previewUrl"}}]}}]} as unknown as DocumentNode<VersionListItemFragment, unknown>;
 export const ModelListModelItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"ModelListModelItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Model"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"displayName"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"previewUrl"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"versions"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"IntValue","value":"1"}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"VersionListItem"}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"VersionListItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Version"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"referencedObject"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"sourceApplication"}},{"kind":"Field","name":{"kind":"Name","value":"authorUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"previewUrl"}}]}}]} as unknown as DocumentNode<ModelListModelItemFragment, unknown>;
-export const AcccountTestQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"AcccountTestQuery"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"serverInfo"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"version"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"company"}}]}}]}}]} as unknown as DocumentNode<AcccountTestQueryQuery, AcccountTestQueryQueryVariables>;
 export const SetActiveWorkspaceMutationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"SetActiveWorkspaceMutation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"slug"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeUserMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"setActiveWorkspace"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"slug"},"value":{"kind":"Variable","name":{"kind":"Name","value":"slug"}}}]}]}}]}}]} as unknown as DocumentNode<SetActiveWorkspaceMutationMutation, SetActiveWorkspaceMutationMutationVariables>;
 export const VersionMutationsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"VersionMutations"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"CreateVersionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"versionMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"create"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]} as unknown as DocumentNode<VersionMutationsMutation, VersionMutationsMutationVariables>;
 export const MarkReceivedVersionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"MarkReceivedVersion"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"MarkReceivedVersionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"versionMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"markReceived"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]}}]} as unknown as DocumentNode<MarkReceivedVersionMutation, MarkReceivedVersionMutationVariables>;
