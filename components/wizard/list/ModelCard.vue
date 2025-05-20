@@ -4,7 +4,13 @@
   >
     <div class="flex items-center space-x-2 max-[275px]:space-x-0">
       <div class="max-[275px]:hidden">
-        <div v-if="previewUrl" class="h-12 w-12">
+        <div
+          v-if="model.versions.totalCount === 0"
+          class="h-12 w-12 bg-blue-500/10 rounded flex items-center justify-center"
+        >
+          <CubeTransparentIcon class="w-5 h-5 text-foreground-2" />
+        </div>
+        <div v-else-if="previewUrl" class="h-12 w-12">
           <img
             :src="previewUrl"
             alt="preview image for model"
@@ -47,6 +53,7 @@
 </template>
 <script setup lang="ts">
 import dayjs from 'dayjs'
+import { CubeTransparentIcon } from '@heroicons/vue/20/solid'
 import { ClockIcon } from '@heroicons/vue/24/outline'
 import type { SourceAppName } from '@speckle/shared'
 import { SourceApps } from '@speckle/shared'
