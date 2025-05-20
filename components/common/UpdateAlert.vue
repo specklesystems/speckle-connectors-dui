@@ -7,7 +7,7 @@
     color="neutral"
     size="xs"
     hide-icon
-    class="mb-2 mt-1"
+    class="mt-1"
   >
     <template #description>
       <div class="flex items-center">
