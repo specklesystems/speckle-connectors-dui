@@ -68,8 +68,9 @@ const folderPath = computed(() => {
 const updatedAgo = computed(() => {
   return dayjs(props.model.updatedAt).from(dayjs())
 })
-const previewImage = ref(null) // will hold a blob: URL
+const previewImage = ref<string | undefined>(undefined) // will hold a blob: URL
 async function loadPreview() {
+  if (!props.model.previewUrl) return
   const res = await fetch(props.model.previewUrl, {
     headers: { Authorization: `Bearer ${props.token}` }
   })
