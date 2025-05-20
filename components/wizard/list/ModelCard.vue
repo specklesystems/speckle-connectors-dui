@@ -4,9 +4,9 @@
   >
     <div class="flex items-center space-x-2 max-[275px]:space-x-0">
       <div class="max-[275px]:hidden">
-        <div v-if="model.previewUrl" class="h-12 w-12">
+        <div v-if="previewImage" class="h-12 w-12">
           <img
-            :src="model.previewUrl"
+            :src="previewImage"
             alt="preview image for model"
             class="h-12 w-12 object-cover"
           />
@@ -55,6 +55,7 @@ import type { ModelListModelItemFragment } from '~/lib/common/generated/gql/grap
 
 const props = defineProps<{
   model: ModelListModelItemFragment
+  token: string
 }>()
 
 const folderPath = computed(() => {
@@ -67,6 +68,17 @@ const folderPath = computed(() => {
 const updatedAgo = computed(() => {
   return dayjs(props.model.updatedAt).from(dayjs())
 })
+const previewImage = ref(null) // will hold a blob: URL
+async function loadPreview() {
+  const res = await fetch(props.model.previewUrl, {
+    headers: { Authorization: `Bearer ${props.token}` }
+  })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+
+  const blob = await res.blob() // binary data
+  const url = URL.createObjectURL(blob) // turn it into blob:... :contentReference[oaicite:1]{index=1}
+  previewImage.value = url
+}
 
 const sourceApp = computed(() => {
   if (props.model.versions.items.length === 0) return
@@ -83,4 +95,5 @@ const sourceApp = computed(() => {
     }
   )
 })
+onMounted(loadPreview)
 </script>
