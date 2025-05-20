@@ -24,7 +24,15 @@
       </div>
     </div>
     <div v-else class="flex items-center justify-center w-full h-24">
-      <img :src="version.previewUrl" alt="version preview" />
+      <div v-if="previewUrl">
+        <img :src="previewUrl" alt="preview image for version" />
+      </div>
+      <div
+        v-else
+        class="h-12 w-12 bg-blue-500/10 rounded flex items-center justify-center"
+      >
+        <CommonLoadingIcon />
+      </div>
     </div>
     <div class="p-1.5 border-t dark:border-gray-700">
       <div class="flex space-x-2 items-center min-w-0">
@@ -95,13 +103,19 @@
   </button>
 </template>
 <script setup lang="ts">
+import { CubeTransparentIcon } from '@heroicons/vue/20/solid'
 import { LockClosedIcon } from '@heroicons/vue/24/solid'
 import dayjs from 'dayjs'
 import type { SourceAppName } from '@speckle/shared'
 import { SourceApps } from '@speckle/shared'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
+import { useAccountStore, type DUIAccount } from '~/store/accounts'
+import { computedAsync } from '@vueuse/core'
+import { usePreviewUrl } from '~/lib/core/composables/previewUrl'
 // import { objectQuery } from '~/lib/graphql/mutationsAndQueries'
 // import { useQuery } from '@vue/apollo-composable'
+
+const accountStore = useAccountStore()
 
 const props = defineProps<{
   version: VersionListItemFragment
@@ -120,6 +134,18 @@ const createdAgo = computed(() => {
 
 const isLimited = computed(() => props.version.referencedObject === null)
 
+const token = computed(() => {
+  const account = accountStore.accounts.find(
+    (acc) => acc.accountInfo.id === props.accountId
+  ) as DUIAccount
+  return account.accountInfo.token
+})
+
+const previewUrl = computedAsync(async () => {
+  if (props.version.previewUrl === null) return
+  return await usePreviewUrl(token.value, props.version.previewUrl)
+})
+
 // NOTE!!!: This logic somehow caused regression on versionList fetchMore, but we do not know exactly why yet.
 // const { result: objectQueryResult } = useQuery(
 //   objectQuery,
@@ -136,4 +162,7 @@ const isLimited = computed(() => props.version.referencedObject === null)
 // })
 
 // const showCompatWarning = ref(false)
+onMounted(() => {
+  console.log(props.version)
+})
 </script>

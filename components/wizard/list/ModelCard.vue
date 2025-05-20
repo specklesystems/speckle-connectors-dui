@@ -4,9 +4,9 @@
   >
     <div class="flex items-center space-x-2 max-[275px]:space-x-0">
       <div class="max-[275px]:hidden">
-        <div v-if="previewImage" class="h-12 w-12">
+        <div v-if="previewUrl" class="h-12 w-12">
           <img
-            :src="previewImage"
+            :src="previewUrl"
             alt="preview image for model"
             class="h-12 w-12 object-cover"
           />
@@ -15,7 +15,7 @@
           v-else
           class="h-12 w-12 bg-blue-500/10 rounded flex items-center justify-center"
         >
-          <CubeTransparentIcon class="w-5 h-5 text-foreground-2" />
+          <CommonLoadingIcon />
         </div>
       </div>
       <div class="min-w-0 w-full">
@@ -47,14 +47,19 @@
 </template>
 <script setup lang="ts">
 import dayjs from 'dayjs'
-import { CubeTransparentIcon } from '@heroicons/vue/20/solid'
 import { ClockIcon } from '@heroicons/vue/24/outline'
 import type { SourceAppName } from '@speckle/shared'
 import { SourceApps } from '@speckle/shared'
 import type { ModelListModelItemFragment } from '~/lib/common/generated/gql/graphql'
+import { computedAsync } from '@vueuse/core'
+import { usePreviewUrl } from '~/lib/core/composables/previewUrl'
 
 const props = defineProps<{
   model: ModelListModelItemFragment
+  /**
+   * Token to retrieve preview url
+   * @note by convention we pass around `accountId` but it doesn't make sense to get token for every model card. more efficient with this way.
+   */
   token: string
 }>()
 
@@ -68,18 +73,11 @@ const folderPath = computed(() => {
 const updatedAgo = computed(() => {
   return dayjs(props.model.updatedAt).from(dayjs())
 })
-const previewImage = ref<string | undefined>(undefined) // will hold a blob: URL
-async function loadPreview() {
-  if (!props.model.previewUrl) return
-  const res = await fetch(props.model.previewUrl, {
-    headers: { Authorization: `Bearer ${props.token}` }
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status}`)
 
-  const blob = await res.blob() // binary data
-  const url = URL.createObjectURL(blob) // turn it into blob:... :contentReference[oaicite:1]{index=1}
-  previewImage.value = url
-}
+const previewUrl = computedAsync(async () => {
+  if (props.model.previewUrl === null) return
+  return await usePreviewUrl(props.token, props.model.previewUrl)
+})
 
 const sourceApp = computed(() => {
   if (props.model.versions.items.length === 0) return
@@ -96,5 +94,4 @@ const sourceApp = computed(() => {
     }
   )
 })
-onMounted(loadPreview)
 </script>
