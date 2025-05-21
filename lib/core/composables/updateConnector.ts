@@ -1,6 +1,5 @@
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
-import { useConfigStore } from '~/store/config'
 import { useHostAppStore } from '~/store/hostApp'
 
 type Versions = {
@@ -18,31 +17,13 @@ export type Version = {
 
 export function useUpdateConnector() {
   const hostApp = useHostAppStore()
-  const config = useConfigStore()
-  const { $openUrl } = useNuxtApp()
 
   const versions = ref<Version[]>([])
   const latestAvailableVersion = ref<Version | null>(null)
 
-  const isUpToDate = computed(
-    () => hostApp.connectorVersion === latestAvailableVersion.value?.Number
-  )
-
   async function checkUpdate() {
     try {
       await getVersions()
-      if (!isUpToDate.value && !config.isDevMode) {
-        const notification: ToastNotification = {
-          type: ToastNotificationType.Success,
-          title: `New connector update available`,
-          description: latestAvailableVersion.value?.Number.replace('+0', ''), // TODO: currently versions end with "+0" Alan will have a look
-          cta: {
-            title: `Update`,
-            onClick: () => downloadLatestVersion()
-          }
-        }
-        hostApp.setNotification(notification)
-      }
     } catch (e) {
       console.error(e)
       const notification: ToastNotification = {
@@ -72,10 +53,6 @@ export function useUpdateConnector() {
     versions.value = sortedVersions
     latestAvailableVersion.value = sortedVersions[0]
     hostApp.setLatestAvailableVersion(sortedVersions[0])
-  }
-
-  function downloadLatestVersion() {
-    $openUrl(latestAvailableVersion.value?.Url as string)
   }
 
   return { checkUpdate }

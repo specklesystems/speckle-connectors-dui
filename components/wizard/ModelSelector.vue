@@ -55,6 +55,7 @@
           v-for="model in models"
           :key="model.id"
           :model="model"
+          :token="token"
           @click="handleModelSelect(model)"
         />
 
@@ -296,6 +297,12 @@ const {
   () => ({ clientId: props.accountId, debounce: 500, fetchPolicy: 'cache-and-network' })
 )
 
+const token = computed(() => {
+  const account = accountStore.accounts.find(
+    (acc) => acc.accountInfo.id === props.accountId
+  ) as DUIAccount
+  return account.accountInfo.token
+})
 const models = computed(() => projectModelsResult.value?.project.models.items)
 const totalCount = computed(() => projectModelsResult.value?.project.models.totalCount)
 const hasReachedEnd = ref(false)
