@@ -14,7 +14,7 @@
         @select="
           $emit('workspace:selected', workspace), (showWorkspaceSelectorDialog = false)
         "
-      ></WorkspaceListItem>
+      />
     </CommonDialog>
   </div>
 </template>
