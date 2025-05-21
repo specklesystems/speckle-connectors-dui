@@ -508,10 +508,6 @@ const isCreatingProject = ref(false)
 const showProjectCreateDialog = ref(false)
 
 const createProject = (name: string) => {
-  console.log(name)
-  // console.log(canCreateProject.value)
-  // console.log(canCreateProjectPermissionCheck.value)
-
   if (
     canCreateProjectPermissionCheck.value &&
     !canCreateProjectPermissionCheck.value.authorized
@@ -538,7 +534,6 @@ const account = computed(() => {
 })
 
 const createNewWorkspaceProject = async (name: string) => {
-  console.log('creating workspace project')
   isCreatingProject.value = true
   void trackEvent(
     'DUI3 Action',
@@ -568,7 +563,6 @@ const createNewWorkspaceProject = async (name: string) => {
 }
 
 const createNewPersonalProject = async (name: string) => {
-  console.log('creating personal project')
   isCreatingProject.value = true
 
   void trackEvent(
