@@ -125,11 +125,13 @@
             !canCreateProjectPermissionCheck.authorized
           "
         >
-          <CommonAlert title="Cannot create new projects" color="warning" hide-icon>
+          <CommonAlert color="info" hide-icon>
             <template #description>
               {{ canCreateProjectPermissionCheck.message }}
               <FormButton
                 v-if="showUpgradeButton"
+                full-width
+                class="mt-2"
                 color="outline"
                 size="sm"
                 @click="upgradeButtonAction()"
