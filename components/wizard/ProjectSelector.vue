@@ -119,7 +119,6 @@
             </div>
           </div>
         </div>
-        <!-- <div>{{ isPersonalProjectsAsWorkspace }}</div> -->
         <div
           v-if="
             canCreateProjectPermissionCheck &&
@@ -129,9 +128,6 @@
           <CommonAlert title="Cannot create new projects" color="warning" hide-icon>
             <template #description>
               {{ canCreateProjectPermissionCheck.message }}
-              <!-- <br />
-              {{ canCreateProjectPermissionCheck.code }}
-              <br /> -->
               <FormButton
                 v-if="showUpgradeButton"
                 color="outline"
@@ -143,17 +139,10 @@
             </template>
           </CommonAlert>
         </div>
-        <div v-if="isPersonalProjectsAsWorkspace">
-          <!-- <CommonAlert size="xs" :color="'warning'">
-            <template #description>
-              You are listing legacy personal projects which will be deprecated end of
-              2025. We suggest you to move your personal projects into a workspace
-              before then.
-            </template>
-          </CommonAlert> -->
-          <WizardPersonalProjectsWarning />
-        </div>
-        <CommonLoadingBar v-if="loading" loading />
+
+        <WizardPersonalProjectsWarning v-if="isPersonalProjectsAsWorkspace" />
+
+        <CommonLoadingBar v-if="loading || isCreatingProject" loading />
       </div>
       <div class="grid grid-cols-1 gap-2 relative z-0">
         <WizardListProjectCard
