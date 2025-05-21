@@ -178,7 +178,7 @@ const expiredNotification = computed(() => {
   if (props.modelCard.latestVersionId === props.modelCard.selectedVersionId) return
   const notification = {} as ModelCardNotification
   notification.dismissible = true
-  notification.level = 'info'
+  notification.level = 'success'
   notification.text = 'Newer version available!'
   notification.cta = {
     name: 'Update',
@@ -203,13 +203,6 @@ const receiveResultNotificationText = computed(() => {
   return 'Model loaded!'
 })
 
-const receiveResultNotificationLevel = computed(() => {
-  if (failRate.value > 80) {
-    return 'warning'
-  }
-  return 'info'
-})
-
 const receiveResultNotification = computed(() => {
   if (
     !props.modelCard.bakedObjectIds ||
@@ -219,7 +212,7 @@ const receiveResultNotification = computed(() => {
 
   const notification = {} as ModelCardNotification
   notification.dismissible = true
-  notification.level = receiveResultNotificationLevel.value
+  notification.level = 'success'
   notification.text = receiveResultNotificationText.value
   notification.report = props.modelCard.report
   notification.cta = {
