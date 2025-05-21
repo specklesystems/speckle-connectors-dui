@@ -129,10 +129,17 @@
           <CommonAlert title="Cannot create new projects" color="warning" hide-icon>
             <template #description>
               {{ canCreateProjectPermissionCheck.message }}
-              <br />
+              <!-- <br />
               {{ canCreateProjectPermissionCheck.code }}
-              <br />
-              <FormButton color="outline" size="sm">Upgrade now</FormButton>
+              <br /> -->
+              <FormButton
+                v-if="showUpgradeButton"
+                color="outline"
+                size="sm"
+                @click="upgradeButtonAction()"
+              >
+                Upgrade now
+              </FormButton>
             </template>
           </CommonAlert>
         </div>
@@ -477,6 +484,35 @@ const canCreateProjectPermissionCheck = computed(() => {
       .canCreatePersonalProject
   }
   return null
+})
+
+const upgradeButtonAction = () => {
+  if (!canCreateProjectPermissionCheck.value) return
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat') {
+    // open url to workspace/settings/users
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/members`
+    )
+    return
+  }
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached') {
+    // open url to workspace/billing
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/billing`
+    )
+    return
+  }
+}
+
+const showUpgradeButton = computed(() => {
+  if (!canCreateProjectPermissionCheck.value) return false
+  if (
+    canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat' ||
+    canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached'
+  ) {
+    return true
+  }
+  return false
 })
 
 const isCreatingProject = ref(false)
