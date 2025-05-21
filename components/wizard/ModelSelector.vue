@@ -42,7 +42,7 @@
           <template #description>
             {{ canCreateModelResult.project.permissions.canCreateModel.message }}
 
-            <FormButton full-width color="outline" size="sm" class="mt-2">
+            <FormButton full-width color="primary" size="sm" class="mt-2">
               Explore Plans
             </FormButton>
           </template>
@@ -139,7 +139,9 @@
           <FormButton size="sm" text @click="showNewModelDialog = false">
             Cancel
           </FormButton>
-          <FormButton size="sm" submit :disabled="isCreatingModel">Create</FormButton>
+          <FormButton size="sm" submit :disabled="isCreatingModel || !newModelName">
+            Create
+          </FormButton>
         </div>
       </form>
     </CommonDialog>
@@ -158,7 +160,6 @@ import {
   createModelMutation,
   projectModelsQuery
 } from '~/lib/graphql/mutationsAndQueries'
-import { useForm } from 'vee-validate'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
@@ -189,9 +190,9 @@ const showNewModelDialog = ref(false)
 const showSelectionHasProblemsDialog = ref(false)
 
 const searchText = ref<string>()
-const newModelName = ref<string>()
+const newModelName = ref<string>(hostAppStore.documentInfo?.name ?? 'unnamed model')
 
-watch(searchText, () => (newModelName.value = searchText.value))
+watch(searchText, () => (newModelName.value = searchText.value as string))
 
 let selectedModel: ModelListModelItemFragment | undefined = undefined
 const existingModelProblem = ref(false)

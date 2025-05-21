@@ -105,7 +105,11 @@
                   <FormButton size="sm" text @click="showProjectCreateDialog = false">
                     Cancel
                   </FormButton>
-                  <FormButton size="sm" submit :disabled="isCreatingProject">
+                  <FormButton
+                    size="sm"
+                    submit
+                    :disabled="isCreatingProject || !newProjectName"
+                  >
                     Create
                   </FormButton>
                 </div>
@@ -132,7 +136,7 @@
                 v-if="showUpgradeButton"
                 full-width
                 class="mt-2"
-                color="outline"
+                color="primary"
                 size="sm"
                 @click="upgradeButtonAction()"
               >

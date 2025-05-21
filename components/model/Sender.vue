@@ -130,7 +130,7 @@ const expiredNotification = computed(() => {
 
   const notification = {} as ModelCardNotification
   notification.dismissible = false
-  notification.level = props.modelCard.progress ? 'info' : 'info'
+  notification.level = props.modelCard.progress ? 'info' : 'success'
   notification.text = props.modelCard.progress
     ? 'Model changed while publishing'
     : 'Out of sync with application'
@@ -185,7 +185,7 @@ const latestVersionNotification = computed(() => {
   if (!props.modelCard.latestCreatedVersionId) return
   const notification = {} as ModelCardNotification
   notification.dismissible = true
-  notification.level = sendResultNotificationLevel.value
+  notification.level = 'success'
   notification.text = sendResultNotificationText.value
   notification.report = props.modelCard.report
   notification.cta = {
