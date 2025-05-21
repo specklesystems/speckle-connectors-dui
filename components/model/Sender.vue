@@ -174,13 +174,6 @@ const sendResultNotificationText = computed(() => {
   return 'Version created!'
 })
 
-const sendResultNotificationLevel = computed(() => {
-  if (failRate.value > 80) {
-    return 'warning'
-  }
-  return 'info'
-})
-
 const latestVersionNotification = computed(() => {
   if (!props.modelCard.latestCreatedVersionId) return
   const notification = {} as ModelCardNotification
