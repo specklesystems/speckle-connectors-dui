@@ -677,7 +677,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     'documentChanged',
     () =>
       setTimeout(async () => {
-        void trackEvent('DUI3 Action', { name: 'Document changed' })
+        // void trackEvent('DUI3 Action', { name: 'Document changed' }) // noisy
         void refreshDocumentInfo()
         await refreshDocumentModelStore() // need to awaited since upgrading the card settings need documentModelStore in place
         void refreshSendFilters()
