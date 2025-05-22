@@ -63,36 +63,58 @@
             color="foundation"
           />
           <div class="flex justify-between items-center space-x-2">
-            <ProjectCreateWorkspaceDialog
-              v-if="selectedWorkspace && selectedWorkspace.id !== 'personalProject'"
-              :workspace="selectedWorkspace"
-              @project:created="(result : ProjectListProjectItemFragment) => handleProjectCreated(result)"
+            <div
+              v-tippy="
+                canCreateProject
+                  ? 'Create new project'
+                  : canCreateProjectPermissionCheck?.message
+              "
             >
-              <template #activator="{ toggle }">
-                <button
-                  v-tippy="'New project in workspace'"
-                  class="p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border"
-                  @click="toggle()"
-                >
-                  <PlusIcon class="w-4" />
-                </button>
-              </template>
-            </ProjectCreateWorkspaceDialog>
-            <!-- TODO: once we deprecate personal projects, else block is bye bye -->
-            <ProjectCreatePersonalDialog
-              v-else
-              @project:created="(result : ProjectListProjectItemFragment) => handleProjectCreated(result)"
+              <FormButton
+                color="outline"
+                :disabled="!canCreateProject"
+                :class="`p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border`"
+                @click="showProjectCreateDialog = true"
+              >
+                <PlusIcon class="w-4 -mx-2" />
+              </FormButton>
+            </div>
+            <CommonDialog
+              v-model:open="showProjectCreateDialog"
+              :title="`Create new project`"
+              fullscreen="none"
             >
-              <template #activator="{ toggle }">
-                <button
-                  v-tippy="'New personal project'"
-                  class="p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border"
-                  @click="toggle()"
-                >
-                  <PlusIcon class="w-4" />
-                </button>
-              </template>
-            </ProjectCreatePersonalDialog>
+              <form @submit="createProject(newProjectName as string)">
+                <div class="text-body-2xs mb-2 ml-1">Project name</div>
+                <FormTextInput
+                  v-model="newProjectName"
+                  class="text-xs"
+                  placeholder="A Beautiful Home, A Small Bridge..."
+                  autocomplete="off"
+                  name="name"
+                  label="Project name"
+                  color="foundation"
+                  :show-clear="!!newProjectName"
+                  :rules="[
+                    ValidationHelpers.isRequired,
+                    ValidationHelpers.isStringOfLength({ minLength: 3 })
+                  ]"
+                  full-width
+                />
+                <div class="mt-4 flex justify-end items-center space-x-2 w-full">
+                  <FormButton size="sm" text @click="showProjectCreateDialog = false">
+                    Cancel
+                  </FormButton>
+                  <FormButton
+                    size="sm"
+                    submit
+                    :disabled="isCreatingProject || !newProjectName"
+                  >
+                    Create
+                  </FormButton>
+                </div>
+              </form>
+            </CommonDialog>
             <div v-if="!workspacesEnabled || !workspaces" class="mt-1">
               <AccountsMenu
                 :current-selected-account-id="accountId"
@@ -101,17 +123,32 @@
             </div>
           </div>
         </div>
-        <div v-if="isPersonalProjectsAsWorkspace">
-          <!-- <CommonAlert size="xs" :color="'warning'">
+        <div
+          v-if="
+            canCreateProjectPermissionCheck &&
+            !canCreateProjectPermissionCheck.authorized
+          "
+        >
+          <CommonAlert color="info" hide-icon>
             <template #description>
-              You are listing legacy personal projects which will be deprecated end of
-              2025. We suggest you to move your personal projects into a workspace
-              before then.
+              {{ canCreateProjectPermissionCheck.message }}
+              <FormButton
+                v-if="showUpgradeButton"
+                full-width
+                class="mt-2"
+                color="primary"
+                size="sm"
+                @click="upgradeButtonAction()"
+              >
+                Upgrade now
+              </FormButton>
             </template>
-          </CommonAlert> -->
-          <WizardPersonalProjectsWarning />
+          </CommonAlert>
         </div>
-        <CommonLoadingBar v-if="loading" loading />
+
+        <WizardPersonalProjectsWarning v-if="isPersonalProjectsAsWorkspace" />
+
+        <CommonLoadingBar v-if="loading || isCreatingProject" loading />
       </div>
       <div class="grid grid-cols-1 gap-2 relative z-0">
         <WizardListProjectCard
@@ -121,7 +158,24 @@
           :is-sender="isSender"
           @click="handleProjectCardClick(project)"
         />
+        <p v-if="projects?.length === 0 && !!searchText" class="text-sm">
+          No projects found
+        </p>
         <FormButton
+          v-if="
+            projects?.length === 0 &&
+            !!searchText &&
+            canCreateProjectPermissionCheck?.authorized
+          "
+          full-width
+          color="outline"
+          :disabled="isCreatingProject"
+          @click="createProject(searchText)"
+        >
+          Create "{{ searchText }}"
+        </FormButton>
+        <FormButton
+          v-else
           full-width
           :disabled="hasReachedEnd"
           color="outline"
@@ -141,19 +195,25 @@ import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import {
   activeWorkspaceQuery,
+  canCreatePersonalProjectQuery,
+  createProjectInWorkspaceMutation,
+  createProjectMutation,
   projectsListQuery,
   serverInfoQuery,
   setActiveWorkspaceMutation,
   workspacesListQuery
 } from '~/lib/graphql/mutationsAndQueries'
 import { useMutation, provideApolloClient, useQuery } from '@vue/apollo-composable'
+import { ValidationHelpers } from '@speckle/ui-components'
 import type {
   ProjectListProjectItemFragment,
   WorkspaceListWorkspaceItemFragment
 } from '~/lib/common/generated/gql/graphql'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
+import { useHostAppStore } from '~/store/hostApp'
 
+const hostAppStore = useHostAppStore()
 const { trackEvent } = useMixpanel()
 const { $openUrl } = useNuxtApp()
 
@@ -387,6 +447,156 @@ watch(projectsResult, (newVal) => {
     hasReachedEnd.value = false
   }
 })
+
+const { result: canCreatePersonalProjectResult } = useQuery(
+  canCreatePersonalProjectQuery,
+  {},
+  () => ({
+    clientId: accountId.value
+  })
+)
+
+const canCreateProject = computed(() => {
+  // If a workspace is selected, return that permission check
+  if (selectedWorkspace.value && selectedWorkspace.value.permissions) {
+    return selectedWorkspace.value.permissions.canCreateProject.authorized //as boolean
+  }
+  // Otherwise, check for personal projects
+  if (canCreatePersonalProjectResult) {
+    return canCreatePersonalProjectResult.value?.activeUser?.permissions
+      .canCreatePersonalProject.authorized
+  }
+  // To be always safe, default to false
+  return false
+})
+
+const canCreateProjectPermissionCheck = computed(() => {
+  if (selectedWorkspace.value && selectedWorkspace.value.permissions) {
+    return selectedWorkspace.value.permissions.canCreateProject
+  }
+  if (canCreatePersonalProjectResult) {
+    return canCreatePersonalProjectResult.value?.activeUser?.permissions
+      .canCreatePersonalProject
+  }
+  return null
+})
+
+const upgradeButtonAction = () => {
+  if (!canCreateProjectPermissionCheck.value) return
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat') {
+    // open url to workspace/settings/users
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/members`
+    )
+    return
+  }
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached') {
+    // open url to workspace/billing
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/billing`
+    )
+    return
+  }
+}
+
+const showUpgradeButton = computed(() => {
+  if (!canCreateProjectPermissionCheck.value) return false
+  if (
+    canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat' ||
+    canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached'
+  ) {
+    return true
+  }
+  return false
+})
+
+const isCreatingProject = ref(false)
+const showProjectCreateDialog = ref(false)
+
+const createProject = (name: string) => {
+  if (
+    canCreateProjectPermissionCheck.value &&
+    !canCreateProjectPermissionCheck.value.authorized
+  ) {
+    hostAppStore.setNotification({
+      type: 1,
+      title: 'Failed to create project',
+      description: canCreateProjectPermissionCheck.value.message as string
+    })
+    return
+  }
+
+  if (isPersonalProjectsAsWorkspace.value || !selectedWorkspace.value) {
+    return void createNewPersonalProject(name)
+  } else {
+    return void createNewWorkspaceProject(name)
+  }
+}
+
+const account = computed(() => {
+  return accountStore.accounts.find(
+    (acc) => acc.accountInfo.id === accountId.value
+  ) as DUIAccount
+})
+
+const createNewWorkspaceProject = async (name: string) => {
+  isCreatingProject.value = true
+  void trackEvent(
+    'DUI3 Action',
+    { name: 'Project Create', workspace: true },
+    accountId.value
+  )
+  const { mutate, onError } = provideApolloClient(account.value.client)(() =>
+    useMutation(createProjectInWorkspaceMutation)
+  )
+
+  onError((err) => {
+    hostAppStore.setNotification({
+      type: 1,
+      title: 'Failed to create project',
+      description: err.cause?.message ?? err.message ?? 'Unknown error'
+    })
+  })
+
+  const res = await mutate({
+    input: { name, workspaceId: selectedWorkspace.value?.id as string }
+  })
+
+  if (res?.data?.workspaceMutations.projects.create) {
+    handleProjectCreated(res?.data?.workspaceMutations.projects.create)
+  }
+  isCreatingProject.value = false
+}
+
+const createNewPersonalProject = async (name: string) => {
+  isCreatingProject.value = true
+
+  void trackEvent(
+    'DUI3 Action',
+    { name: 'Project Create', workspace: false },
+    account.value.accountInfo.id
+  )
+
+  const { mutate, onError } = provideApolloClient(account.value.client)(() =>
+    useMutation(createProjectMutation)
+  )
+
+  onError((err) => {
+    hostAppStore.setNotification({
+      type: 1,
+      title: 'Failed to create project',
+      description: err.cause?.message ?? err.message ?? 'Unknown error'
+    })
+  })
+
+  const res = await mutate({ input: { name } })
+
+  if (res?.data?.projectMutations.create) {
+    return handleProjectCreated(res?.data?.projectMutations.create)
+  }
+
+  isCreatingProject.value = false
+}
 
 const loadMore = () => {
   fetchMore({

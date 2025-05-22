@@ -77,6 +77,13 @@ export const workspaceListFragment = graphql(`
     logo
     role
     readOnly
+    permissions {
+      canCreateProject {
+        authorized
+        code
+        message
+      }
+    }
   }
 `)
 
