@@ -17,9 +17,21 @@
         </div>
         <div class="flex items-center group">
           <FormButton
-            v-if="notification.cta"
+            v-if="notification.secondaryCta"
+            v-tippy="notification.secondaryCta.tooltipText"
             size="sm"
-            :color="notificationButtonColor(notification.level)"
+            color="outline"
+            full-width
+            class="mr-1"
+            @click.stop="notification.secondaryCta.action"
+          >
+            {{ notification.secondaryCta.name }}
+          </FormButton>
+          <FormButton
+            v-if="notification.cta"
+            v-tippy="notification.cta.tooltipText"
+            size="sm"
+            color="primary"
             full-width
             @click.stop="notification.cta?.action"
           >
