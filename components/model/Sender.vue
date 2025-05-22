@@ -53,7 +53,7 @@
         <FormTextArea
           v-model="versionMessage"
           class="text-xs"
-          placeholder=""
+          placeholder="Moved elements to prevent clash"
           autocomplete="off"
           name="name"
           label="Project name"
@@ -65,6 +65,7 @@
           ]"
           full-width
         />
+        <CommonLoadingBar v-if="isUpdatingVersionMessage" loading />
         <div class="mt-4 flex justify-end items-center space-x-2 w-full">
           <FormButton size="sm" text @click="showSetMessageDialog = false">
             Cancel
@@ -76,7 +77,7 @@
               isUpdatingVersionMessage || !versionMessage || versionMessage.length < 3
             "
           >
-            Create
+            Save
           </FormButton>
         </div>
       </form>
@@ -115,9 +116,12 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import { provideApolloClient, useMutation, useQuery } from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
-import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
+import {
+  modelVersionsQuery,
+  setVersionMessageMutation
+} from '~/lib/graphql/mutationsAndQueries'
 const hostAppStore = useHostAppStore()
 
 const { trackEvent } = useMixpanel()
@@ -142,6 +146,7 @@ const sendOrCancel = () => {
   }
   if (props.modelCard.progress) store.sendModelCancel(props.modelCard.modelCardId)
   else store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  hasSetVersionMessage.value = false
 }
 
 let newFilter: ISendFilter
@@ -167,6 +172,7 @@ const saveFilter = async () => {
 
 const showSetMessageDialog = ref(false)
 const isUpdatingVersionMessage = ref(false)
+const hasSetVersionMessage = ref(false)
 const versionMessage = ref<string>()
 
 const accountStore = useAccountStore()
@@ -178,6 +184,34 @@ const setVersionMessage = async (message: string) => {
   if (!props.modelCard.latestCreatedVersionId) {
     return
   }
+  let versionId = props.modelCard.latestCreatedVersionId
+
+  if (versionId.length !== 10) {
+    // this is a hack to bypass temporarily while https://github.com/specklesystems/speckle-sharp-connectors/pull/862 rolls out to our users.
+    // it should be deleted once adoption is where we want it to be.
+    const { result: modelVersionResults } = useQuery(
+      modelVersionsQuery,
+      () => {
+        const payload = {
+          projectId: props.project.projectId,
+          modelId: props.modelCard.modelId,
+          limit: 1
+        }
+
+        return payload
+      },
+      () => ({ clientId: props.project.accountId, fetchPolicy: 'cache-and-network' })
+    )
+    if (
+      modelVersionResults.value?.project.model.versions.items.length !== 0 &&
+      modelVersionResults.value?.project.model.versions.items[0].id
+    ) {
+      versionId = modelVersionResults.value?.project.model.versions.items[0].id
+    } else {
+      // basically return. no use for proper error handling as this is a hack
+      return
+    }
+  }
 
   isUpdatingVersionMessage.value = true
   const { mutate } = provideApolloClient(account.client)(() =>
@@ -187,29 +221,36 @@ const setVersionMessage = async (message: string) => {
   const res = await mutate({
     input: {
       projectId: props.project.projectId,
-      versionId: props.modelCard.latestCreatedVersionId,
+      versionId,
       message
     }
   })
 
   if (res?.data?.versionMutations.update.id) {
-    hostAppStore.setNotification({
-      type: ToastNotificationType.Info,
-      title: 'Version message saved'
-    })
+    // seemed to noisy, and autoclose does not work for some reason
+    // hostAppStore.setNotification({
+    //   type: ToastNotificationType.Info,
+    //   title: 'Version message saved',
+    //   autoClose: true
+    // })
+    hasSetVersionMessage.value = true
   } else {
     hostAppStore.setNotification({
       type: ToastNotificationType.Danger,
       title: 'Request failed',
-      description: 'Failed to update version message.'
+      description: 'Failed to update version message.',
+      autoClose: true
     })
   }
+  showSetMessageDialog.value = false
   isUpdatingVersionMessage.value = false
+  versionMessage.value = ''
 }
 
 const saveFilterAndSend = async () => {
   await saveFilter()
   store.sendModel(props.modelCard.modelCardId, 'Filter')
+  hasSetVersionMessage.value = false
 }
 
 const expiredNotification = computed(() => {
@@ -226,6 +267,7 @@ const expiredNotification = computed(() => {
   notification.cta = {
     name: ctaType,
     action: async () => {
+      hasSetVersionMessage.value = false
       if (props.modelCard.progress) {
         await store.sendModelCancel(props.modelCard.modelCardId)
       }
@@ -276,7 +318,7 @@ const latestVersionNotification = computed(() => {
   notification.text = sendResultNotificationText.value
   notification.report = props.modelCard.report
 
-  if (props.modelCard.latestCreatedVersionId.length === 10) {
+  if (!hasSetVersionMessage.value) {
     notification.secondaryCta = {
       name: 'Set message',
       tooltipText: 'Describe your changes',
