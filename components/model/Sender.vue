@@ -295,6 +295,8 @@ const latestVersionNotification = computed(() => {
   notification.text = sendResultNotificationText.value
   notification.report = props.modelCard.report
 
+  // NOTE: this prevents us displaying the set message button for non-updated
+  // connectors that send over the root object id over instead of the commit id
   if (
     props.modelCard.latestCreatedVersionId.length === 10 &&
     !hasSetVersionMessage.value
