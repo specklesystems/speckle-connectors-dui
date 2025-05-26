@@ -116,12 +116,9 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation, useQuery } from '@vue/apollo-composable'
+import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
-import {
-  modelVersionsQuery,
-  setVersionMessageMutation
-} from '~/lib/graphql/mutationsAndQueries'
+import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
 const hostAppStore = useHostAppStore()
 
 const { trackEvent } = useMixpanel()
