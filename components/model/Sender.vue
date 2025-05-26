@@ -185,6 +185,10 @@ const setVersionMessage = async (message: string) => {
     return
   }
 
+  void trackEvent('DUI3 Action', {
+    name: 'Set version message'
+  })
+
   isUpdatingVersionMessage.value = true
   const { mutate } = provideApolloClient(account.client)(() =>
     useMutation(setVersionMessageMutation)
