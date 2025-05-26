@@ -12,8 +12,11 @@
         full-width
         color="foundation"
       />
+      <FormButton color="outline" size="sm" @click="selectAllCategories">
+        {{ allSelected ? 'Deselect all' : 'Select all' }}
+      </FormButton>
     </div>
-    <div class="flex space-y-1 flex-col">
+    <div class="flex space-y-1 flex-col max-h-48 simple-scrollbar overflow-auto">
       <div
         v-for="cat in selectedCategoriesObjects.sort((a, b) =>
           a.name.localeCompare(b.name)
@@ -92,6 +95,25 @@ const searchResults = computed(() => {
 })
 
 const selectedCategories = ref<string[]>(props.filter.selectedCategories || [])
+
+const selectAllCategories = () => {
+  if (allSelected.value) {
+    selectedCategories.value = []
+    return
+  }
+  availableCategories.value.forEach((cat) => {
+    const index = selectedCategories.value.indexOf(cat.id)
+    if (index !== -1) {
+      return
+    } else {
+      selectedCategories.value.push(cat.id)
+    }
+  })
+}
+
+const allSelected = computed(() => {
+  return availableCategories.value.length === selectedCategories.value.length
+})
 
 const selectOrUnselectCategory = (id: string) => {
   const index = selectedCategories.value.indexOf(id)
