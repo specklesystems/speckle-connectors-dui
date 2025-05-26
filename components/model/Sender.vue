@@ -56,13 +56,10 @@
           placeholder="Moved elements to prevent clash"
           autocomplete="off"
           name="name"
-          label="Project name"
+          label="Version message"
           color="foundation"
           :show-clear="!!versionMessage"
-          :rules="[
-            ValidationHelpers.isRequired,
-            ValidationHelpers.isStringOfLength({ minLength: 3 })
-          ]"
+          :rules="[ValidationHelpers.isStringOfLength({ minLength: 3 })]"
           full-width
         />
         <CommonLoadingBar v-if="isUpdatingVersionMessage" loading />
@@ -218,7 +215,6 @@ const setVersionMessage = async (message: string) => {
   }
   showSetMessageDialog.value = false
   isUpdatingVersionMessage.value = false
-  versionMessage.value = ''
 }
 
 const saveFilterAndSend = async () => {
@@ -301,7 +297,10 @@ const latestVersionNotification = computed(() => {
     notification.secondaryCta = {
       name: 'Set message',
       tooltipText: 'Describe your changes',
-      action: () => (showSetMessageDialog.value = true)
+      action: () => {
+        showSetMessageDialog.value = true
+        versionMessage.value = ''
+      }
     }
   }
 
