@@ -184,34 +184,6 @@ const setVersionMessage = async (message: string) => {
   if (!props.modelCard.latestCreatedVersionId) {
     return
   }
-  let versionId = props.modelCard.latestCreatedVersionId
-
-  if (versionId.length !== 10) {
-    // this is a hack to bypass temporarily while https://github.com/specklesystems/speckle-sharp-connectors/pull/862 rolls out to our users.
-    // it should be deleted once adoption is where we want it to be.
-    const { result: modelVersionResults } = useQuery(
-      modelVersionsQuery,
-      () => {
-        const payload = {
-          projectId: props.project.projectId,
-          modelId: props.modelCard.modelId,
-          limit: 1
-        }
-
-        return payload
-      },
-      () => ({ clientId: props.project.accountId, fetchPolicy: 'cache-and-network' })
-    )
-    if (
-      modelVersionResults.value?.project.model.versions.items.length !== 0 &&
-      modelVersionResults.value?.project.model.versions.items[0].id
-    ) {
-      versionId = modelVersionResults.value?.project.model.versions.items[0].id
-    } else {
-      // basically return. no use for proper error handling as this is a hack
-      return
-    }
-  }
 
   isUpdatingVersionMessage.value = true
   const { mutate } = provideApolloClient(account.client)(() =>
@@ -221,13 +193,14 @@ const setVersionMessage = async (message: string) => {
   const res = await mutate({
     input: {
       projectId: props.project.projectId,
-      versionId,
+      versionId: props.modelCard.latestCreatedVersionId,
       message
     }
   })
 
   if (res?.data?.versionMutations.update.id) {
-    // seemed to noisy, and autoclose does not work for some reason
+    // seemed to noisy, and autoclose does not work for some reason.
+    // nicer ux to just close the dialog
     // hostAppStore.setNotification({
     //   type: ToastNotificationType.Info,
     //   title: 'Version message saved',
@@ -318,7 +291,10 @@ const latestVersionNotification = computed(() => {
   notification.text = sendResultNotificationText.value
   notification.report = props.modelCard.report
 
-  if (!hasSetVersionMessage.value) {
+  if (
+    props.modelCard.latestCreatedVersionId.length === 10 &&
+    !hasSetVersionMessage.value
+  ) {
     notification.secondaryCta = {
       name: 'Set message',
       tooltipText: 'Describe your changes',
