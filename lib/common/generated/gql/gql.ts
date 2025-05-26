@@ -16,6 +16,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 type Documents = {
     "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": typeof types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.VersionMutationsDocument,
+    "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": typeof types.MarkReceivedVersionDocument,
     "\n  mutation CreateModel($input: CreateModelInput!) {\n    modelMutations {\n      create(input: $input) {\n        ...ModelListModelItem\n      }\n    }\n  }\n": typeof types.CreateModelDocument,
     "\n  mutation CreateProject($input: ProjectCreateInput) {\n    projectMutations {\n      create(input: $input) {\n        ...ProjectListProjectItem\n      }\n    }\n  }\n": typeof types.CreateProjectDocument,
@@ -56,6 +57,7 @@ type Documents = {
 const documents: Documents = {
     "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": types.VersionMutationsDocument,
+    "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": types.MarkReceivedVersionDocument,
     "\n  mutation CreateModel($input: CreateModelInput!) {\n    modelMutations {\n      create(input: $input) {\n        ...ModelListModelItem\n      }\n    }\n  }\n": types.CreateModelDocument,
     "\n  mutation CreateProject($input: ProjectCreateInput) {\n    projectMutations {\n      create(input: $input) {\n        ...ProjectListProjectItem\n      }\n    }\n  }\n": types.CreateProjectDocument,
@@ -116,6 +118,10 @@ export function graphql(source: "\n  mutation SetActiveWorkspaceMutation($slug: 
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
 export function graphql(source: "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n"): (typeof documents)["\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
+export function graphql(source: "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n"): (typeof documents)["\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
