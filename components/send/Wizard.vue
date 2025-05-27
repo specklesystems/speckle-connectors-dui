@@ -11,6 +11,7 @@
       <WizardProjectSelector
         is-sender
         disable-no-write-access-projects
+        :url-parse-error="urlParseError"
         @next="selectProject"
         @search-text-update="updateSearchText"
       />
@@ -37,7 +38,7 @@
         <FormButton full-width @click="addModel">Publish</FormButton>
       </div>
     </div>
-    <div v-if="urlParseError" class="p-2 text-xs text-danger">
+    <div v-if="urlParseError" class="p-2 text-danger">
       {{ urlParseError }}
     </div>
   </CommonDialog>
