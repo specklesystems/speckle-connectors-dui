@@ -1,10 +1,7 @@
 <template>
   <div class="space-y-2">
     <div class="space-y-2 relative">
-      <div
-        v-if="workspacesEnabled && workspaces"
-        class="flex items-center space-x-2 bg-foundation -mx-3 -mt-2 px-3 py-2 shadow-sm border-b"
-      >
+      <div v-if="workspacesEnabled && workspaces" class="flex items-center space-x-2">
         <div class="flex-grow min-w-0">
           <!-- NO WORKSPACE YET -->
           <div v-if="workspaces.length === 0">
@@ -44,7 +41,7 @@
             </template>
           </WorkspaceMenu>
         </div>
-        <div class="px-0.5 shrink-0">
+        <div class="shrink-0 pt-1 px-1">
           <AccountsMenu
             :current-selected-account-id="accountId"
             @select="(e) => selectAccount(e)"
@@ -150,7 +147,7 @@
 
         <CommonLoadingBar v-if="loading || isCreatingProject" loading />
       </div>
-      <div class="grid grid-cols-1 gap-2 relative z-0">
+      <div v-if="!urlParseError" class="grid grid-cols-1 gap-2 relative z-0">
         <WizardListProjectCard
           v-for="project in projects"
           :key="project.id"
@@ -170,9 +167,12 @@
           full-width
           color="outline"
           :disabled="isCreatingProject"
+          class="block truncate overflow-hidden"
           @click="createProject(searchText)"
         >
-          Create "{{ searchText }}"
+          Create "{{
+            searchText.length > 10 ? searchText.substring(0, 10) + '...' : searchText
+          }}"
         </FormButton>
         <FormButton
           v-else
@@ -235,6 +235,7 @@ const props = withDefaults(
      * For the send wizard - not allowing selecting projects we can't write to.
      */
     disableNoWriteAccessProjects?: boolean
+    urlParseError?: string
   }>(),
   {
     showNewProject: true,
