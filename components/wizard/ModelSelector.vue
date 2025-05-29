@@ -13,22 +13,40 @@
           full-width
           color="foundation"
         />
-        <ModelCreateDialog
-          :project-id="project.id"
-          :workspace-id="workspaceId"
-          :workspace-slug="workspaceSlug"
-          @model:created="(result: ModelListModelItemFragment) => handleModelCreated(result)"
+        <div
+          v-tippy="
+            canCreateModelResult?.project.permissions.canCreateModel.authorized
+              ? 'Create new model'
+              : canCreateModelResult?.project.permissions.canCreateModel.message
+          "
         >
-          <template #activator="{ toggle }">
-            <button
-              v-tippy="'New model'"
-              class="p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border"
-              @click="toggle()"
-            >
-              <PlusIcon class="w-4" />
-            </button>
+          <FormButton
+            color="outline"
+            :disabled="
+              !canCreateModelResult?.project.permissions.canCreateModel.authorized
+            "
+            :class="`p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border`"
+            @click="showNewModelDialog = true"
+          >
+            <PlusIcon class="w-4 -mx-2" />
+          </FormButton>
+        </div>
+      </div>
+      <div
+        v-if="
+          canCreateModelResult &&
+          !canCreateModelResult.project.permissions.canCreateModel.authorized
+        "
+      >
+        <CommonAlert title="Cannot create new models" color="info" hide-icon>
+          <template #description>
+            {{ canCreateModelResult.project.permissions.canCreateModel.message }}
+
+            <FormButton full-width color="primary" size="sm" class="mt-2">
+              Explore Plans
+            </FormButton>
           </template>
-        </ModelCreateDialog>
+        </CommonAlert>
       </div>
       <div class="relative grid grid-cols-1 gap-2">
         <CommonLoadingBar v-if="loading" loading />
@@ -78,6 +96,20 @@
           </template>
         </CommonDialog>
         <FormButton
+          v-if="
+            models?.length === 0 &&
+            !!searchText &&
+            canCreateModelResult?.project.permissions.canCreateModel?.authorized
+          "
+          full-width
+          color="outline"
+          :disabled="isCreatingModel"
+          @click="createNewModel(searchText)"
+        >
+          Create "{{ searchText }}"
+        </FormButton>
+        <FormButton
+          v-else
           color="outline"
           full-width
           :disabled="hasReachedEnd"
@@ -92,7 +124,7 @@
       title="Create new model"
       fullscreen="none"
     >
-      <form @submit="onSubmit">
+      <form @submit="createNewModel(newModelName as string)">
         <FormTextInput
           v-model="newModelName"
           :rules="rules"
@@ -108,7 +140,9 @@
           <FormButton size="sm" text @click="showNewModelDialog = false">
             Cancel
           </FormButton>
-          <FormButton size="sm" submit :disabled="isCreatingModel">Create</FormButton>
+          <FormButton size="sm" submit :disabled="isCreatingModel || !newModelName">
+            Create
+          </FormButton>
         </div>
       </form>
     </CommonDialog>
@@ -123,10 +157,10 @@ import type {
 } from '~/lib/common/generated/gql/graphql'
 import { useModelNameValidationRules } from '~/lib/validation'
 import {
+  canCreateModelInProjectQuery,
   createModelMutation,
   projectModelsQuery
 } from '~/lib/graphql/mutationsAndQueries'
-import { useForm } from 'vee-validate'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
@@ -157,9 +191,9 @@ const showNewModelDialog = ref(false)
 const showSelectionHasProblemsDialog = ref(false)
 
 const searchText = ref<string>()
-const newModelName = ref<string>()
+const newModelName = ref<string>(hostAppStore.documentInfo?.name ?? 'unnamed model')
 
-watch(searchText, () => (newModelName.value = searchText.value))
+watch(searchText, () => (newModelName.value = searchText.value as string))
 
 let selectedModel: ModelListModelItemFragment | undefined = undefined
 const existingModelProblem = ref(false)
@@ -188,12 +222,6 @@ const confirmModelSelection = () => {
 }
 
 const rules = useModelNameValidationRules()
-const { handleSubmit } = useForm<{ name: string }>()
-const onSubmit = handleSubmit(() => {
-  // TODO: Chat with Fabians
-  // This works, but if we use handleSubmit(args) > args.name -> it is undefined in Production on netlify, but works fine on local dev
-  void createNewModel(newModelName.value as string)
-})
 
 const handleModelCreated = (result: ModelListModelItemFragment) => {
   refetch() // Sorts the list with newly created project otherwise it will put the project at the bottom.
@@ -201,7 +229,18 @@ const handleModelCreated = (result: ModelListModelItemFragment) => {
 }
 
 const isCreatingModel = ref(false)
+
 const createNewModel = async (name: string) => {
+  if (!canCreateModelResult.value?.project.permissions.canCreateModel.authorized) {
+    hostAppStore.setNotification({
+      type: 1,
+      title: 'Failed to create model',
+      description:
+        canCreateModelResult.value?.project.permissions.canCreateModel.message
+    })
+    return
+  }
+
   isCreatingModel.value = true
   const account = accountStore.accounts.find(
     (acc) => acc.accountInfo.id === props.accountId
@@ -215,7 +254,8 @@ const createNewModel = async (name: string) => {
   const res = await mutate({ input: { projectId: props.project.id, name } })
   if (res?.data?.modelMutations.create) {
     refetch() // Sorts the list with newly created model otherwise it will put the model at the bottom.
-    emit('next', res?.data?.modelMutations.create)
+    // emit('next', res?.data?.modelMutations.create)
+    handleModelCreated(res?.data?.modelMutations.create)
   } else {
     let errorMessage = 'Undefined error'
     if (res?.errors && res?.errors.length !== 0) {
@@ -230,6 +270,15 @@ const createNewModel = async (name: string) => {
   }
   isCreatingModel.value = false
 }
+
+const { result: canCreateModelResult } = useQuery(
+  canCreateModelInProjectQuery,
+  () => ({ projectId: props.project.id }),
+  () => ({
+    clientId: props.accountId,
+    fetchPolicy: 'network-only'
+  })
+)
 
 const {
   result: projectModelsResult,

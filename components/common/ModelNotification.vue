@@ -17,9 +17,21 @@
         </div>
         <div class="flex items-center group">
           <FormButton
-            v-if="notification.cta"
+            v-if="notification.secondaryCta"
+            v-tippy="notification.secondaryCta.tooltipText"
             size="sm"
-            :color="notificationButtonColor(notification.level)"
+            color="outline"
+            full-width
+            class="mr-1"
+            @click.stop="notification.secondaryCta.action"
+          >
+            {{ notification.secondaryCta.name }}
+          </FormButton>
+          <FormButton
+            v-if="notification.cta"
+            v-tippy="notification.cta.tooltipText"
+            size="sm"
+            color="primary"
             full-width
             @click.stop="notification.cta?.action"
           >
@@ -47,10 +59,7 @@
 
 <script setup lang="ts">
 import { useTimeoutFn } from '@vueuse/core'
-import type {
-  ModelCardNotification,
-  ModelCardNotificationLevel
-} from '~/lib/models/card/notification'
+import type { ModelCardNotification } from '~/lib/models/card/notification'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 const props = defineProps<{
   notification: ModelCardNotification
@@ -62,20 +71,20 @@ if (props.notification.timeout) {
   useTimeoutFn(() => emit('dismiss'), props.notification.timeout)
 }
 
-const notificationButtonColor = (notificationLevel: ModelCardNotificationLevel) => {
-  switch (notificationLevel) {
-    case 'info':
-      return 'outline'
-    case 'danger':
-      return 'danger'
-    case 'success':
-      return 'primary'
-    case 'warning':
-      return 'danger'
-    default:
-      return 'outline'
-  }
-}
+// const notificationButtonColor = (notificationLevel: ModelCardNotificationLevel) => {
+//   switch (notificationLevel) {
+//     case 'info':
+//       return 'outline'
+//     case 'danger':
+//       return 'danger'
+//     case 'success':
+//       return 'primary'
+//     case 'warning':
+//       return 'danger'
+//     default:
+//       return 'outline'
+//   }
+// }
 
 const textClassColor = computed(() => {
   switch (props.notification.level) {

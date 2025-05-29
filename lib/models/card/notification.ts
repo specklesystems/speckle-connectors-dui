@@ -6,8 +6,14 @@ export type ModelCardNotification = {
   modelCardId: string
   text: string
   level: ModelCardNotificationLevel
+  secondaryCta?: {
+    name: string
+    tooltipText?: string
+    action: () => void
+  }
   cta?: {
     name: string
+    tooltipText?: string
     action: () => void
   }
   /**

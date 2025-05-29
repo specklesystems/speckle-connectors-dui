@@ -16,12 +16,13 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
 type Documents = {
     "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": typeof types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.VersionMutationsDocument,
+    "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": typeof types.MarkReceivedVersionDocument,
     "\n  mutation CreateModel($input: CreateModelInput!) {\n    modelMutations {\n      create(input: $input) {\n        ...ModelListModelItem\n      }\n    }\n  }\n": typeof types.CreateModelDocument,
     "\n  mutation CreateProject($input: ProjectCreateInput) {\n    projectMutations {\n      create(input: $input) {\n        ...ProjectListProjectItem\n      }\n    }\n  }\n": typeof types.CreateProjectDocument,
     "\n  mutation CreateProjectInWorkspace($input: WorkspaceProjectCreateInput!) {\n    workspaceMutations {\n      projects {\n        create(input: $input) {\n          ...ProjectListProjectItem\n        }\n      }\n    }\n  }\n": typeof types.CreateProjectInWorkspaceDocument,
     "\n  mutation StreamAccessRequestCreate($input: String!) {\n    streamAccessRequestCreate(streamId: $input) {\n      id\n    }\n  }\n": typeof types.StreamAccessRequestCreateDocument,
-    "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n  }\n": typeof types.WorkspaceListWorkspaceItemFragmentDoc,
+    "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n    permissions {\n      canCreateProject {\n        authorized\n        code\n        message\n      }\n    }\n  }\n": typeof types.WorkspaceListWorkspaceItemFragmentDoc,
     "\n  fragment AutomateFunctionItem on AutomateFunction {\n    name\n    isFeatured\n    id\n    creator {\n      name\n    }\n    releases {\n      items {\n        inputSchema\n      }\n    }\n  }\n": typeof types.AutomateFunctionItemFragmentDoc,
     "\n  mutation CreateAutomation($projectId: ID!, $input: ProjectAutomationCreateInput!) {\n    projectMutations {\n      automationMutations(projectId: $projectId) {\n        create(input: $input) {\n          id\n          name\n        }\n      }\n    }\n  }\n": typeof types.CreateAutomationDocument,
     "\n  fragment AutomateFunctionRunItem on AutomateFunctionRun {\n    id\n    status\n    statusMessage\n    results\n    contextView\n    function {\n      id\n      name\n      logo\n    }\n  }\n": typeof types.AutomateFunctionRunItemFragmentDoc,
@@ -56,12 +57,13 @@ type Documents = {
 const documents: Documents = {
     "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": types.VersionMutationsDocument,
+    "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": types.MarkReceivedVersionDocument,
     "\n  mutation CreateModel($input: CreateModelInput!) {\n    modelMutations {\n      create(input: $input) {\n        ...ModelListModelItem\n      }\n    }\n  }\n": types.CreateModelDocument,
     "\n  mutation CreateProject($input: ProjectCreateInput) {\n    projectMutations {\n      create(input: $input) {\n        ...ProjectListProjectItem\n      }\n    }\n  }\n": types.CreateProjectDocument,
     "\n  mutation CreateProjectInWorkspace($input: WorkspaceProjectCreateInput!) {\n    workspaceMutations {\n      projects {\n        create(input: $input) {\n          ...ProjectListProjectItem\n        }\n      }\n    }\n  }\n": types.CreateProjectInWorkspaceDocument,
     "\n  mutation StreamAccessRequestCreate($input: String!) {\n    streamAccessRequestCreate(streamId: $input) {\n      id\n    }\n  }\n": types.StreamAccessRequestCreateDocument,
-    "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n  }\n": types.WorkspaceListWorkspaceItemFragmentDoc,
+    "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n    permissions {\n      canCreateProject {\n        authorized\n        code\n        message\n      }\n    }\n  }\n": types.WorkspaceListWorkspaceItemFragmentDoc,
     "\n  fragment AutomateFunctionItem on AutomateFunction {\n    name\n    isFeatured\n    id\n    creator {\n      name\n    }\n    releases {\n      items {\n        inputSchema\n      }\n    }\n  }\n": types.AutomateFunctionItemFragmentDoc,
     "\n  mutation CreateAutomation($projectId: ID!, $input: ProjectAutomationCreateInput!) {\n    projectMutations {\n      automationMutations(projectId: $projectId) {\n        create(input: $input) {\n          id\n          name\n        }\n      }\n    }\n  }\n": types.CreateAutomationDocument,
     "\n  fragment AutomateFunctionRunItem on AutomateFunctionRun {\n    id\n    status\n    statusMessage\n    results\n    contextView\n    function {\n      id\n      name\n      logo\n    }\n  }\n": types.AutomateFunctionRunItemFragmentDoc,
@@ -119,6 +121,10 @@ export function graphql(source: "\n  mutation VersionMutations($input: CreateVer
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
+export function graphql(source: "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n"): (typeof documents)["\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n"];
+/**
+ * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
+ */
 export function graphql(source: "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n"): (typeof documents)["\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
@@ -139,7 +145,7 @@ export function graphql(source: "\n  mutation StreamAccessRequestCreate($input: 
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n  }\n"): (typeof documents)["\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n  }\n"];
+export function graphql(source: "\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n    permissions {\n      canCreateProject {\n        authorized\n        code\n        message\n      }\n    }\n  }\n"): (typeof documents)["\n  fragment WorkspaceListWorkspaceItem on Workspace {\n    id\n    slug\n    name\n    description\n    createdAt\n    updatedAt\n    logo\n    role\n    readOnly\n    permissions {\n      canCreateProject {\n        authorized\n        code\n        message\n      }\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */

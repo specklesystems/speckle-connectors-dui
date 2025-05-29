@@ -41,6 +41,44 @@
       </div>
     </CommonDialog>
 
+    <CommonDialog
+      v-model:open="showSetMessageDialog"
+      title="Version message"
+      fullscreen="none"
+    >
+      <form @submit="setVersionMessage(versionMessage as string)">
+        <div class="text-body-2xs mb-2 ml-1">
+          Describe your latest changes to help keep track of design intent.
+        </div>
+        <FormTextArea
+          v-model="versionMessage"
+          class="text-xs"
+          placeholder="Moved elements to prevent clash"
+          autocomplete="off"
+          name="name"
+          label="Version message"
+          color="foundation"
+          :show-clear="!!versionMessage"
+          :rules="[ValidationHelpers.isStringOfLength({ minLength: 3 })]"
+          full-width
+        />
+        <CommonLoadingBar v-if="isUpdatingVersionMessage" loading />
+        <div class="mt-4 flex justify-end items-center space-x-2 w-full">
+          <FormButton size="sm" text @click="showSetMessageDialog = false">
+            Cancel
+          </FormButton>
+          <FormButton
+            size="sm"
+            submit
+            :disabled="
+              isUpdatingVersionMessage || !versionMessage || versionMessage.length < 3
+            "
+          >
+            Save
+          </FormButton>
+        </div>
+      </form>
+    </CommonDialog>
     <template #states>
       <CommonModelNotification
         v-if="expiredNotification"
@@ -74,6 +112,11 @@ import type { ISendFilter, ISenderModelCard } from '~/lib/models/card/send'
 import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
+import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import { useAccountStore, type DUIAccount } from '~/store/accounts'
+import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
+const hostAppStore = useHostAppStore()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -97,6 +140,7 @@ const sendOrCancel = () => {
   }
   if (props.modelCard.progress) store.sendModelCancel(props.modelCard.modelCardId)
   else store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  hasSetVersionMessage.value = false
 }
 
 let newFilter: ISendFilter
@@ -120,9 +164,63 @@ const saveFilter = async () => {
   openFilterDialog.value = false
 }
 
+const showSetMessageDialog = ref(false)
+const isUpdatingVersionMessage = ref(false)
+const hasSetVersionMessage = ref(false)
+const versionMessage = ref<string>()
+
+const accountStore = useAccountStore()
+const account = accountStore.accounts.find(
+  (acc) => acc.accountInfo.id === props.project.accountId
+) as DUIAccount
+
+const setVersionMessage = async (message: string) => {
+  if (!props.modelCard.latestCreatedVersionId) {
+    return
+  }
+
+  void trackEvent('DUI3 Action', {
+    name: 'Set version message'
+  })
+
+  isUpdatingVersionMessage.value = true
+  const { mutate } = provideApolloClient(account.client)(() =>
+    useMutation(setVersionMessageMutation)
+  )
+
+  const res = await mutate({
+    input: {
+      projectId: props.project.projectId,
+      versionId: props.modelCard.latestCreatedVersionId,
+      message
+    }
+  })
+
+  if (res?.data?.versionMutations.update.id) {
+    // seemed to noisy, and autoclose does not work for some reason.
+    // nicer ux to just close the dialog
+    // hostAppStore.setNotification({
+    //   type: ToastNotificationType.Info,
+    //   title: 'Version message saved',
+    //   autoClose: true
+    // })
+    hasSetVersionMessage.value = true
+  } else {
+    hostAppStore.setNotification({
+      type: ToastNotificationType.Danger,
+      title: 'Request failed',
+      description: 'Failed to update version message.',
+      autoClose: true
+    })
+  }
+  showSetMessageDialog.value = false
+  isUpdatingVersionMessage.value = false
+}
+
 const saveFilterAndSend = async () => {
   await saveFilter()
   store.sendModel(props.modelCard.modelCardId, 'Filter')
+  hasSetVersionMessage.value = false
 }
 
 const expiredNotification = computed(() => {
@@ -139,6 +237,7 @@ const expiredNotification = computed(() => {
   notification.cta = {
     name: ctaType,
     action: async () => {
+      hasSetVersionMessage.value = false
       if (props.modelCard.progress) {
         await store.sendModelCancel(props.modelCard.modelCardId)
       }
@@ -188,8 +287,26 @@ const latestVersionNotification = computed(() => {
   notification.level = sendResultNotificationLevel.value
   notification.text = sendResultNotificationText.value
   notification.report = props.modelCard.report
+
+  // NOTE: this prevents us displaying the set message button for non-updated
+  // connectors that send over the root object id over instead of the commit id
+  if (
+    props.modelCard.latestCreatedVersionId.length === 10 &&
+    !hasSetVersionMessage.value
+  ) {
+    notification.secondaryCta = {
+      name: 'Set message',
+      tooltipText: 'Describe your changes',
+      action: () => {
+        showSetMessageDialog.value = true
+        versionMessage.value = ''
+      }
+    }
+  }
+
   notification.cta = {
-    name: 'View version',
+    name: 'View',
+    tooltipText: 'Check your model in the browser!',
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     action: () => cardBase.value?.viewModel()
   }

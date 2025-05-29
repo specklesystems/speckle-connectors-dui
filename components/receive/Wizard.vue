@@ -12,6 +12,7 @@
         <WizardProjectSelector
           :is-sender="false"
           :show-new-project="false"
+          :url-parse-error="urlParseError"
           @next="selectProject"
           @search-text-update="updateSearchText"
         />
@@ -39,7 +40,7 @@
         />
       </div>
     </div>
-    <div v-if="urlParseError" class="p-2 text-xs text-danger">{{ urlParseError }}</div>
+    <div v-if="urlParseError" class="p-2 text-danger">{{ urlParseError }}</div>
   </CommonDialog>
 </template>
 <script setup lang="ts">

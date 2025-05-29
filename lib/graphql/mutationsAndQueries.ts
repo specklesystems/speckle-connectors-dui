@@ -18,6 +18,16 @@ export const createVersionMutation = graphql(`
   }
 `)
 
+export const setVersionMessageMutation = graphql(`
+  mutation Update($input: UpdateVersionInput!) {
+    versionMutations {
+      update(input: $input) {
+        id
+      }
+    }
+  }
+`)
+
 export const markReceivedVersionMutation = graphql(`
   mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {
     versionMutations {
@@ -77,6 +87,13 @@ export const workspaceListFragment = graphql(`
     logo
     role
     readOnly
+    permissions {
+      canCreateProject {
+        authorized
+        code
+        message
+      }
+    }
   }
 `)
 
