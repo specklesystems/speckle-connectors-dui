@@ -9,7 +9,13 @@
           <Component :is="iconAndColor.icon" :class="`w-4 h-4 ${iconAndColor.color}`" />
         </div>
         <div :class="`text-xs ${iconAndColor.color}`">
-          {{ result.category }}: {{ result.objectIds.length }} affected elements
+          {{ result.category }}:
+          {{
+            'objectIds' in props.result
+              ? props.result.objectIds.length
+              : props.result.objectAppIds.length
+          }}
+          affected elements
         </div>
       </div>
       <div v-if="result.message" class="text-xs text-foreground-2 pl-5">
@@ -45,31 +51,44 @@ const projectAccount = computed(() =>
 )
 const clientId = projectAccount.value.accountInfo.id
 
-const applicationIds = ref<string[]>([])
+const applicationIds = computed(() => {
+  // Old schema
+  if ('objectIds' in props.result) return getApplicationIdsFromOldSchema()
+  // New schema
+  return Object.values(props.result.objectAppIds).filter((id) => id !== null)
+})
 
 type Data = {
   applicationId?: string
 }
 
-// Loop over each objectId to run the query and collect application IDs
-props.result.objectIds.forEach((objectId) => {
-  const { result: objectResult } = useQuery(
-    objectQuery,
-    () => ({
-      projectId: props.modelCard.projectId,
-      objectId
-    }),
-    () => ({ clientId })
-  )
+const getApplicationIdsFromOldSchema = () => {
+  if ('objectIds' in props.result) {
+    const innerApplicationIds: string[] = []
+    // Loop over each objectId to run the query and collect application IDs
+    props.result.objectIds.forEach((objectId) => {
+      const { result: objectResult } = useQuery(
+        objectQuery,
+        () => ({
+          projectId: props.modelCard.projectId,
+          objectId
+        }),
+        () => ({ clientId })
+      )
 
-  watch(objectResult, (newValue) => {
-    const data = newValue?.project.object?.data as Data | undefined
-    const applicationId = data?.applicationId
-    if (applicationId && !applicationIds.value.includes(applicationId)) {
-      applicationIds.value.push(applicationId)
-    }
-  })
-})
+      watch(objectResult, (newValue) => {
+        const data = newValue?.project.object?.data as Data | undefined
+        const applicationId = data?.applicationId
+        if (applicationId && !innerApplicationIds.includes(applicationId)) {
+          innerApplicationIds.push(applicationId)
+        }
+      })
+    })
+    return innerApplicationIds
+  } else {
+    return []
+  }
+}
 
 const handleClick = async () => {
   await app.$baseBinding.highlightObjects(applicationIds.value)
