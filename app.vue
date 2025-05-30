@@ -55,4 +55,7 @@ onMounted(() => {
     }
   })
 })
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { $intercom } = useNuxtApp() // needed her for initialisation
 </script>

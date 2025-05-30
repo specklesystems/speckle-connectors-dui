@@ -30,9 +30,15 @@ export const useIntercom = () => {
   const shouldEnableIntercom = computed(() => !isRouteBlacklisted.value)
 
   const bootIntercom = () => {
-    if (!shouldEnableIntercom.value || isInitialized.value || !intercomAppId) return
-    isInitialized.value = true
+    if (
+      !shouldEnableIntercom.value ||
+      isInitialized.value ||
+      !intercomAppId ||
+      !activeAccount.value
+    )
+      return
 
+    isInitialized.value = true
     Intercom({
       /* eslint-disable camelcase */
       app_id: intercomAppId,
@@ -79,6 +85,14 @@ export const useIntercom = () => {
       shutdownIntercom()
     } else {
       bootIntercom()
+    }
+  })
+
+  watch(activeAccount, (newValue) => {
+    if (newValue) {
+      bootIntercom()
+    } else {
+      shutdownIntercom()
     }
   })
 
