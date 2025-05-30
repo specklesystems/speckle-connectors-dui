@@ -90,19 +90,21 @@ export const useIntercom = () => {
 
   watch(activeAccount, (newValue) => {
     if (newValue) {
-      bootIntercom()
+      if (!isInitialized.value) {
+        bootIntercom() // if active account changed and itercom is not initialised, do it
+        return // we do not need to update, as that's done by default in the init
+      }
+      // just update
+      update({
+        user_id: activeAccount.value.accountInfo.userInfo.id || '',
+        name: activeAccount.value.accountInfo.userInfo.name,
+        email: activeAccount.value.accountInfo.userInfo.email
+      })
     } else {
-      shutdownIntercom()
+      if (isInitialized.value) {
+        shutdownIntercom()
+      }
     }
-  })
-
-  watch(activeAccount, () => {
-    if (isInitialized.value) return
-    update({
-      user_id: activeAccount.value.accountInfo.userInfo.id || '',
-      name: activeAccount.value.accountInfo.userInfo.name,
-      email: activeAccount.value.accountInfo.userInfo.email
-    })
   })
 
   return {
