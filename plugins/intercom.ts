@@ -30,7 +30,6 @@ export const useIntercom = () => {
   const shouldEnableIntercom = computed(() => !isRouteBlacklisted.value)
 
   const bootIntercom = () => {
-    console.log('YOLO')
     if (!shouldEnableIntercom.value || isInitialized.value || !intercomAppId) return
     isInitialized.value = true
 
