@@ -54,8 +54,8 @@ onMounted(() => {
       uniqueEmails.add(email)
     }
   })
-})
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const { $intercom } = useNuxtApp() // needed her for initialisation
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { $intercom } = useNuxtApp() // needed her for initialisation
+})
 </script>
