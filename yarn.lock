@@ -3818,35 +3818,35 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@speckle/objectloader@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/objectloader@npm:2.24.0"
+"@speckle/objectloader@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/objectloader@npm:2.25.0"
   dependencies:
     "@babel/core": "npm:^7.17.9"
-    "@speckle/shared": "npm:^2.24.0"
+    "@speckle/shared": "npm:^2.25.0"
     core-js: "npm:^3.21.1"
     lodash: "npm:^4.17.21"
     lodash-es: "npm:^4.17.21"
     regenerator-runtime: "npm:^0.13.7"
-  checksum: 10c0/d4352caa1162b07ac71575dfbc7080e811428482203ce8e8b4ab0c23826cd67824470dd52a33a42c81032d42bbd825277dbba2b920ab172018d208cede8dd805
+  checksum: 10c0/e1c3021e74a140d790ee6645ddb78254f70bee4a6750de1a77c9216f51ccb20d4dd43d544baaf8a458ba3a0f9e0dfe1b2703d9d4fd43e524985443e8566aa5cc
   languageName: node
   linkType: hard
 
-"@speckle/objectsender@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/objectsender@npm:2.24.0"
+"@speckle/objectsender@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/objectsender@npm:2.25.0"
   dependencies:
-    "@speckle/shared": "npm:^2.24.0"
+    "@speckle/shared": "npm:^2.25.0"
     lodash: "npm:^4.17.21"
     lodash-es: "npm:^4.17.21"
     reflect-metadata: "npm:^0.2.2"
-  checksum: 10c0/5d463e696858cf5b1baaf327a09181bbcbc64f852b403fecc87b0565ddb055909779e5780ca4f818a44a694b7c74de493cd26ec728531b1dfb7b31a0044730c0
+  checksum: 10c0/8956f049847037e33c824053adeefbd119b978343d29764f316dc9af6f5c13fa8bb35d3025ce5a876a25d408d5d84c14ff17fe56c70f984d6ec1fe1ab0ea384e
   languageName: node
   linkType: hard
 
-"@speckle/shared@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/shared@npm:2.24.0"
+"@speckle/shared@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/shared@npm:2.25.0"
   dependencies:
     dayjs: "npm:^1.11.13"
     lodash: "npm:^4.17.21"
@@ -3856,6 +3856,7 @@ __metadata:
     type-fest: "npm:^3.11.1"
   peerDependencies:
     "@tiptap/core": ^2.0.0-beta.176
+    bull: "*"
     knex: "*"
     mixpanel: ^0.17.0
     pino: ^8.7.0
@@ -3864,42 +3865,42 @@ __metadata:
     ua-parser-js: ^1.0.38
     znv: ^0.4.0
     zod: ^3.22.4
-  checksum: 10c0/5e9be7e83a74a6de2094999dfbe3f41356790886381e44648250a4bc883764d47799157e526a89285e40d029332d5487b3c013d91fee084b2fb1b74537e831e8
+  checksum: 10c0/c6fac64887926b23ab88502c8a97ec0cbc67d59094daacf22c838902fd3568a614fab64dff8542871961084276368976fc586c75c0463843ac1f68ffba3be1b8
   languageName: node
   linkType: hard
 
-"@speckle/tailwind-theme@npm:2.24.1-alpha.0":
-  version: 2.24.1-alpha.0
-  resolution: "@speckle/tailwind-theme@npm:2.24.1-alpha.0"
+"@speckle/tailwind-theme@npm:2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/tailwind-theme@npm:2.25.0"
   dependencies:
     "@tailwindcss/forms": "npm:^0.5.3"
   peerDependencies:
     postcss: ^8.4.18
     postcss-nesting: ^10.2.0
     tailwindcss: ^3.3.2
-  checksum: 10c0/ece3ecfa80162f0a4dc0f6bcb28839331e2c4208bf922c478d00c859248f6e77b8267e06f4c505f98fd625682006b22f8c5f63c2749c7b4efa277dcab75c2d0f
+  checksum: 10c0/ba647af26d446b1d09fd0f82de80e9691825264ebb0e2cbd4f4049e44912c941dc10b7d603a1e41864e16f1fd76fe52df1aeb2102c001d0dc7b615725288f1ac
   languageName: node
   linkType: hard
 
-"@speckle/ui-components-nuxt@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/ui-components-nuxt@npm:2.24.0"
+"@speckle/ui-components-nuxt@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/ui-components-nuxt@npm:2.25.0"
   dependencies:
     lodash-es: "npm:^4.0.0"
   peerDependencies:
     "@nuxt/kit": ^3.2.0
     "@speckle/ui-components": "*"
-  checksum: 10c0/dbd89f3511a586c63104d787220e24aeeb8fbf40c3c11a21c107633eecf0a6fddf2730a23070d4ed4f6822863cce008b421b228498a4ad764fc81c3b4cd541c1
+  checksum: 10c0/73ab79982176abff0de491ff7e33d25266ffd824a8212bea482396b3f4b16914adb46a28083e2cb017d26659ef0aacdc826a7766f2d5afc56122d2b91d098a40
   languageName: node
   linkType: hard
 
-"@speckle/ui-components@npm:^2.24.0":
-  version: 2.24.0
-  resolution: "@speckle/ui-components@npm:2.24.0"
+"@speckle/ui-components@npm:^2.25.0":
+  version: 2.25.0
+  resolution: "@speckle/ui-components@npm:2.25.0"
   dependencies:
     "@headlessui/vue": "npm:^1.7.18"
     "@heroicons/vue": "npm:^2.0.12"
-    "@speckle/shared": "npm:^2.24.0"
+    "@speckle/shared": "npm:^2.25.0"
     "@storybook/test": "npm:^8.1.10"
     "@vueuse/core": "npm:^9.13.0"
     lodash: "npm:^4.0.0"
@@ -3911,7 +3912,7 @@ __metadata:
   peerDependencies:
     vee-validate: ^4.7.0
     vue: ^3.3.0
-  checksum: 10c0/e1632132cb6635423e7aec1c8c9b671012db98d3b71f21a080f1a6d7b1b86013ad901593ab67d915c2f817168d8bf9c66df7c837eea45e6f7d90b3b5c0032d39
+  checksum: 10c0/be321d8fb492e62e6e38d42d3d9622c4091cc0b2bcc0b90ae15954bd31359a1680ef7963a2f026ece0fd327663e0fba614023585e8fa987d19064f73ad9fca8b
   languageName: node
   linkType: hard
 
@@ -14675,12 +14676,12 @@ __metadata:
     "@nuxtjs/tailwindcss": "npm:^6.14.0"
     "@parcel/watcher": "npm:^2.5.1"
     "@pinia/nuxt": "npm:^0.4.11"
-    "@speckle/objectloader": "npm:^2.24.0"
-    "@speckle/objectsender": "npm:^2.24.0"
-    "@speckle/shared": "npm:^2.24.0"
-    "@speckle/tailwind-theme": "npm:2.24.1-alpha.0"
-    "@speckle/ui-components": "npm:^2.24.0"
-    "@speckle/ui-components-nuxt": "npm:^2.24.0"
+    "@speckle/objectloader": "npm:^2.25.0"
+    "@speckle/objectsender": "npm:^2.25.0"
+    "@speckle/shared": "npm:^2.25.0"
+    "@speckle/tailwind-theme": "npm:2.25.0"
+    "@speckle/ui-components": "npm:^2.25.0"
+    "@speckle/ui-components-nuxt": "npm:^2.25.0"
     "@types/apollo-upload-client": "npm:^17.0.1"
     "@types/eslint": "npm:^9.6.1"
     "@types/lodash-es": "npm:^4.17.6"
