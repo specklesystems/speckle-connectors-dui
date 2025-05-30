@@ -17,10 +17,6 @@ export const useIntercom = () => {
   const accountStore = useAccountStore()
   const { activeAccount } = storeToRefs(accountStore)
 
-  const {
-    public: { intercomAppId }
-  } = useRuntimeConfig()
-
   const isInitialized = ref(false)
 
   const isRouteBlacklisted = computed(() => {
@@ -30,12 +26,7 @@ export const useIntercom = () => {
   const shouldEnableIntercom = computed(() => !isRouteBlacklisted.value)
 
   const bootIntercom = () => {
-    if (
-      !shouldEnableIntercom.value ||
-      isInitialized.value ||
-      !intercomAppId ||
-      !activeAccount.value
-    )
+    if (!shouldEnableIntercom.value || isInitialized.value || !activeAccount.value)
       return
 
     isInitialized.value = true
