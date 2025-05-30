@@ -25,16 +25,13 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useQuery } from '@vue/apollo-composable'
 import {
   XMarkIcon,
   InformationCircleIcon,
   ExclamationTriangleIcon
 } from '@heroicons/vue/24/outline'
 import type { Automate } from '@speckle/shared'
-import { objectQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { IModelCard } from '~/lib/models/card'
-import { useAccountStore } from '~/store/accounts'
 
 type ObjectResult = Automate.AutomateTypes.ResultsSchema['values']['objectResults'][0]
 
@@ -43,52 +40,13 @@ const props = defineProps<{
   result: ObjectResult
   functionId?: string
 }>()
-
-const accStore = useAccountStore()
 const app = useNuxtApp()
-const projectAccount = computed(() =>
-  accStore.accountWithFallback(props.modelCard.accountId, props.modelCard.serverUrl)
-)
-const clientId = projectAccount.value.accountInfo.id
 
 const applicationIds = computed(() => {
-  // Old schema
-  if ('objectIds' in props.result) return getApplicationIdsFromOldSchema()
-  // New schema
+  // Old schema ignore
+  if ('objectIds' in props.result) return []
   return Object.values(props.result.objectAppIds).filter((id) => id !== null)
 })
-
-type Data = {
-  applicationId?: string
-}
-
-const getApplicationIdsFromOldSchema = () => {
-  if ('objectIds' in props.result) {
-    const innerApplicationIds: string[] = []
-    // Loop over each objectId to run the query and collect application IDs
-    props.result.objectIds.forEach((objectId) => {
-      const { result: objectResult } = useQuery(
-        objectQuery,
-        () => ({
-          projectId: props.modelCard.projectId,
-          objectId
-        }),
-        () => ({ clientId })
-      )
-
-      watch(objectResult, (newValue) => {
-        const data = newValue?.project.object?.data as Data | undefined
-        const applicationId = data?.applicationId
-        if (applicationId && !innerApplicationIds.includes(applicationId)) {
-          innerApplicationIds.push(applicationId)
-        }
-      })
-    })
-    return innerApplicationIds
-  } else {
-    return []
-  }
-}
 
 const handleClick = async () => {
   await app.$baseBinding.highlightObjects(applicationIds.value)
