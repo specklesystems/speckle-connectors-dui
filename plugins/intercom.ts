@@ -7,7 +7,6 @@ import Intercom, {
   trackEvent
 } from '@intercom/messenger-js-sdk'
 import { useAccountStore } from '~/store/accounts'
-import { useHostAppStore } from '~/store/hostApp'
 import { storeToRefs } from 'pinia'
 
 const disabledRoutes: string[] = []
@@ -17,8 +16,6 @@ export const useIntercom = () => {
 
   const accountStore = useAccountStore()
   const { activeAccount } = storeToRefs(accountStore)
-
-  const hostAppStore = useHostAppStore()
 
   const {
     public: { intercomAppId }
