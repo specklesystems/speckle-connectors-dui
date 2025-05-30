@@ -46,6 +46,7 @@ export const useIntercom = () => {
       name: activeAccount.value.accountInfo.userInfo.name || '',
       email: activeAccount.value.accountInfo.userInfo.email || ''
     })
+    window.Intercom = Intercom
   }
 
   const showIntercom = () => {
