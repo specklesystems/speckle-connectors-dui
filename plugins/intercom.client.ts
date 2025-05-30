@@ -41,7 +41,7 @@ export const useIntercom = () => {
     isInitialized.value = true
     Intercom({
       /* eslint-disable camelcase */
-      app_id: intercomAppId,
+      app_id: 'hoiaq4wn',
       user_id: activeAccount.value.accountInfo.userInfo.id || '',
       name: activeAccount.value.accountInfo.userInfo.name || '',
       email: activeAccount.value.accountInfo.userInfo.email || ''
