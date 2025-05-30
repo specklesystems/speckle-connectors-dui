@@ -13,15 +13,19 @@
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
 import { useAccountStore } from '~/store/accounts'
+import { useHostAppStore } from '~/store/hostApp'
 import { storeToRefs } from 'pinia'
 
 const uiConfigStore = useConfigStore()
 const { isDarkTheme } = storeToRefs(uiConfigStore)
+const hostAppStore = useHostAppStore()
+const { connectorVersion, hostAppName, hostAppVersion } = storeToRefs(hostAppStore)
 
 useHead({
-  // Title suffix
-  titleTemplate: (titleChunk) =>
-    titleChunk ? `${titleChunk as string} - Speckle DUIv3` : 'Speckle DUIv3',
+  title: computed(
+    () =>
+      `CNX: (hostApp: ${hostAppName.value}:v${hostAppVersion.value}),(version: ${connectorVersion.value})`
+  ),
   htmlAttrs: {
     lang: 'en',
     class: computed(() => (isDarkTheme.value ? `dark` : ``))

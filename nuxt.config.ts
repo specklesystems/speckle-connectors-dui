@@ -29,7 +29,8 @@ export default defineNuxtConfig({
       speckleUserId: process.env.SPECKLE_USER_ID,
       speckleUrl: process.env.SPECKLE_URL,
       speckleSampleProjectId: process.env.SPECKLE_SAMPLE_PROJECT_ID,
-      speckleSampleModelId: process.env.SPECKLE_SAMPLE_MODEL_ID
+      speckleSampleModelId: process.env.SPECKLE_SAMPLE_MODEL_ID,
+      intercomAppId: ''
     }
   },
   vite: {

@@ -63,7 +63,7 @@
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
         </HeaderButton>
-        <HeaderButton v-tippy="'Send us feedback'" @click="showFeedbackDialog = true">
+        <HeaderButton v-tippy="'Send us feedback'" @click="$intercom.show()">
           <ChatBubbleLeftIcon
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
@@ -99,4 +99,6 @@ app.$baseBinding.on('documentChanged', () => {
   showSendDialog.value = false
   showReceiveDialog.value = false
 })
+
+// const { $intercom } = useNuxtApp()
 </script>

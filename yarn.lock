@@ -2437,6 +2437,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@intercom/messenger-js-sdk@npm:^0.0.14":
+  version: 0.0.14
+  resolution: "@intercom/messenger-js-sdk@npm:0.0.14"
+  checksum: 10c0/b5873e85938380534c3887a0fc8d2c91f4bbd819e9b25d38e07e6985c3562905e694e6f9399d778ef744b712739cad1263a4a5655a5ee213f342a1929d44d77f
+  languageName: node
+  linkType: hard
+
 "@ioredis/commands@npm:^1.1.1":
   version: 1.2.0
   resolution: "@ioredis/commands@npm:1.2.0"
@@ -14668,6 +14675,7 @@ __metadata:
     "@graphql-codegen/client-preset": "npm:^4.3.0"
     "@headlessui/vue": "npm:^1.7.13"
     "@heroicons/vue": "npm:^2.0.12"
+    "@intercom/messenger-js-sdk": "npm:^0.0.14"
     "@jsonforms/core": "npm:3.1.0"
     "@jsonforms/vue": "npm:3.1.0"
     "@jsonforms/vue-vanilla": "npm:3.1.0"

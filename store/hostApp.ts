@@ -694,6 +694,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     await refreshSendFilters()
     await getSendSettings()
     tryToUpgradeModelCardSettings(sendSettings.value || [], 'SenderModelCard')
+    app.$intercom.updateConnectorDetails(
+      hostAppName.value as string,
+      hostAppVersion.value as string,
+      connectorVersion.value as string
+    )
   }
 
   initializeApp()
