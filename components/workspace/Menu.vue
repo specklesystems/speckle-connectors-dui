@@ -33,12 +33,8 @@ defineEmits<{
   (e: 'workspace:selected', result: WorkspaceListWorkspaceItemFragment): void
 }>()
 
-const completedWorkspaces = computed(() =>
-  props.workspaces.filter((w) => w.creationState?.completed !== false)
-)
-
 const workspacesWithPersonalProjects = computed(() => [
-  ...completedWorkspaces.value,
+  ...props.workspaces.filter((w) => w.creationState?.completed !== false),
   {
     id: 'personalProject',
     name: 'Personal Projects'
