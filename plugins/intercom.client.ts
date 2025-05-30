@@ -32,7 +32,7 @@ export const useIntercom = () => {
     isInitialized.value = true
     Intercom({
       /* eslint-disable camelcase */
-      app_id: 'hoiaq4wn',
+      app_id: 'hoiaq4wn', // note: needs to be harcoded as this is statically served
       user_id: activeAccount.value.accountInfo.userInfo.id || '',
       name: activeAccount.value.accountInfo.userInfo.name || '',
       email: activeAccount.value.accountInfo.userInfo.email || ''
