@@ -16,9 +16,7 @@ export default defineNuxtConfig({
     // Rewriting all lodash calls to lodash-es for proper tree-shaking & chunk splitting
     // lodash: 'lodash-es'
   },
-  imports: {
-    global: true
-  },
+
   runtimeConfig: {
     public: {
       mixpanelApiHost: 'UNDEFINED',
