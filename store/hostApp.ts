@@ -695,6 +695,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     await getSendSettings()
     tryToUpgradeModelCardSettings(sendSettings.value || [], 'SenderModelCard')
 
+    // Intercom shenanningans below
     // Do not poke intercom in ancient revit version
     if (
       hostAppName.value?.toLowerCase() === 'revit' &&
@@ -702,11 +703,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     )
       return
 
-    app.$intercom.updateConnectorDetails(
-      hostAppName.value as string,
-      hostAppVersion.value as string,
-      connectorVersion.value as string
-    )
+    // guards against intercom being sometimes slower to init
+    setTimeout(() => {
+      app.$intercom.updateConnectorDetails(
+        hostAppName.value as string,
+        hostAppVersion.value as string,
+        connectorVersion.value as string
+      )
+    }, 1000)
   }
 
   initializeApp()
