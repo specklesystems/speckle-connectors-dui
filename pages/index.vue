@@ -102,7 +102,7 @@
             </div>
           </LayoutPanel>
         </div>
-        <div v-if="accounts.length !== 0 && !hasNoModelCards" class="space-y-2">
+        <div v-if="accounts.length !== 0 && !hasNoModelCards" class="space-y-2 pb-24">
           <div v-for="project in store.projectModelGroups" :key="project.projectId">
             <CommonProjectModelGroup :project="project" />
           </div>
