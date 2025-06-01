@@ -10,7 +10,7 @@
     </div>
     <div v-else>
       <div class="text-foreground-2 mt-2 mb-4">
-        Click the button below to sign into Speckle via Manager. This will allow you to
+        Click the button below to sign into Speckle in your browser. This will allow you to
         publish or load data.
       </div>
       <div class="text-foreground-2 text-sm mt-2 mb-4"></div>
