@@ -114,7 +114,7 @@
           @close="store.showErrorDialog = false"
         />
       </div>
-      <!-- No accounts present: display a signin button. This currently launches manager. -->
+      <!-- No accounts present: display a signin button. -->
       <!-- NOTE: The flow is horrible, we should migrate as many connectors as possible to their own account adding logic -->
       <div v-else>
         <div
