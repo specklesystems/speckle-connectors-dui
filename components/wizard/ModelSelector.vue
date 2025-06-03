@@ -42,7 +42,18 @@
           <template #description>
             {{ canCreateModelResult.project.permissions.canCreateModel.message }}
 
-            <FormButton full-width color="primary" size="sm" class="mt-2">
+            <FormButton
+              v-if="workspaceSlug"
+              full-width
+              color="primary"
+              size="sm"
+              class="mt-2"
+              @click="
+                $openUrl(
+                  `${account.accountInfo.serverInfo.url}/settings/workspaces/${workspaceSlug}/billing`
+                )
+              "
+            >
               Explore Plans
             </FormButton>
           </template>
@@ -187,6 +198,13 @@ const props = withDefaults(
 
 const accountStore = useAccountStore()
 
+const account = computed(
+  () =>
+    accountStore.accounts.find(
+      (acc) => acc.accountInfo.id === props.accountId
+    ) as DUIAccount
+)
+
 const showNewModelDialog = ref(false)
 const showSelectionHasProblemsDialog = ref(false)
 
@@ -242,13 +260,10 @@ const createNewModel = async (name: string) => {
   }
 
   isCreatingModel.value = true
-  const account = accountStore.accounts.find(
-    (acc) => acc.accountInfo.id === props.accountId
-  ) as DUIAccount
 
-  void trackEvent('DUI3 Action', { name: 'Model Create' }, account.accountInfo.id)
+  void trackEvent('DUI3 Action', { name: 'Model Create' }, account.value.accountInfo.id)
 
-  const { mutate } = provideApolloClient(account.client)(() =>
+  const { mutate } = provideApolloClient(account.value.client)(() =>
     useMutation(createModelMutation)
   )
   const res = await mutate({ input: { projectId: props.project.id, name } })
@@ -297,12 +312,7 @@ const {
   () => ({ clientId: props.accountId, debounce: 500, fetchPolicy: 'cache-and-network' })
 )
 
-const token = computed(() => {
-  const account = accountStore.accounts.find(
-    (acc) => acc.accountInfo.id === props.accountId
-  ) as DUIAccount
-  return account.accountInfo.token
-})
+const token = computed(() => account.value.accountInfo.token)
 const models = computed(() => projectModelsResult.value?.project.models.items)
 const totalCount = computed(() => projectModelsResult.value?.project.models.totalCount)
 const hasReachedEnd = ref(false)
