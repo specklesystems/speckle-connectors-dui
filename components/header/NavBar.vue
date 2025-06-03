@@ -63,7 +63,7 @@
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
         </HeaderButton>
-        <HeaderButton v-tippy="'Send us feedback'" @click="showFeedbackDialog = true">
+        <HeaderButton v-tippy="'Send us feedback'" @click="openFeedbackDialog()">
           <ChatBubbleLeftIcon
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
@@ -99,4 +99,17 @@ app.$baseBinding.on('documentChanged', () => {
   showSendDialog.value = false
   showReceiveDialog.value = false
 })
+
+const { $intercom } = useNuxtApp()
+
+const openFeedbackDialog = () => {
+  if (
+    hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
+    hostAppStore.hostAppVersion?.includes('2022')
+  ) {
+    showFeedbackDialog.value = true
+  } else {
+    $intercom.show()
+  }
+}
 </script>
