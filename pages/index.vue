@@ -74,7 +74,7 @@
                   full-width
                   @click="
                     app.$openUrl(
-                      `https://speckle.systems/connectors/${store.hostAppName}`
+                      `https://docs.speckle.systems/connectors/${store.hostAppName}?utm=dui`
                     )
                   "
                 >
@@ -82,7 +82,7 @@
                   documentation
                 </FormButton>
               </div>
-
+              <!-- 
               <FormButton
                 text
                 size="sm"
@@ -98,7 +98,7 @@
                 <span class="text-foreground-2 text-body-3xs truncate line-clamp-1">
                   New connectors announcement
                 </span>
-              </FormButton>
+              </FormButton> -->
             </div>
           </LayoutPanel>
         </div>
