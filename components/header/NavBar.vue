@@ -55,7 +55,7 @@
           v-tippy="'Documentation and help'"
           @click="
             app.$openUrl(
-              `https://www.speckle.systems/connectors/${hostAppStore.hostAppName}?utm=dui`
+              `https://docs.speckle.systems/connectors/${hostAppStore.hostAppName}?utm=dui`
             )
           "
         >
