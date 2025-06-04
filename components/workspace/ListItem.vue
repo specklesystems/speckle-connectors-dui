@@ -22,6 +22,7 @@
         </div>
       </div>
       <button
+        v-if="workspace.slug"
         v-tippy="'Open workspace in browser'"
         class="hidden transition mr-1 opacity-70 group-hover:block"
         @click.stop="
