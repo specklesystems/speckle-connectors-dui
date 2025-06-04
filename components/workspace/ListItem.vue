@@ -21,11 +21,26 @@
           <span>{{ workspace.name }}</span>
         </div>
       </div>
+      <button
+        v-tippy="'Open workspace in browser'"
+        class="hidden transition mr-1 opacity-70 group-hover:block"
+        @click.stop="
+          $openUrl(
+            `${accountStore.activeAccount.accountInfo.serverInfo.url}/workspaces/${workspace.slug}`
+          )
+        "
+      >
+        <ArrowTopRightOnSquareIcon class="w-3.5" />
+      </button>
     </div>
   </button>
 </template>
 <script setup lang="ts">
 import type { WorkspaceListWorkspaceItemFragment } from '~/lib/common/generated/gql/graphql'
+import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { useAccountStore } from '~/store/accounts'
+
+const accountStore = useAccountStore()
 
 defineProps<{
   workspace: WorkspaceListWorkspaceItemFragment

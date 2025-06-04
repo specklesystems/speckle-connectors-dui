@@ -11,11 +11,23 @@
           class="fixed h-screen w-screen flex items-center justify-center pr-2 pointer-events-none"
         >
           <LayoutPanel fancy-glow class="transition pointer-events-auto w-[90%]">
-            <h1
-              class="text-heading-lg w-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 inline-block py-1 text-transparent bg-clip-text"
-            >
-              Hello!
-            </h1>
+            <div class="flex">
+              <h1
+                class="text-heading-lg w-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 inline-block py-1 text-transparent bg-clip-text"
+              >
+                Hello!
+              </h1>
+              <button
+                v-if="accountStore.activeAccount"
+                v-tippy="'Open web app'"
+                class="transition mr-1 opacity-70 hover:opacity-100"
+                @click.stop="
+                  $openUrl(accountStore.activeAccount.accountInfo.serverInfo.url)
+                "
+              >
+                <ArrowTopRightOnSquareIcon class="w-4" />
+              </button>
+            </div>
             <!-- Returning null from host app is blocked by CI for now, hence host app send here empty documentInfo, we check it's id whether null or not. -->
             <div v-if="!!store.documentInfo?.id">
               <div class="text-foreground-2 text-body-sm">
@@ -78,8 +90,7 @@
                     )
                   "
                 >
-                  <span class="capitalize">{{ store.hostAppName }}&nbsp;</span>
-                  documentation
+                  Getting started
                 </FormButton>
               </div>
               <!-- 
@@ -153,7 +164,8 @@ import { storeToRefs } from 'pinia'
 import {
   ArrowDownTrayIcon,
   ArrowUpTrayIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  ArrowTopRightOnSquareIcon
 } from '@heroicons/vue/24/solid'
 import { useAccountStore } from '~~/store/accounts'
 import { useHostAppStore } from '~~/store/hostApp'

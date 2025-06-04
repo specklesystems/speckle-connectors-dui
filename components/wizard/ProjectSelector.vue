@@ -36,6 +36,18 @@
                 <div class="min-w-0 truncate flex-grow text-left">
                   <span>{{ selectedWorkspace.name }}</span>
                 </div>
+                <button
+                  v-if="selectedWorkspace.slug"
+                  v-tippy="'Open workspace in browser'"
+                  class="transition mr-1 opacity-70 hover:opacity-100"
+                  @click.stop="
+                    $openUrl(
+                      `${accountStore.activeAccount.accountInfo.serverInfo.url}/workspaces/${selectedWorkspace.slug}`
+                    )
+                  "
+                >
+                  <ArrowTopRightOnSquareIcon class="w-3.5" />
+                </button>
                 <ChevronDownIcon class="h-3 w-3 shrink-0" />
               </button>
             </template>
