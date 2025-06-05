@@ -7,7 +7,8 @@ import type {
 } from '~/lib/common/generated/gql/graphql'
 import {
   projectAddByUrlQueryWithoutVersion,
-  projectAddByUrlQueryWithVersion
+  projectAddByUrlQueryWithVersion,
+  userInfoAndServerRoleQuery
 } from '~/lib/graphql/mutationsAndQueries'
 import { omit } from 'lodash-es'
 import { useDebounceFn } from '@vueuse/core'
@@ -60,6 +61,7 @@ export function useAddByUrl() {
 
     const { projectId, modelId, versionId } = params
     const apollo = (acc as DUIAccount).client
+    const userInfoRes = await apollo.query({ query: userInfoAndServerRoleQuery })
 
     let project: ProjectListProjectItemFragment | undefined = undefined,
       model: ModelListModelItemFragment | undefined = undefined,
@@ -113,7 +115,7 @@ export function useAddByUrl() {
           ? project.permissions.canPublish.authorized
           : project.permissions.canLoad.authorized
 
-      if (!hasAccess) {
+      if (!hasAccess && userInfoRes.data.activeUser?.role !== 'server:admin') {
         urlParseError.value = errorMessage
         return
       }

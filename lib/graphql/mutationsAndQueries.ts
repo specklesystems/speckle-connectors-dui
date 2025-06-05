@@ -193,6 +193,16 @@ export const workspacesListQuery = graphql(`
   }
 `)
 
+export const userInfoAndServerRoleQuery = graphql(`
+  query ActiveUser {
+    activeUser {
+      role
+      id
+      name
+    }
+  }
+`)
+
 export const canCreatePersonalProjectQuery = graphql(`
   query CanCreatePersonalProject {
     activeUser {
