@@ -49,6 +49,7 @@ const applicationIds = computed(() => {
 })
 
 const handleClick = async () => {
+  if (applicationIds.value.length === 0) return
   await app.$baseBinding.highlightObjects(applicationIds.value)
 }
 
