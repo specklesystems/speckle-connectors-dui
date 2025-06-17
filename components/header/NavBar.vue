@@ -25,6 +25,7 @@
         </div>
         <div class="relative group flex items-center">
           <FormButton
+            v-if="app.$receiveBinding"
             v-tippy="'Load a model from Speckle into this file'"
             color="outline"
             size="sm"
