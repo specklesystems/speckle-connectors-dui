@@ -27,28 +27,29 @@ import type { CardSetting, CardSettingValue } from '~/lib/models/card/setting'
 import type { JsonFormsChangeEvent } from '@jsonforms/vue'
 import { cloneDeep, omit } from 'lodash-es'
 import type { JsonSchema } from '@jsonforms/core'
-import { useHostAppStore } from '~/store/hostApp'
+// import { useHostAppStore } from '~/store/hostApp'
 
 const props = defineProps<{
   settings?: CardSetting[]
+  defaultSettings: CardSetting[]
   expandable: boolean
 }>()
 
 const emit = defineEmits<{ (e: 'update:settings', value: CardSetting[]): void }>()
 
-const store = useHostAppStore()
+// const store = useHostAppStore()
 
-const defaultSendSettings = computed(() => store.sendSettings)
-const sendSettings = ref<CardSetting[] | undefined>(
-  cloneDeep(props.settings ?? defaultSendSettings.value) // need to prevent mutation!
+// const defaultSendSettings = computed(() => store.sendSettings)
+const settings = ref<CardSetting[] | undefined>(
+  cloneDeep(props.settings ?? props.defaultSettings) // need to prevent mutation!
 )
 
 const showSettings = ref(!props.expandable)
 
 const settingsJsonForms = computed(() => {
-  if (sendSettings.value === undefined) return {}
+  if (settings.value === undefined) return {}
   const obj: JsonSchema = { type: 'object', properties: {} }
-  sendSettings.value.forEach((setting: CardSetting) => {
+  settings.value.forEach((setting: CardSetting) => {
     const mappedSetting = omit({ ...setting, $id: setting.id }, ['id'])
     if (obj && obj.properties) {
       obj.properties[setting.id] = mappedSetting
@@ -60,8 +61,8 @@ const settingsJsonForms = computed(() => {
 type DataType = Record<string, unknown>
 const data = computed(() => {
   const settingValues = {} as DataType
-  if (sendSettings.value) {
-    sendSettings.value.forEach((setting) => {
+  if (settings.value) {
+    settings.value.forEach((setting) => {
       settingValues[setting.id as string] = setting.value
     })
   }
@@ -69,14 +70,14 @@ const data = computed(() => {
 })
 
 const onParamsFormChange = (e: JsonFormsChangeEvent) => {
-  if (sendSettings.value === undefined) return
-  sendSettings.value?.forEach((setting) => {
+  if (settings.value === undefined) return
+  settings.value?.forEach((setting) => {
     if (setting) {
       if (setting.value !== (e.data as DataType)[setting.id]) {
         setting.value = (e.data as DataType)[setting.id] as CardSettingValue
       }
     }
   })
-  emit('update:settings', sendSettings.value)
+  emit('update:settings', settings.value)
 }
 </script>

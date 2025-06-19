@@ -37,6 +37,7 @@
           :workspace-slug="selectedWorkspace?.slug"
           :from-wizard="true"
           @next="selectVersionAndAddModel"
+          @update:settings="handleUpdateSettings"
         />
       </div>
     </div>
@@ -57,6 +58,7 @@ import { ReceiverModelCard } from '~/lib/models/card/receiver'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
+import type { CardSetting } from '~/lib/models/card/setting'
 
 const { trackEvent } = useMixpanel()
 
@@ -83,6 +85,7 @@ const selectedAccountId = ref<string>(activeAccount.value?.accountInfo.id as str
 const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>()
 const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
+const receieveSettings = ref<CardSetting[] | undefined>(undefined)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -131,6 +134,10 @@ const title = computed(() => {
   return ''
 })
 
+const handleUpdateSettings = (settings: CardSetting[]) => {
+  receieveSettings.value = settings
+}
+
 // accountId, serverUrl,  ModelListModelItemFragment, VersionListItemFragment
 const selectVersionAndAddModel = async (
   version: VersionListItemFragment,
@@ -173,6 +180,7 @@ const selectVersionAndAddModel = async (
   )
 
   const modelCard = new ReceiverModelCard()
+  modelCard.settings = receieveSettings.value
   modelCard.accountId = selectedAccountId.value
   modelCard.serverUrl = activeAccount.value.accountInfo.serverInfo.url
 
