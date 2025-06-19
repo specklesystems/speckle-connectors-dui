@@ -53,6 +53,7 @@
           {{ hostAppStore.connectorVersion }}
         </div>
         <HeaderButton
+          v-if="hostAppStore.isDistributedBySpeckle"
           v-tippy="'Documentation and help'"
           @click="
             app.$openUrl(
