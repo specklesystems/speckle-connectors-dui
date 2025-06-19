@@ -191,6 +191,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const sendSettings = ref<CardSetting[]>()
+  const receiveSettings = ref<CardSetting[]>()
 
   /**
    * Send filters
@@ -615,6 +616,10 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     sendSettings.value = await app.$sendBinding.getSendSettings()
   }
 
+  const getReceiveSettings = async () => {
+    receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
+  }
+
   const tryToUpgradeModelCardSettings = (
     settings: CardSetting[],
     typeDiscriminator: string
@@ -693,6 +698,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     await refreshDocumentModelStore()
     await refreshSendFilters()
     await getSendSettings()
+    await getReceiveSettings()
     tryToUpgradeModelCardSettings(sendSettings.value || [], 'SenderModelCard')
 
     // Intercom shenanningans below
@@ -726,6 +732,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     models,
     sendFilters,
     sendSettings,
+    receiveSettings,
     selectionFilter,
     everythingFilter,
     currentNotification,

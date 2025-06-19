@@ -13,6 +13,12 @@
           Upgrade
         </FormButton>
       </div>
+      <ModelSettings
+        v-if="hasReceiveSettings"
+        expandable
+        :default-settings="(store.receiveSettings as unknown as CardSetting[])"
+        @update:settings="updateSettings"
+      ></ModelSettings>
       <div v-if="latestVersion" class="grid grid-cols-2 gap-3 max-[275px]:grid-cols-1">
         <WizardListVersionCard
           v-for="(version, index) in versions"
@@ -44,13 +50,16 @@ import { useQuery } from '@vue/apollo-composable'
 import { modelVersionsQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
 import { useAccountStore } from '~/store/accounts'
+import type { CardSetting } from '~/lib/models/card/setting'
+import { useHostAppStore } from '~/store/hostApp'
 
-defineEmits<{
+const emit = defineEmits<{
   (
     e: 'next',
     version: VersionListItemFragment,
     latestVersion: VersionListItemFragment
   ): void
+  (e: 'update:settings', settings: CardSetting[]): void
 }>()
 
 const props = defineProps<{
@@ -62,8 +71,17 @@ const props = defineProps<{
   fromWizard?: boolean
 }>()
 
+const store = useHostAppStore()
 const accountStore = useAccountStore()
 const serverUrl = computed(() => accountStore.activeAccount.accountInfo.serverInfo.url)
+
+const hasReceiveSettings = computed(
+  () => store.receiveSettings && store.receiveSettings.length > 0
+)
+
+const updateSettings = (settings: CardSetting[]) => {
+  emit('update:settings', settings)
+}
 
 const {
   result: modelVersionResults,

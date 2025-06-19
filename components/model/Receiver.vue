@@ -53,6 +53,7 @@
         :workspace-slug="modelCard.workspaceSlug"
         :selected-version-id="modelCard.selectedVersionId"
         @next="handleVersionSelection"
+        @update:settings="handleUpdateSettings"
       />
     </CommonDialog>
     <template #states>
@@ -95,6 +96,7 @@ import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useInterval, watchOnce } from '@vueuse/core'
 import { useAccountStore } from '~~/store/accounts'
+import type { CardSetting } from '~/lib/models/card/setting'
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -121,6 +123,10 @@ app.$baseBinding.on('documentChanged', () => {
 const isExpired = computed(() => {
   return props.modelCard.latestVersionId !== props.modelCard.selectedVersionId
 })
+
+const handleUpdateSettings = (settings: CardSetting[]) => {
+  console.log(settings)
+}
 
 // Cancels any in progress receive AND load selected version
 const handleVersionSelection = async (
