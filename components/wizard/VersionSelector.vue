@@ -13,12 +13,17 @@
           Upgrade
         </FormButton>
       </div>
-      <ModelSettings
-        v-if="hasReceiveSettings"
-        expandable
-        :default-settings="(store.receiveSettings as unknown as CardSetting[])"
-        @update:settings="updateSettings"
-      ></ModelSettings>
+      <div v-if="hasReceiveSettings">
+        <ModelSettings
+          class="mb-2"
+          expandable
+          :settings="settings"
+          :default-settings="(store.receiveSettings as unknown as CardSetting[])"
+          @update:settings="updateSettings"
+        ></ModelSettings>
+        <hr />
+      </div>
+
       <div v-if="latestVersion" class="grid grid-cols-2 gap-3 max-[275px]:grid-cols-1">
         <WizardListVersionCard
           v-for="(version, index) in versions"
@@ -66,6 +71,7 @@ const props = defineProps<{
   accountId: string
   projectId: string
   modelId: string
+  settings?: CardSetting[]
   selectedVersionId?: string
   workspaceSlug?: string
   fromWizard?: boolean

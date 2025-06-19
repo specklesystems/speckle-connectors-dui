@@ -52,6 +52,7 @@
         :model-id="modelCard.modelId"
         :workspace-slug="modelCard.workspaceSlug"
         :selected-version-id="modelCard.selectedVersionId"
+        :settings="modelCard.settings"
         @next="handleVersionSelection"
         @update:settings="handleUpdateSettings"
       />
@@ -124,8 +125,10 @@ const isExpired = computed(() => {
   return props.modelCard.latestVersionId !== props.modelCard.selectedVersionId
 })
 
-const handleUpdateSettings = (settings: CardSetting[]) => {
-  console.log(settings)
+const handleUpdateSettings = async (settings: CardSetting[]) => {
+  await store.patchModel(props.modelCard.modelCardId, {
+    settings
+  })
 }
 
 // Cancels any in progress receive AND load selected version
