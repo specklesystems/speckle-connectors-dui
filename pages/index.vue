@@ -69,7 +69,10 @@
               </div>
             </div>
             <!-- TEMPORARY MESSAGE TO USER! will be deleted -->
-            <div class="mt-2 bg-highlight-1 rounded-md p-2">
+            <div
+              v-if="store.isDistributedBySpeckle"
+              class="mt-2 bg-highlight-1 rounded-md p-2"
+            >
               <h1
                 class="text-heading-sm w-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 inline-block py-1 text-transparent bg-clip-text"
               >
