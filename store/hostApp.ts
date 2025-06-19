@@ -43,6 +43,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
 
+  const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
 
   const currentNotification = ref<Nullable<ToastNotification>>(null)
@@ -83,6 +84,10 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const setHostAppError = (error: Nullable<HostAppError>) => {
     hostAppError.value = error
+  }
+
+  const setIsDistributedBySpeckle = (val: boolean) => {
+    isDistributedBySpeckle.value = val
   }
 
   /**
@@ -741,6 +746,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     availableViews,
     navisworksAvailableSavedSets,
     availableSelectSendFilters,
+    isDistributedBySpeckle,
+    setIsDistributedBySpeckle,
     setNotification,
     setModelError,
     setLatestAvailableVersion,
