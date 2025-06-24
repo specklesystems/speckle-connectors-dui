@@ -86,7 +86,9 @@ const startAccountAddFlow = () => {
     showHelp.value = true
   }, 10_000)
   const url = customServerUrl.value
-    ? `http://localhost:29364/auth/add-account?serverUrl=${customServerUrl.value}`
+    ? `http://localhost:29364/auth/add-account?serverUrl=${
+        new URL(customServerUrl.value).origin
+      }`
     : `http://localhost:29364/auth/add-account`
 
   app.$openUrl(url)
