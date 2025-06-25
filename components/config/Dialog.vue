@@ -1,7 +1,6 @@
 <template>
   <!-- ONLY FOR TEST FOR NOW-->
   <form class="flex flex-col space-y-4 form-json-form">
-    <span>Settings</span>
     <FormJsonForm :schema="jsonSchema" @change="onParamsFormChange"></FormJsonForm>
   </form>
 </template>
@@ -21,6 +20,11 @@ const jsonSchema = {
       type: 'string',
       title: 'Favorite Color',
       enum: ['red', 'green', 'blue']
+    },
+    multiSelect: {
+      type: 'array',
+      title: 'Multi Favorite Chars',
+      enum: ['a', 'b', 'c', 'd']
     }
   }
 }
@@ -28,6 +32,6 @@ const jsonSchema = {
 const paramsFormState = ref<JsonFormsChangeEvent>()
 const onParamsFormChange = (e: JsonFormsChangeEvent) => {
   paramsFormState.value = e
-  console.log(JSON.stringify(e))
+  console.log(e)
 }
 </script>
