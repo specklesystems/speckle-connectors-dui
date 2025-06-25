@@ -1,7 +1,10 @@
 <template>
   <div class="flex flex-col space-y-2">
     <div class="px-2 mt-2">
-      <FormButton to="/" size="sm" :icon-left="ArrowLeftIcon">Home</FormButton>
+      <FormButton to="/" size="sm" :icon-left="ArrowLeftIcon" class="my-2">
+        Home
+      </FormButton>
+      <hr />
       <p class="h5">Document info</p>
       <p class="text-sm text-foreground-2 py-2">
         Current document info. This should change on document swaps, closure, opening,
@@ -11,6 +14,7 @@
         <pre>{{ documentInfo }}</pre>
       </div>
     </div>
+    <hr />
     <div class="px-2">
       <p class="h5">Send Filters</p>
       <p class="text-sm text-foreground-2 space-x-2">Available send filters:</p>
@@ -32,6 +36,7 @@
         <pre>{{ sendFilters }}</pre>
       </div>
     </div>
+    <hr />
     <div class="px-2">
       <p class="h5 mb-4">Chromium 65 Scrollable Dialogs Test</p>
       <FormButton @click="showBigDialog = !showBigDialog">Show Big Dialog</FormButton>
@@ -41,6 +46,14 @@
         </div>
       </CommonDialog>
     </div>
+    <hr />
+    <div class="px-2">
+      <p class="h5">Settings</p>
+      <div class="border rounded-lg p-1">
+        <ConfigDialog></ConfigDialog>
+      </div>
+    </div>
+    <hr />
     <div class="px-2">
       <p class="h5">Selection info</p>
       <p class="text-sm text-foreground-2 py-2">
@@ -56,6 +69,7 @@
         <pre>{{ selectionInfo }}</pre>
       </div>
     </div>
+    <hr />
     <div class="px-2">
       <p class="h5">Document State</p>
       <p class="text-sm text-foreground-2 py-2">
@@ -70,6 +84,7 @@
         <pre>{{ projectModelGroups }}</pre>
       </div>
     </div>
+    <hr />
     <div class="px-2">
       <p class="h5">Binding tests</p>
       <p class="text-sm text-foreground-2 py-2">

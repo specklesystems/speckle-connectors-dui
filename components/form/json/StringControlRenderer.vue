@@ -7,8 +7,8 @@
     :label="control.label"
     :placeholder="appliedOptions['placeholder']"
     :help="control.description"
+    color="foundation"
     show-label
-    size="lg"
     :validate-on-value-update="validateOnValueUpdate"
     @update:model-value="handleChange"
   />

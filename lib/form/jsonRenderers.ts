@@ -1,6 +1,7 @@
 import type { JsonFormsRendererRegistryEntry } from '@jsonforms/core'
 import {
   and,
+  hasType,
   isBooleanControl,
   isDateControl,
   isDateTimeControl,
@@ -11,12 +12,15 @@ import {
   isOneOfEnumControl,
   isStringControl,
   isTimeControl,
-  rankWith
+  rankWith,
+  schemaMatches,
+  uiTypeIs
 } from '@jsonforms/core'
 import { vanillaRenderers } from '@jsonforms/vue-vanilla'
 import BooleanControlRenderer from '~/components/form/json/BooleanControlRenderer.vue'
 import DateControlRenderer from '~/components/form/json/DateControlRenderer.vue'
 import DateTimeControlRenderer from '~/components/form/json/DateTimeControlRenderer.vue'
+import MultiEnumControlRenderer from '~/components/form/json/MultiEnumControlRenderer.vue'
 import EnumControlRenderer from '~/components/form/json/EnumControlRenderer.vue'
 import EnumOneOfControlRenderer from '~/components/form/json/EnumOneOfControlRenderer.vue'
 import IntegerControlRenderer from '~/components/form/json/IntegerControlRenderer.vue'
@@ -75,6 +79,21 @@ export const timeControlRenderer: JsonFormsRendererRegistryEntry = {
   tester: rankWith(4, isTimeControl)
 }
 
+export const multiEnumControlRenderer: JsonFormsRendererRegistryEntry = {
+  renderer: MultiEnumControlRenderer as unknown,
+  tester: rankWith(
+    6,
+    and(
+      uiTypeIs('Control'),
+      and(
+        schemaMatches(
+          (schema) => hasType(schema, 'array') && !Array.isArray(schema.items)
+        )
+      )
+    )
+  )
+}
+
 export const renderers: JsonFormsRendererRegistryEntry[] = markRaw([
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   ...vanillaRenderers,
@@ -87,5 +106,6 @@ export const renderers: JsonFormsRendererRegistryEntry[] = markRaw([
   numberControlRenderer,
   dateControlRenderer,
   dateTimeControlRenderer,
-  timeControlRenderer
+  timeControlRenderer,
+  multiEnumControlRenderer
 ])
