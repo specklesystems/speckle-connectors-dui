@@ -1,11 +1,12 @@
 <template>
   <div class="space-y-4">
     <FilterListSelect @update:filter="updateFilter" />
-    <SendSettings
+    <ModelSettings
       v-if="hasSendSettings"
       expandable
+      :default-settings="(store.sendSettings as unknown as CardSetting[])"
       @update:settings="updateSettings"
-    ></SendSettings>
+    ></ModelSettings>
   </div>
 </template>
 <script setup lang="ts">

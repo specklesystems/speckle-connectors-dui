@@ -6,11 +6,12 @@
       :title="`Settings`"
       fullscreen="none"
     >
-      <SendSettings
+      <ModelSettings
         :expandable="false"
+        :default-settings="(store.sendSettings as unknown as CardSetting[])"
         :settings="props.settings"
         @update:settings="updateSettings"
-      ></SendSettings>
+      ></ModelSettings>
       <div class="mt-4 flex justify-end items-center space-x-2">
         <FormButton size="sm" color="outline" @click="showSettingsDialog = false">
           Cancel
