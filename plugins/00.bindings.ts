@@ -74,6 +74,9 @@ export default defineNuxtPlugin(async () => {
     )
   }
 
+  console.log(isRunningOnConnector, 'isRunningOnConnector')
+  console.log(isDev, 'isDev')
+
   // Registers a set of non existent bindings as a test.
   const nonExistantBindings = await tryHoistBinding('nonExistantBindings')
 
