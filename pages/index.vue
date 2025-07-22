@@ -198,6 +198,9 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 const app = useNuxtApp()
 const config = useConfigStore()
 
+console.log(app.$isRunningOnConnector)
+console.log(app.$isDev)
+
 // IMPORTANT: the account store needs to be awaited here, and in any other top level page to prevent
 // race conditions on initialisation (model cards get loaded, but accounts are not there yet)
 // TODO: guard against this later, incase we will have more top level entry pages
