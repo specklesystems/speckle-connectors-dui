@@ -74,46 +74,43 @@ export default defineNuxtPlugin(async () => {
     )
   }
 
-  console.log(isRunningOnConnector, 'isRunningOnConnector')
-  console.log(isDev, 'isDev')
-
   // Registers a set of non existent bindings as a test.
   const nonExistantBindings = await tryHoistBinding('nonExistantBindings')
 
   // Registers some default test bindings.
   const testBindings =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<ITestBinding>(ITestBindingKey)
       : hoistMockBinding(new MockedTestBinding(), ITestBindingKey)
 
   // Actual bindings follow below.
   const configBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<IConfigBinding>(IConfigBindingKey)
       : hoistMockBinding(new MockedConfigBinding(), IConfigBindingKey)
 
   const accountBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<IAccountBinding>(IAccountBindingKey)
       : hoistMockBinding(new MockedAccountBinding(), IAccountBindingKey)
 
   const baseBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<IBasicConnectorBinding>(IBasicConnectorBindingKey)
       : hoistMockBinding(new MockedBaseBinding(), IBasicConnectorBindingKey)
 
   const sendBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<ISendBinding>(ISendBindingKey)
       : hoistMockBinding(new MockedSendBinding(), ISendBindingKey)
 
   const receiveBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<IReceiveBinding>(IReceiveBindingKey)
       : hoistMockBinding(new MockedReceiveBinding(), IReceiveBindingKey)
 
   const selectionBinding =
-    isRunningOnConnector && !isDev
+    isRunningOnConnector || !isDev
       ? await tryHoistBinding<ISelectionBinding>(ISelectionBindingKey)
       : hoistMockBinding(new MockedSelectionBinding(), ISendBindingKey)
 
