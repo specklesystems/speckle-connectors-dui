@@ -536,8 +536,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    console.log(app.$isRunningOnConnector)
-
     if (app.$isRunningOnConnector) {
       await checkUpdate()
     }
