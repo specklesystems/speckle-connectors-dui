@@ -66,7 +66,9 @@ const isConnector = () => isWebview() || isSketchup() || isCefSharp() || isArchi
  */
 export default defineNuxtPlugin(async () => {
   const isRunningOnConnector = isConnector()
+  globalThis['isRunningOnConnector'] = isRunningOnConnector
   const isDev = import.meta.dev
+  globalThis['isDev'] = isDev
   if (!isRunningOnConnector) {
     // The state that we wouldn't wanna show any connector related visuals on production like in dui.speckle.systems
     console.warn(
