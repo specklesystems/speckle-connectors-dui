@@ -78,34 +78,41 @@ export default defineNuxtPlugin(async () => {
   const nonExistantBindings = await tryHoistBinding('nonExistantBindings')
 
   // Registers some default test bindings.
-  const testBindings = isRunningOnConnector
-    ? await tryHoistBinding<ITestBinding>(ITestBindingKey)
-    : hoistMockBinding(new MockedTestBinding(), ITestBindingKey)
+  const testBindings =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<ITestBinding>(ITestBindingKey)
+      : hoistMockBinding(new MockedTestBinding(), ITestBindingKey)
 
   // Actual bindings follow below.
-  const configBinding = isRunningOnConnector
-    ? await tryHoistBinding<IConfigBinding>(IConfigBindingKey)
-    : hoistMockBinding(new MockedConfigBinding(), IConfigBindingKey)
+  const configBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<IConfigBinding>(IConfigBindingKey)
+      : hoistMockBinding(new MockedConfigBinding(), IConfigBindingKey)
 
-  const accountBinding = isRunningOnConnector
-    ? await tryHoistBinding<IAccountBinding>(IAccountBindingKey)
-    : hoistMockBinding(new MockedAccountBinding(), IAccountBindingKey)
+  const accountBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<IAccountBinding>(IAccountBindingKey)
+      : hoistMockBinding(new MockedAccountBinding(), IAccountBindingKey)
 
-  const baseBinding = isRunningOnConnector
-    ? await tryHoistBinding<IBasicConnectorBinding>(IBasicConnectorBindingKey)
-    : hoistMockBinding(new MockedBaseBinding(), IBasicConnectorBindingKey)
+  const baseBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<IBasicConnectorBinding>(IBasicConnectorBindingKey)
+      : hoistMockBinding(new MockedBaseBinding(), IBasicConnectorBindingKey)
 
-  const sendBinding = isRunningOnConnector
-    ? await tryHoistBinding<ISendBinding>(ISendBindingKey)
-    : hoistMockBinding(new MockedSendBinding(), ISendBindingKey)
+  const sendBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<ISendBinding>(ISendBindingKey)
+      : hoistMockBinding(new MockedSendBinding(), ISendBindingKey)
 
-  const receiveBinding = isRunningOnConnector
-    ? await tryHoistBinding<IReceiveBinding>(IReceiveBindingKey)
-    : hoistMockBinding(new MockedReceiveBinding(), IReceiveBindingKey)
+  const receiveBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<IReceiveBinding>(IReceiveBindingKey)
+      : hoistMockBinding(new MockedReceiveBinding(), IReceiveBindingKey)
 
-  const selectionBinding = isRunningOnConnector
-    ? await tryHoistBinding<ISelectionBinding>(ISelectionBindingKey)
-    : hoistMockBinding(new MockedSelectionBinding(), ISendBindingKey)
+  const selectionBinding =
+    isRunningOnConnector && !isDev
+      ? await tryHoistBinding<ISelectionBinding>(ISelectionBindingKey)
+      : hoistMockBinding(new MockedSelectionBinding(), ISendBindingKey)
 
   const topLevelExceptionHandlerBinding =
     await tryHoistBinding<ITopLevelExpectionHandlerBinding>(
