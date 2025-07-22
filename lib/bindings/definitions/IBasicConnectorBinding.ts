@@ -57,3 +57,65 @@ export type ToastAction = {
   url: string
   name: string
 }
+
+export class MockedBaseBinding implements IBasicConnectorBinding {
+  public async getSourceApplicationName() {
+    return await 'headless'
+  }
+
+  public async getSourceApplicationVersion() {
+    return await 'dev'
+  }
+
+  public async getConnectorVersion() {
+    return await 'dev'
+  }
+
+  public async getDocumentInfo() {
+    return (await {
+      id: 'whatever',
+      name: 'test',
+      location: 'whocares'
+    }) as DocumentInfo
+  }
+
+  public async getDocumentState() {
+    return (await { models: [] }) as DocumentModelStore
+  }
+
+  public async addModel(_model: IModelCard) {
+    await console.log('no way dude')
+  }
+
+  public async removeModel(_model: IModelCard) {
+    await console.log('no way dude')
+  }
+
+  public async removeModels(_models: IModelCard[]) {
+    await console.log('no way dude')
+  }
+
+  public async updateModel(_model: IModelCard) {
+    await console.log('no way dude')
+  }
+
+  public async highlightModel(_modelCardId: string) {
+    await console.log('no way dude')
+  }
+
+  public async highlightObjects(_objectIds: string[]) {
+    await console.log('no way dude')
+  }
+
+  public async showDevTools() {
+    await console.log('No way dude')
+  }
+
+  public async openUrl(url: string) {
+    await window.open(url)
+  }
+
+  public on() {
+    return
+  }
+}

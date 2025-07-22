@@ -117,7 +117,7 @@ const projectAccount = computed(() =>
   accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
 )
 
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   openVersionsDialog.value = false
 })
 

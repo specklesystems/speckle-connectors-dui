@@ -31,3 +31,42 @@ export type Account = {
 }
 
 export interface IAccountBindingEvents extends IBindingSharedEvents {}
+
+export class MockedAccountBinding implements IAccountBinding {
+  public async getAccounts() {
+    const config = useRuntimeConfig()
+    return (await [
+      {
+        id: 'whatever',
+        isDefault: true,
+        token: config.public.speckleToken,
+        serverInfo: {
+          name: 'test',
+          url: config.public.speckleUrl,
+          frontend2: true
+        },
+        userInfo: {
+          id: 'whatever',
+          avatar: 'whatever',
+          email: ''
+        }
+      }
+    ]) as Account[]
+  }
+
+  public async removeAccount(accountId: string) {
+    return await console.log('no way dude', accountId)
+  }
+
+  public async showDevTools() {
+    await console.log('No way dude')
+  }
+
+  public async openUrl(url: string) {
+    await window.open(url)
+  }
+
+  public on() {
+    return
+  }
+}

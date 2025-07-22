@@ -95,7 +95,7 @@ const showAccountsDialog = defineModel<boolean>('open', {
 
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
 
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   showAccountsDialog.value = false
 })
 

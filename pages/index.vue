@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="store.hostAppName">
+    <div v-if="(store.hostAppName && app.$isRunningOnConnector) || app.$isDev">
       <div v-if="!config.isDevMode" class="px-1">
         <CommonUpdateAlert />
       </div>
@@ -138,6 +138,27 @@
         </div>
       </div>
     </div>
+    <div
+      v-else-if="!app.$isRunningOnConnector"
+      class="flex-1 flex flex-col items-center justify-center py-12 gap-y-6"
+    >
+      <section
+        class="w-full max-w-md flex flex-col gap-y-8 items-center mx-auto py-12 px-6 border rounded-2xl border-outline-2"
+      >
+        <NuxtImg
+          :src="`/assets/images/pleading_spockle.svg`"
+          alt=""
+          class="w-20"
+          width="120"
+        />
+        <h1 class="text-2xl md:text-3xl font-semibold text-foreground text-center">
+          Connector is not detected.
+        </h1>
+        <FormButton color="outline" @click="openSpeckleConnectors">
+          Get them here
+        </FormButton>
+      </section>
+    </div>
     <div v-else>
       <div class="fixed h-screen w-screen flex items-center pointer-events-none">
         <LayoutPanel fancy-glow class="transition pointer-events-auto w-full">
@@ -191,7 +212,7 @@ const { trackEvent } = useMixpanel()
 const showSendDialog = ref(false)
 const showReceiveDialog = ref(false)
 
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   showSendDialog.value = false
   showReceiveDialog.value = false
 })
@@ -222,5 +243,9 @@ const hasNoValidProjects = computed(() => {
 
 const reload = () => {
   window.location.reload()
+}
+
+const openSpeckleConnectors = () => {
+  window.open('https://app.speckle.systems/connectors', '_blank')
 }
 </script>

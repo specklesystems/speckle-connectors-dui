@@ -522,7 +522,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   app.$sendBinding?.on('setModelError', setModelError)
   app.$receiveBinding?.on('setModelError', setModelError)
-  app.$baseBinding.on('setModelError', setModelError)
+  app.$baseBinding?.on('setModelError', setModelError)
 
   /**
    * Used internally in this store store only for initialisation.
@@ -536,7 +536,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    await checkUpdate()
+    console.log(app.$isRunningOnConnector)
+
+    if (app.$isRunningOnConnector) {
+      await checkUpdate()
+    }
   }
 
   /**
@@ -683,7 +687,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     })
   }
 
-  app.$baseBinding.on(
+  app.$baseBinding?.on(
     'documentChanged',
     () =>
       setTimeout(async () => {

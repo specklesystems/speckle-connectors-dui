@@ -10,7 +10,8 @@ export default defineNuxtConfig({
     '@nuxt/eslint',
     '@nuxtjs/tailwindcss',
     '@speckle/ui-components-nuxt',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@nuxt/image'
   ],
   alias: {
     // Rewriting all lodash calls to lodash-es for proper tree-shaking & chunk splitting

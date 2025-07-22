@@ -8,7 +8,7 @@
       v-if="hasNoModelCards"
       class="px-3 text-body-3xs text-foreground-2 justify-center bg-red-200/1 py-2 flex items-center w-full space-x-2"
     >
-      <span>Version {{ hostApp.connectorVersion }}</span>
+      <span>Version {{ hostApp.connectorVersion || 'dev' }}</span>
       <FormButton
         size="sm"
         text
@@ -19,6 +19,17 @@
       >
         Toggle theme
       </FormButton>
+      <FormButton
+        v-if="hostApp.hostAppName?.toLowerCase() === 'revit'"
+        size="sm"
+        text
+        color="subtle"
+        :icon-right="WrenchScrewdriverIcon"
+        hide-text
+        @click="app.$showDevTools()"
+      >
+        Open dev tools
+      </FormButton>
     </div>
   </div>
 </template>
@@ -27,7 +38,9 @@
 import { storeToRefs } from 'pinia'
 import { useHostAppStore } from '~/store/hostApp'
 import { useConfigStore } from '~/store/config'
-import { MoonIcon, SunIcon } from '@heroicons/vue/24/outline'
+import { MoonIcon, SunIcon, WrenchScrewdriverIcon } from '@heroicons/vue/24/outline'
+
+const app = useNuxtApp()
 
 const uiConfigStore = useConfigStore()
 const { isDarkTheme } = storeToRefs(uiConfigStore)
