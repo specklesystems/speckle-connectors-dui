@@ -1,3 +1,4 @@
+import md5 from '~/lib/common/helpers/md5'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 
@@ -7,9 +8,13 @@ type LogLevel = 'Verbose' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Fat
 
 const collectCommonProperties = () => {
   const { accounts, activeAccount } = useAccountStore()
+  const hashedEmail =
+    '@' +
+    md5(activeAccount.accountInfo.userInfo.email.toLowerCase() as string).toUpperCase()
   return {
     user: {
-      id: activeAccount.accountInfo.userInfo.id
+      id: activeAccount.accountInfo.userInfo.id,
+      distinctId: hashedEmail
     },
     dui3: true,
     accountCount: accounts.length
