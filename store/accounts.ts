@@ -84,7 +84,13 @@ export const useAccountStore = defineStore('accountStore', () => {
       if (!acc.client) continue
       if (!acc.accountInfo.serverInfo.frontend2) continue
       try {
-        await acc.client.query({ query: accountTestQuery, errorPolicy: 'none' })
+        const res = await acc.client.query({
+          query: accountTestQuery,
+          errorPolicy: 'none'
+        })
+        if (res.errors) {
+          throw res.errors
+        }
         acc.isValid = true
       } catch (err) {
         // TODO: properly dispose and kill this client. It's unclear how to do it.
