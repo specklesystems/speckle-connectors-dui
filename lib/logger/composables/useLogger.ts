@@ -27,10 +27,11 @@ const collectResources = () => {
     '@ra': {
       connector: {
         slug: hostAppStore.hostAppName,
-        version: hostAppStore.hostAppVersion
+        hostAppVersion: hostAppStore.hostAppVersion,
+        version: hostAppStore.connectorVersion
       },
       service: {
-        version: hostAppStore.connectorVersion
+        version: hostAppStore.connectorVersion // this needs alignment with .NET SDK, actually this should be connector.version instead service.version
       }
     }
   }
