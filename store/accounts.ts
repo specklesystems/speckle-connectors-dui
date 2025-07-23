@@ -114,6 +114,8 @@ export const useAccountStore = defineStore('accountStore', () => {
 
       // Handle apollo client errors as top level
       const errorLink = onError((res: ErrorResponse) => {
+        console.log(res)
+
         logToSeq('Error', 'Apollo GraphQL Error (DUI3)', {
           operationName: res.operation?.operationName ?? 'Unknown',
           graphQLErrors: res.graphQLErrors?.map((err) => ({
