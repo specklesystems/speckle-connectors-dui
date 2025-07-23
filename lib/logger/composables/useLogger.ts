@@ -7,14 +7,30 @@ type LogLevel = 'Verbose' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Fat
 
 const collectCommonProperties = () => {
   const { accounts, activeAccount } = useAccountStore()
-  const hostAppStore = useHostAppStore()
-
   return {
     dui3: true,
     accountCount: accounts.length,
-    userId: activeAccount.accountInfo.userInfo.id,
-    'connector.name': hostAppStore.hostAppName,
-    'service.version': hostAppStore.connectorVersion
+    userId: activeAccount.accountInfo.userInfo.id
+  }
+}
+
+const collectResources = () => {
+  const hostAppStore = useHostAppStore()
+  return {
+    '@ra': {
+      connector: {
+        name: hostAppStore.hostAppName
+      }
+    }
+  }
+}
+
+const collectServices = () => {
+  const hostAppStore = useHostAppStore()
+  return {
+    '@sa': {
+      version: hostAppStore.connectorVersion
+    }
   }
 }
 
@@ -24,13 +40,14 @@ export const logToSeq = async (
   properties: Record<string, unknown> = {}
 ) => {
   try {
-    const commonProps = collectCommonProperties()
     const logEvent = {
-      '@t': new Date().toISOString(), // Timestamp
-      '@l': level, // Log level
-      '@m': message, // Message
-      ...commonProps,
-      ...properties // Additional properties
+      '@t': new Date().toISOString(),
+      '@l': level,
+      '@m': message,
+      ...collectResources(),
+      ...collectServices(),
+      ...collectCommonProperties(),
+      ...properties
     }
 
     const response = await fetch(SEQ_URL, {
