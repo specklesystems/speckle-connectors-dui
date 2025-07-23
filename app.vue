@@ -15,6 +15,7 @@ import { useConfigStore } from '~/store/config'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import { storeToRefs } from 'pinia'
+import { logToSeq } from '~/lib/logger/composables/useLogger'
 
 const uiConfigStore = useConfigStore()
 const { isDarkTheme } = storeToRefs(uiConfigStore)
@@ -57,5 +58,7 @@ onMounted(() => {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { $intercom } = useNuxtApp() // needed her for initialisation
+
+  logToSeq('Information', 'DUI3 initialized')
 })
 </script>

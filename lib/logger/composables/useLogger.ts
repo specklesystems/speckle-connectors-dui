@@ -1,7 +1,7 @@
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 
-const SEQ_URL = 'https://seq-dev.speckle.systems/ingest/clef'
+const SEQ_URL = 'https://seq-dev.speckle.systems/api/events/raw'
 
 type LogLevel = 'Verbose' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Fatal'
 
@@ -33,17 +33,13 @@ export const logToSeq = async (
       ...properties // Additional properties
     }
 
-    // Convert the log event object to a JSON string, followed by a newline.
-    // Seq expects newline-delimited JSON for CLEF.
-    const clef = JSON.stringify(logEvent) + '\n'
-
     const response = await fetch(SEQ_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/vnd.serilog.clef',
         'X-Seq-ApiKey': 'y5YnBp12ZE1Czh4tzZWn'
       },
-      body: clef
+      body: JSON.stringify(logEvent) + '\n'
     })
 
     if (!response.ok) {
