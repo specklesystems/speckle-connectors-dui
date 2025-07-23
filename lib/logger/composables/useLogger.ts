@@ -8,9 +8,11 @@ type LogLevel = 'Verbose' | 'Debug' | 'Information' | 'Warning' | 'Error' | 'Fat
 const collectCommonProperties = () => {
   const { accounts, activeAccount } = useAccountStore()
   return {
+    user: {
+      id: activeAccount.accountInfo.userInfo.id
+    },
     dui3: true,
-    accountCount: accounts.length,
-    userId: activeAccount.accountInfo.userInfo.id
+    accountCount: accounts.length
   }
 }
 
@@ -20,19 +22,24 @@ const collectResources = () => {
     '@ra': {
       connector: {
         name: hostAppStore.hostAppName
+      },
+      service: {
+        version: hostAppStore.connectorVersion
       }
     }
   }
 }
 
-const collectServices = () => {
-  const hostAppStore = useHostAppStore()
-  return {
-    '@sa': {
-      version: hostAppStore.connectorVersion
-    }
-  }
-}
+// const collectServices = () => {
+//   const hostAppStore = useHostAppStore()
+//   return {
+//     '@sa': {
+//       service: {
+//         version: hostAppStore.connectorVersion
+//       }
+//     }
+//   }
+// }
 
 export const logToSeq = async (
   level: LogLevel,
@@ -45,7 +52,7 @@ export const logToSeq = async (
       '@l': level,
       '@m': message,
       ...collectResources(),
-      ...collectServices(),
+      // ...collectServices(),
       ...collectCommonProperties(),
       ...properties
     }

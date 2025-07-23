@@ -85,8 +85,7 @@ export const useAccountStore = defineStore('accountStore', () => {
       if (!acc.accountInfo.serverInfo.frontend2) continue
       try {
         const res = await acc.client.query({
-          query: accountTestQuery,
-          errorPolicy: 'none'
+          query: accountTestQuery
         })
         console.log(res)
 
