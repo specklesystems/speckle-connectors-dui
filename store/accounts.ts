@@ -84,9 +84,9 @@ export const useAccountStore = defineStore('accountStore', () => {
       if (!acc.client) continue
       if (!acc.accountInfo.serverInfo.frontend2) continue
       try {
-        await acc.client.query({ query: accountTestQuery })
+        await acc.client.query({ query: accountTestQuery, errorPolicy: 'none' })
         acc.isValid = true
-      } catch {
+      } catch (err) {
         // TODO: properly dispose and kill this client. It's unclear how to do it.
         acc.isValid = false
         // NOTE: we do not want to delete the client, as we might want to "refresh" in
@@ -94,6 +94,21 @@ export const useAccountStore = defineStore('accountStore', () => {
         // acc.client.disableNetworkFetches = true
         // acc.client.stop()
         // delete acc.client
+
+        const isSelfHosted = !acc.accountInfo.serverInfo.url.includes('speckle.systems')
+
+        logToSeq(
+          isSelfHosted ? 'Warning' : 'Error',
+          isSelfHosted
+            ? 'Account Test Query Failed on self hosted server'
+            : 'Account Test Query Failed',
+          {
+            accountId: acc.accountInfo.id,
+            accountServer: acc.accountInfo.serverInfo.url,
+            message: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+          }
+        )
       }
     }
     isLoading.value = false
@@ -114,8 +129,6 @@ export const useAccountStore = defineStore('accountStore', () => {
 
       // Handle apollo client errors as top level
       const errorLink = onError((res: ErrorResponse) => {
-        console.log(res)
-
         logToSeq('Error', 'Apollo GraphQL Error (DUI3)', {
           operationName: res.operation?.operationName ?? 'Unknown',
           graphQLErrors: res.graphQLErrors?.map((err) => ({
