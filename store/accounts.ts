@@ -88,6 +88,8 @@ export const useAccountStore = defineStore('accountStore', () => {
           query: accountTestQuery,
           errorPolicy: 'none'
         })
+        console.log(res)
+
         if (res.errors) {
           throw res.errors
         }
