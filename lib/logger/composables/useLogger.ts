@@ -26,7 +26,7 @@ const collectResources = () => {
   return {
     '@ra': {
       connector: {
-        name: hostAppStore.hostAppName,
+        slug: hostAppStore.hostAppName,
         version: hostAppStore.hostAppVersion
       },
       service: {
