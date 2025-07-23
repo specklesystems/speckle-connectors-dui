@@ -97,7 +97,7 @@ const showFeedbackDialog = ref<boolean>(false)
 const showSendDialog = ref<boolean>(false)
 const showReceiveDialog = ref<boolean>(false)
 
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   showSendDialog.value = false
   showReceiveDialog.value = false
 })

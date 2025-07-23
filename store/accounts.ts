@@ -16,6 +16,7 @@ import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
+import { logToSeq } from '~/lib/logger/composables/useLogger'
 
 export type DUIAccount = {
   /** account info coming from the host app */
@@ -83,7 +84,13 @@ export const useAccountStore = defineStore('accountStore', () => {
       if (!acc.client) continue
       if (!acc.accountInfo.serverInfo.frontend2) continue
       try {
-        await acc.client.query({ query: accountTestQuery })
+        await acc.client.query({
+          query: accountTestQuery,
+          context: {
+            url: acc.accountInfo.serverInfo.url
+          }
+        })
+
         acc.isValid = true
       } catch {
         // TODO: properly dispose and kill this client. It's unclear how to do it.
@@ -100,7 +107,8 @@ export const useAccountStore = defineStore('accountStore', () => {
 
   const refreshAccounts = async () => {
     isLoading.value = true
-    const accs = await $accountBinding.getAccounts()
+    const accs = (await $accountBinding?.getAccounts()) || []
+
     const newAccs: DUIAccount[] = []
 
     for (const acc of accs) {
@@ -112,6 +120,24 @@ export const useAccountStore = defineStore('accountStore', () => {
 
       // Handle apollo client errors as top level
       const errorLink = onError((res: ErrorResponse) => {
+        logToSeq('Error', 'Apollo GraphQL Error (DUI3)', {
+          operationName: res.operation?.operationName ?? 'Unknown',
+          serverUrl: res.operation.getContext().url as string,
+          graphQLErrors: res.graphQLErrors?.map((err) => ({
+            message: err.message,
+            path: err.path,
+            code: err.extensions?.code,
+            locations: err.locations
+          })),
+          networkError: res.networkError
+            ? {
+                message: res.networkError.message,
+                name: res.networkError.name,
+                stack: res.networkError.stack
+              }
+            : undefined
+        })
+
         if (res.graphQLErrors) {
           if (
             res.graphQLErrors?.some(

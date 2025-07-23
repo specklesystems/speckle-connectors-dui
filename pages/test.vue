@@ -238,7 +238,7 @@ const runTests = async () => {
   }
 }
 
-$testBindings.on('emptyTestEvent', () => {
+$testBindings?.on('emptyTestEvent', () => {
   setTimeout(() => {
     const myTest = tests.value.find((t) => t.name === 'Simple event capture')
 
@@ -248,7 +248,7 @@ $testBindings.on('emptyTestEvent', () => {
   }, 1000)
 })
 
-$testBindings.on('testEvent', (args: TestEventArgs) => {
+$testBindings?.on('testEvent', (args: TestEventArgs) => {
   setTimeout(() => {
     const myTest = tests.value.find((t) => t.name === 'Event capture with args')
 

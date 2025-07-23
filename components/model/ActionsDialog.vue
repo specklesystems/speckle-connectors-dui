@@ -73,7 +73,7 @@ const hasSettings = computed(() => {
 })
 
 const app = useNuxtApp()
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   openModelCardActionsDialog.value = false
 })
 

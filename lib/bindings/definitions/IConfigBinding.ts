@@ -1,4 +1,3 @@
-import { BaseBridge } from '~/lib/bridge/base'
 import type {
   IBinding,
   IBindingSharedEvents
@@ -38,4 +37,48 @@ export type WorkspacesConfig = {
 }
 
 // Useless, but will do for now :)
-export class MockedConfigBinding extends BaseBridge {}
+export class MockedConfigBinding implements IConfigBinding {
+  public async getIsDevMode() {
+    return await true
+  }
+
+  public async getConfig() {
+    return await { darkTheme: false }
+  }
+
+  public async updateConfig() {
+    return await console.log('')
+  }
+
+  public async setUserSelectedAccountId(accountId: string) {
+    return await console.log(accountId)
+  }
+
+  public async setUserSelectedWorkspaceId(workspaceId: string) {
+    return await console.log(workspaceId)
+  }
+
+  public async getAccountsConfig() {
+    return (await { userSelectedAccountId: 'whatever' }) as AccountsConfig
+  }
+
+  public async getWorkspacesConfig() {
+    return (await { userSelectedWorkspaceId: 'whatever' }) as WorkspacesConfig
+  }
+
+  public async getUserSelectedAccountId() {
+    return (await { userSelectedAccountId: 'whatever' }) as AccountsConfig
+  }
+
+  public async showDevTools() {
+    await console.log('No way dude')
+  }
+
+  public async openUrl(url: string) {
+    await window.open(url)
+  }
+
+  public on() {
+    return
+  }
+}

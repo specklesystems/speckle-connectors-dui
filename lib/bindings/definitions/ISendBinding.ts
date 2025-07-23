@@ -38,3 +38,33 @@ export interface ISendBindingEvents
   triggerCancel: (modelCardId: string) => void
   triggerCreateVersion: (args: CreateVersionArgs) => void
 }
+
+export class MockedSendBinding implements ISendBinding {
+  public async getSendFilters() {
+    return await []
+  }
+
+  public async getSendSettings() {
+    return await []
+  }
+
+  public async send(_modelCardId: string) {
+    return await console.log('no way dude')
+  }
+
+  public async cancelSend(_modelCardId: string) {
+    return await console.log('no way dude')
+  }
+
+  public async showDevTools() {
+    await console.log('No way dude')
+  }
+
+  public async openUrl(url: string) {
+    await window.open(url)
+  }
+
+  public on() {
+    return
+  }
+}

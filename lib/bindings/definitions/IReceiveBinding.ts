@@ -24,3 +24,29 @@ export interface IReceiveBindingEvents
     conversionResults: ConversionResult[]
   }) => void
 }
+
+export class MockedReceiveBinding implements IReceiveBinding {
+  public async getReceiveSettings() {
+    return await []
+  }
+
+  public async receive(_modelCardId: string) {
+    return await console.log('no way dude')
+  }
+
+  public async cancelReceive(_modelCardId: string) {
+    return await console.log('no way dude')
+  }
+
+  public async showDevTools() {
+    await console.log('No way dude')
+  }
+
+  public async openUrl(url: string) {
+    await window.open(url)
+  }
+
+  public on() {
+    return
+  }
+}

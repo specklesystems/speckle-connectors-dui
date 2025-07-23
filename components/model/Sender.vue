@@ -130,7 +130,7 @@ const props = defineProps<{
 
 const store = useHostAppStore()
 const openFilterDialog = ref(false)
-app.$baseBinding.on('documentChanged', () => {
+app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
 })
 
