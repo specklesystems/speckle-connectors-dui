@@ -24,29 +24,72 @@
           </div>
         </div>
       </div>
+      <div class="flex space-x-2">
+        <FormButton color="outline" class="flex-1" @click="assignToCategory()">
+          Assign to Category
+        </FormButton>
+        <FormButton color="outline" class="flex-1" @click="clearAllAssignments()">
+          Clear all assignments
+        </FormButton>
+      </div>
+    </div>
+    <hr />
+    <div class="px-2">
+      <p class="h5">Selected Filter</p>
+      <div class="space-y-2 my-2">
+        <div class="p-3 bg-primary/10 border border-primary/20 rounded-lg">
+          <div class="text-sm text-primary font-medium">
+            {{ selectionInfo?.objectIds?.length || 0 }} objects selected.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
+import { useSelectionStore } from '~/store/selection'
 
-// Interface for category
+// BuiltInCategory data structure
 interface Category {
   value: string
   label: string
   objectCount: number
 }
 
-// Hardcoded categories for now
+// Hardcoded categories (for now)
 const availableCategories: Category[] = [
-  { value: 'OST_Walls', label: 'OST_Walls', objectCount: 0 },
-  { value: 'OST_Floors', label: 'OST_Floors', objectCount: 0 }
+  { value: 'OST_Walls', label: 'Walls', objectCount: 0 },
+  { value: 'OST_Floors', label: 'Floors', objectCount: 0 },
+  { value: 'OST_Roofs', label: 'Roofs', objectCount: 0 },
+  { value: 'OST_Doors', label: 'Doors', objectCount: 0 },
+  { value: 'OST_Windows', label: 'Windows', objectCount: 0 }
 ]
 
-// Click handler / logging
+// Selection store integration
+const selectionStore = useSelectionStore()
+const { selectionInfo, hasBinding: hasSelectionBinding } = storeToRefs(selectionStore)
+
+// Category selection function
 const selectCategory = (category: Category) => {
   console.log('Selected category:', category.label)
   console.log('Objects in category:', category.objectCount)
+  // TODO: Call binding to select objects assigned to this category
+}
+
+// Object mapping function
+const assignToCategory = () => {
+  console.log('Assign to category clicked')
+  console.log('Selected objects:', selectionInfo.value?.objectIds || [])
+  // TODO: Show category picker, then call binding to assign
+}
+
+// Clear mapping function
+const clearAllAssignments = () => {
+  console.log('Clear assignments clicked')
+  console.log('Selected objects:', selectionInfo.value?.objectIds || [])
+  // TODO: Call binding to clear assignments
 }
 </script>
