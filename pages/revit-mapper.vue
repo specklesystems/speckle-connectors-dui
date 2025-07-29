@@ -7,7 +7,7 @@
       <hr />
     </div>
 
-    <!-- Step 1: Selection Mode -->
+    <!-- Step 1: Selection Mode (currently only support by selection) -->
     <div class="px-2">
       <p class="h5">Selection</p>
       <div class="space-y-2 my-2">
@@ -105,7 +105,7 @@ import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
 
-// TypeScript interfaces
+// Interfaces
 interface Category {
   value: string
   label: string
@@ -117,7 +117,7 @@ interface CategoryMapping {
   objectCount: number
 }
 
-// Hardcoded Revit BuiltInCategory options
+// Hardcoded Revit BuiltInCategory options - this'll come from connector obviously
 const categoryOptions: Category[] = [
   { value: 'OST_Ceilings', label: 'Ceilings' },
   { value: 'OST_Columns', label: 'Columns' },
