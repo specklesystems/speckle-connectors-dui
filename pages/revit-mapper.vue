@@ -61,11 +61,11 @@ interface Category {
 
 // Hardcoded categories (for now)
 const availableCategories: Category[] = [
-  { value: 'OST_Walls', label: 'Walls', objectCount: 0 },
-  { value: 'OST_Floors', label: 'Floors', objectCount: 0 },
-  { value: 'OST_Roofs', label: 'Roofs', objectCount: 0 },
-  { value: 'OST_Doors', label: 'Doors', objectCount: 0 },
-  { value: 'OST_Windows', label: 'Windows', objectCount: 0 }
+  { value: 'OST_Columns', label: 'OST_Columns', objectCount: 0 },
+  { value: 'OST_CurtainGrids', label: 'OST_CurtainGrids', objectCount: 0 },
+  { value: 'OST_Floors', label: 'OST_Floors', objectCount: 0 },
+  { value: 'OST_Furniture', label: 'OST_Furniture', objectCount: 0 },
+  { value: 'OST_Walls', label: 'OST_Walls', objectCount: 0 }
 ]
 
 // Selection store integration
