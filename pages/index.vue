@@ -59,6 +59,18 @@
                   </FormButton>
                 </div>
               </div>
+              <!--Revit Integration button (only if mapper binding exists)-->
+              <div v-if="app.$revitMapperBinding" class="mt-4">
+                <hr class="border-outline-2 mb-4" />
+                <FormButton
+                  v-tippy="Map objects to Revit categories"
+                  to="/revit-mapper"
+                  color="outline"
+                  full-width
+                >
+                  Revit Integration
+                </FormButton>
+              </div>
             </div>
             <div v-else>
               <div v-if="store.documentInfo?.message" class="text-foreground-2">
