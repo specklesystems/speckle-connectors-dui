@@ -63,7 +63,7 @@
               <div v-if="app.$revitMapperBinding" class="mt-4">
                 <hr class="border-outline-2 mb-4" />
                 <FormButton
-                  v-tippy="Map objects to Revit categories"
+                  v-tippy="'Map objects to Revit categories'"
                   to="/revit-mapper"
                   color="outline"
                   full-width
