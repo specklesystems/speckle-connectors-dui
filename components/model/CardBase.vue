@@ -92,7 +92,24 @@
       Fetching model data...
       <CommonLoadingBar loading />
     </div>
-    <div v-else class="px-1 py-1">Error loading data.</div>
+    <div
+      v-else
+      class="flex flex-row items-center px-2 pt-2 text-body-2xs text-foreground-2 truncate text-red-500"
+    >
+      <span class="ml-1.5">Error on loading model data.</span>
+
+      <div class="flex items-center justify-end grow">
+        <FormButton
+          v-tippy="'Remove model card'"
+          color="subtle"
+          :icon-left="TrashIcon"
+          hide-text
+          size="sm"
+          class="text-red-500"
+          @click.stop="removeModel"
+        />
+      </div>
+    </div>
 
     <!-- Slot to allow senders or receivers to hoist their own buttons/ui -->
     <!-- class="px-2 h-0 group-hover:h-auto transition-all overflow-hidden" -->
@@ -207,7 +224,7 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import type { ProjectCommentsUpdatedMessage } from '~/lib/common/generated/gql/graphql'
 import { useFunctionRunsStatusSummary } from '~/lib/automate/runStatus'
-import { CursorArrowRaysIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { CursorArrowRaysIcon, XCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import type { AvatarUserWithId } from '@speckle/ui-components'
 
 const app = useNuxtApp()
