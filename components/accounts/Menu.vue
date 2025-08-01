@@ -45,7 +45,7 @@
               </div>
               <div v-else class="flex flex-wrap justify-center space-x-4 max-width">
                 <FormButton text @click="$openUrl(`speckle://accounts`)">
-                  Add account via Manager
+                  Add account in your browser
                 </FormButton>
                 <FormButton text @click="accountStore.refreshAccounts()">
                   Refresh accounts
