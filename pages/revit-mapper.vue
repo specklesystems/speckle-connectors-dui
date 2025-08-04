@@ -123,7 +123,7 @@ const categoryOptions = ref<Category[]>([])
 // Selection store integration
 const selectionStore = useSelectionStore()
 const { selectionInfo, hasBinding: hasSelectionBinding } = storeToRefs(selectionStore)
-const { $revitMapperBinding } = useNuxtApp()
+const { $revitMapperBinding, $baseBinding } = useNuxtApp()
 
 // Reactive state
 const selectedCategory = ref<Category | null>(null)
@@ -146,7 +146,7 @@ watch(
 )
 
 // Functions for mapping management
-const assignToCategory = () => {
+const assignToCategory = async () => {
   if (!selectedCategory.value || !selectionInfo.value?.selectedObjectIds) {
     console.warn('No category selected or no objects selected')
     return
@@ -159,31 +159,10 @@ const assignToCategory = () => {
     count: objectIds.length
   })
 
-  // Find existing mapping or create new one
-  const existingMappingIndex = mappings.value.findIndex(
-    (m) => m.category.value === selectedCategory.value!.value
-  )
+  await $revitMapperBinding?.assignToCategory(objectIds, selectedCategory.value.value)
 
-  if (existingMappingIndex >= 0) {
-    // Update existing mapping - merge object IDs
-    const existingMapping = mappings.value[existingMappingIndex]
-    const mergedObjectIds = [...new Set([...existingMapping.objectIds, ...objectIds])]
-    mappings.value[existingMappingIndex] = {
-      ...existingMapping,
-      objectIds: mergedObjectIds,
-      objectCount: mergedObjectIds.length
-    }
-  } else {
-    // Create new mapping
-    mappings.value.push({
-      category: selectedCategory.value,
-      objectIds: [...objectIds],
-      objectCount: objectIds.length
-    })
-  }
-
-  // TODO: Call binding to assign mapping to objects
-  // await app.$mapperBinding?.assignToCategory(objectIds, selectedCategory.value.value)
+  // Refresh mappings from backend to get real state
+  await refreshMappings()
 
   // Reset selection
   selectedCategory.value = null
@@ -191,38 +170,60 @@ const assignToCategory = () => {
   console.log('Updated mappings:', mappings.value)
 }
 
-const selectMappedObjects = (mapping: CategoryMapping) => {
-  console.log('Selecting mapped objects:', mapping.objectIds)
-  // TODO: Call binding to select these specific objects in Rhino
-  // await app.$selectionBinding?.setSelection(mapping.objectIds)
+const refreshMappings = async () => {
+  try {
+    const currentMappings = (await $revitMapperBinding?.getCurrentMappings()) || []
+
+    // Convert backend format to UI format
+    mappings.value = currentMappings.map((mapping) => ({
+      category: {
+        value: mapping.categoryValue,
+        label: mapping.categoryLabel
+      },
+      objectIds: [...mapping.objectIds],
+      objectCount: mapping.objectCount
+    }))
+  } catch (error) {
+    console.error('Failed to refresh mappings:', error)
+  }
 }
 
-const clearMapping = (mapping: CategoryMapping) => {
+const selectMappedObjects = async (mapping: CategoryMapping) => {
+  console.log('Selecting mapped objects:', mapping.objectIds)
+  try {
+    // Use basic connector binding to highlight objects
+    await $baseBinding?.highlightObjects(mapping.objectIds)
+  } catch (error) {
+    console.error('Failed to highlight objects:', error)
+  }
+}
+
+const clearMapping = async (mapping: CategoryMapping) => {
   console.log('Clearing mapping for category:', mapping.category.label)
 
-  // Remove from mappings array
-  const index = mappings.value.findIndex(
-    (m) => m.category.value === mapping.category.value
-  )
-  if (index >= 0) {
-    mappings.value.splice(index, 1)
-  }
+  try {
+    // Call binding to clear category assignment for these objects
+    await $revitMapperBinding?.clearCategoryAssignment(mapping.objectIds)
+    await refreshMappings()
 
-  // TODO: Call binding to clear category assignment for these objects
-  // await app.$mapperBinding?.clearCategoryAssignment(mapping.objectIds)
+    console.log('Successfully cleared mapping')
+  } catch (error) {
+    console.error('Failed to clear mapping:', error)
+  }
 }
 
-const clearAllMappings = () => {
+const clearAllMappings = async () => {
   console.log('Clearing all mappings')
 
-  // Get all object IDs from all mappings
-  const allObjectIds = mappings.value.flatMap((m) => m.objectIds)
+  try {
+    // Call binding to clear all assignments
+    await $revitMapperBinding?.clearAllCategoryAssignments()
+    await refreshMappings()
 
-  // Clear the mappings array
-  mappings.value = []
-
-  // TODO: Call binding to clear all category assignments
-  // await app.$mapperBinding?.clearAllCategoryAssignments(allObjectIds)
+    console.log('Successfully cleared all mappings')
+  } catch (error) {
+    console.error('Failed to clear all mappings:', error)
+  }
 }
 
 const loadCategories = async () => {
@@ -245,6 +246,7 @@ const loadCategories = async () => {
 // Initialize selection on mount
 onMounted(async () => {
   await loadCategories()
+  await refreshMappings()
   if (hasSelectionBinding.value) {
     selectionStore.refreshSelectionFromHostApp()
   }

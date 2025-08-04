@@ -54,6 +54,16 @@ export class MockedMapperBinding implements IRevitMapperBinding {
     // Mock implementation
   }
 
+  public async getAvailableCategories(): Promise<CategoryOption[]> {
+    // Return a few mock categories for dev
+    return [
+      { value: 'OST_Walls', label: 'Walls' },
+      { value: 'OST_Floors', label: 'Floors' },
+      { value: 'OST_Ceilings', label: 'Ceilings' },
+      { value: 'OST_Columns', label: 'Columns' }
+    ]
+  }
+
   public async clearCategoryAssignment(objectIds: string[]): Promise<void> {
     console.log('Mock: Clearing category assignment', { objectIds })
   }
