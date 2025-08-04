@@ -6,25 +6,33 @@ import type {
 export const IRevitMapperBindingKey = 'revitMapperBinding'
 
 export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
-  // Assign objects to a Revit category (i.e. add BuiltInCategory as prop)
+  // Gets list of available Revit categories for the UI dropdown
+  getAvailableCategories: () => Promise<CategoryOption[]>
+
+  // Assigns selected objects to a specific Revit category
   assignToCategory: (objectIds: string[], categoryValue: string) => Promise<void>
 
-  // Clear category assignment for specific objects
+  // Removes category assignments from specific objects
   clearCategoryAssignment: (objectIds: string[]) => Promise<void>
 
-  // Clear all category assignments
+  // Removes all category assignments in the doc
   clearAllCategoryAssignments: () => Promise<void>
 
-  // Get current mappings for all objects
+  // Gets all current mappings to show in the UI table
   getCurrentMappings: () => Promise<CategoryMapping[]>
 
-  // Get objects assigned to a specific category
+  // Get all objects assigned to a specific category
   getObjectsByCategory: (categoryValue: string) => Promise<string[]>
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
   // Notify when mappings change
   mappingsChanged: (mappings: CategoryMapping[]) => void
+}
+
+export interface CategoryOption {
+  value: string
+  label: string
 }
 
 export interface CategoryMapping {
