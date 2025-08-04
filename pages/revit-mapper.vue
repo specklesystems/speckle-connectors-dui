@@ -123,6 +123,7 @@ const categoryOptions = ref<Category[]>([])
 // Selection store integration
 const selectionStore = useSelectionStore()
 const { selectionInfo, hasBinding: hasSelectionBinding } = storeToRefs(selectionStore)
+const { $revitMapperBinding } = useNuxtApp()
 
 // Reactive state
 const selectedCategory = ref<Category | null>(null)
@@ -224,8 +225,26 @@ const clearAllMappings = () => {
   // await app.$mapperBinding?.clearAllCategoryAssignments(allObjectIds)
 }
 
+const loadCategories = async () => {
+  try {
+    const categories = (await $revitMapperBinding?.getAvailableCategories()) || []
+
+    // Convert backend format to UI format
+    categoryOptions.value = categories.map((cat) => ({
+      value: cat.value,
+      label: cat.label
+    }))
+
+    console.log('Loaded categories from backend:', categoryOptions.value.length)
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+    categoryOptions.value = []
+  }
+}
+
 // Initialize selection on mount
-onMounted(() => {
+onMounted(async () => {
+  await loadCategories()
   if (hasSelectionBinding.value) {
     selectionStore.refreshSelectionFromHostApp()
   }
