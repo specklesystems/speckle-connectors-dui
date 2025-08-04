@@ -117,49 +117,8 @@ interface CategoryMapping {
   objectCount: number
 }
 
-// Hardcoded Revit BuiltInCategory options - this'll come from connector obviously
-const categoryOptions: Category[] = [
-  { value: 'OST_Ceilings', label: 'Ceilings' },
-  { value: 'OST_Columns', label: 'Columns' },
-  { value: 'OST_CurtainGrids', label: 'Curtain Grids' },
-  { value: 'OST_CurtainGridsCurtaSystem', label: 'Curtain Grids - Curtain System' },
-  { value: 'OST_CurtainGridsRoof', label: 'Curtain Grids - Roof' },
-  { value: 'OST_CurtainGridsSystem', label: 'Curtain Grids - System' },
-  { value: 'OST_CurtainGridsWall', label: 'Curtain Grids - Wall' },
-  { value: 'OST_Curtain_Systems', label: 'Curtain Systems' },
-  { value: 'OST_CurtainWallMullions', label: 'Curtain Wall Mullions' },
-  { value: 'OST_CurtainWallPanels', label: 'Curtain Wall Panels' },
-  { value: 'OST_Floors', label: 'Floors' },
-  { value: 'OST_Furniture', label: 'Furniture' },
-  { value: 'OST_FurnitureSystems', label: 'Furniture Systems' },
-  { value: 'OST_Roofs', label: 'Roofs' },
-  { value: 'OST_StackedWalls', label: 'Stacked Walls' },
-  { value: 'OST_Walls', label: 'Walls' },
-  // STRUCTURAL
-  { value: 'OST_StructuralColumns', label: 'Structural Columns' },
-  { value: 'OST_StructuralFoundation', label: 'Structural Foundation' },
-  { value: 'OST_StructuralFraming', label: 'Structural Framing' },
-  { value: 'OST_StructuralFramingSystem', label: 'Structural Framing System' },
-  { value: 'OST_StructuralTruss', label: 'Structural Truss' },
-  // MISC
-  { value: 'OST_Levels', label: 'Levels' },
-  { value: 'OST_Grids', label: 'Grids' },
-  { value: 'OST_Rooms', label: 'Rooms' },
-  { value: 'OST_Areas', label: 'Areas' },
-  // MEP
-  { value: 'OST_DuctCurves', label: 'Duct Curves' },
-  { value: 'OST_DuctSystem', label: 'Duct System' },
-  { value: 'OST_DuctFitting', label: 'Duct Fitting' },
-  { value: 'OST_PipeCurves', label: 'Pipe Curves' },
-  { value: 'OST_PipeCurvesCenterLine', label: 'Pipe Curves - Center Line' },
-  { value: 'OST_PipeSegments', label: 'Pipe Segments' },
-  { value: 'OST_PipeFitting', label: 'Pipe Fitting' },
-  { value: 'OST_Conduit', label: 'Conduit' },
-  { value: 'OST_ConduitFitting', label: 'Conduit Fitting' },
-  { value: 'OST_Cable', label: 'Cable' },
-  { value: 'OST_CableTray', label: 'Cable Tray' },
-  { value: 'OST_CableTrayFittin', label: 'Cable Tray Fitting' }
-]
+// Dynamic categories loaded from connector
+const categoryOptions = ref<Category[]>([])
 
 // Selection store integration
 const selectionStore = useSelectionStore()
