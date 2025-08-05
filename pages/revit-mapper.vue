@@ -174,6 +174,9 @@ const selectMappedObjects = async (mapping: CategoryMapping) => {
 
 // === LIFECYCLE ===
 onMounted(async () => {
+  $revitMapperBinding?.on('mappingsChanged', (updatedMappings: CategoryMapping[]) => {
+    mappings.value = updatedMappings
+  })
   await loadCategories()
   await refreshMappings()
   if (hasSelectionBinding.value) {
