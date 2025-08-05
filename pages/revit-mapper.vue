@@ -25,7 +25,7 @@
       <p class="h5">Target Category</p>
       <div class="space-y-2 my-2">
         <FormSelectBase
-          v-model:value="selectedCategory"
+          v-model="selectedCategory"
           name="categoryMapping"
           placeholder="Select a category"
           class="w-full"
@@ -35,9 +35,14 @@
           :allow-unset="false"
           mount-menu-on-body
           show-label
-          value-key="value"
-          label-key="label"
-        />
+        >
+          <template #something-selected="{ value }">
+            <span class="text-primary text-base text-sm">{{ value?.label }}</span>
+          </template>
+          <template #option="{ item }">
+            <span class="text-base text-sm">{{ item?.label }}</span>
+          </template>
+        </FormSelectBase>
 
         <!-- Action button -->
         <FormButton
