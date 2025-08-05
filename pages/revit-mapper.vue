@@ -64,12 +64,12 @@
       <div class="space-y-2 my-2">
         <div
           v-for="mapping in mappings"
-          :key="mapping.category.value"
+          :key="mapping.categoryValue"
           class="p-3 bg-foundation border rounded-lg"
         >
           <div class="flex justify-between items-center">
             <div>
-              <div class="text-sm font-medium">{{ mapping.category.label }}</div>
+              <div class="text-sm font-medium">{{ mapping.categoryLabel }}</div>
               <div class="text-xs text-foreground-2">
                 {{ mapping.objectCount }} object{{
                   mapping.objectCount !== 1 ? 's' : ''
@@ -104,18 +104,10 @@
 import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
-
-// Interfaces
-interface Category {
-  value: string
-  label: string
-}
-
-interface CategoryMapping {
-  category: Category
-  objectIds: string[]
-  objectCount: number
-}
+import type {
+  Category,
+  CategoryMapping
+} from '~/lib/bindings/definitions/IRevitMapperBinding'
 
 // Dynamic categories loaded from connector
 const categoryOptions = ref<Category[]>([])
@@ -155,7 +147,7 @@ const assignToCategory = async () => {
   const objectIds = selectionInfo.value.selectedObjectIds
   console.log('Assigning objects to category:', {
     category: selectedCategory.value,
-    objectIds: objectIds,
+    objectIds,
     count: objectIds.length
   })
 

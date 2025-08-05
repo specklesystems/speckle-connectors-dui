@@ -27,7 +27,7 @@ export interface IMapperBindingEvents extends IBindingSharedEvents {
   mappingsChanged: (mappings: CategoryMapping[]) => void
 }
 
-export interface CategoryOption {
+export interface Category {
   value: string
   label: string
 }
