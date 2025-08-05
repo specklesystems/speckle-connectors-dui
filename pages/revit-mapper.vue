@@ -27,6 +27,7 @@
         <FormSelectBase
           v-model="selectedCategory"
           name="categoryMapping"
+          label="Target Category"
           placeholder="Select a category"
           class="w-full"
           fixed-height
@@ -37,10 +38,12 @@
           show-label
         >
           <template #something-selected="{ value }">
-            <span class="text-primary text-base text-sm">{{ value?.label }}</span>
+            <span class="text-primary text-base text-sm">
+              {{ Array.isArray(value) ? value[0]?.label : value.label }}
+            </span>
           </template>
           <template #option="{ item }">
-            <span class="text-base text-sm">{{ item?.label }}</span>
+            <span class="text-base text-sm">{{ item.label }}</span>
           </template>
         </FormSelectBase>
 
@@ -117,7 +120,7 @@ const { $revitMapperBinding, $baseBinding } = useNuxtApp()
 
 // === REACTIVE STATE ===
 const categoryOptions = ref<Category[]>([])
-const selectedCategory = ref<Category | null>(null)
+const selectedCategory = ref<Category | undefined>(undefined)
 const mappings = ref<CategoryMapping[]>([])
 
 // === COMPUTED ===
@@ -154,9 +157,8 @@ const assignToCategory = async () => {
   const objectIds = selectionInfo.value.selectedObjectIds
   await $revitMapperBinding?.assignToCategory(objectIds, selectedCategory.value.value)
   await refreshMappings()
-  selectedCategory.value = null
+  selectedCategory.value = undefined
 }
-
 // === CATEGORY CLEARING ===
 const clearMapping = async (mapping: CategoryMapping) => {
   await $revitMapperBinding?.clearCategoryAssignment(mapping.objectIds)
