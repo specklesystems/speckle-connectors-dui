@@ -20,9 +20,6 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
 
   // Gets all current mappings to show in the UI table
   getCurrentMappings: () => Promise<CategoryMapping[]>
-
-  // Get all objects assigned to a specific category
-  getObjectsByCategory: (categoryValue: string) => Promise<string[]>
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
@@ -75,11 +72,6 @@ export class MockedMapperBinding implements IRevitMapperBinding {
 
   public async getCurrentMappings(): Promise<CategoryMapping[]> {
     return this.mockMappings
-  }
-
-  public async getObjectsByCategory(categoryValue: string): Promise<string[]> {
-    const mapping = this.mockMappings.find((m) => m.categoryValue === categoryValue)
-    return mapping?.objectIds || []
   }
 
   public async showDevTools() {
