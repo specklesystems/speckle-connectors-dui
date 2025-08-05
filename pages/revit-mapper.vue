@@ -101,6 +101,7 @@
 </template>
 
 <script setup lang="ts">
+// === IMPORTS ===
 import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
@@ -109,24 +110,22 @@ import type {
   CategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
 
-// Dynamic categories loaded from connector
-const categoryOptions = ref<Category[]>([])
-
-// Selection store integration
+// === STORE INTEGRATION ===
 const selectionStore = useSelectionStore()
 const { selectionInfo, hasBinding: hasSelectionBinding } = storeToRefs(selectionStore)
 const { $revitMapperBinding, $baseBinding } = useNuxtApp()
 
-// Reactive state
+// === REACTIVE STATE ===
+const categoryOptions = ref<Category[]>([])
 const selectedCategory = ref<Category | null>(null)
 const mappings = ref<CategoryMapping[]>([])
 
-// Computed properties
+// === COMPUTED ===
 const hasObjectsSelected = computed(
   () => (selectionInfo.value?.selectedObjectIds?.length || 0) > 0
 )
 
-// Watch for selection changes to refresh from host app
+// === WATCHERS ===
 watch(
   hasSelectionBinding,
   (newValue) => {
@@ -137,105 +136,43 @@ watch(
   { immediate: true }
 )
 
-// Functions for mapping management
+// === INITIALIZATION ===
+const loadCategories = async () => {
+  const categories = (await $revitMapperBinding?.getAvailableCategories()) || []
+  categoryOptions.value = categories
+}
+const refreshMappings = async () => {
+  const currentMappings = (await $revitMapperBinding?.getCurrentMappings()) || []
+  mappings.value = currentMappings
+}
+
+// === CATEGORY ASSIGNMENT ===
 const assignToCategory = async () => {
   if (!selectedCategory.value || !selectionInfo.value?.selectedObjectIds) {
-    console.warn('No category selected or no objects selected')
     return
   }
-
   const objectIds = selectionInfo.value.selectedObjectIds
-  console.log('Assigning objects to category:', {
-    category: selectedCategory.value,
-    objectIds,
-    count: objectIds.length
-  })
-
   await $revitMapperBinding?.assignToCategory(objectIds, selectedCategory.value.value)
-
-  // Refresh mappings from backend to get real state
   await refreshMappings()
-
-  // Reset selection
   selectedCategory.value = null
-
-  console.log('Updated mappings:', mappings.value)
 }
 
-const refreshMappings = async () => {
-  try {
-    const currentMappings = (await $revitMapperBinding?.getCurrentMappings()) || []
-
-    // Convert backend format to UI format
-    mappings.value = currentMappings.map((mapping) => ({
-      category: {
-        value: mapping.categoryValue,
-        label: mapping.categoryLabel
-      },
-      objectIds: [...mapping.objectIds],
-      objectCount: mapping.objectCount
-    }))
-  } catch (error) {
-    console.error('Failed to refresh mappings:', error)
-  }
-}
-
-const selectMappedObjects = async (mapping: CategoryMapping) => {
-  console.log('Selecting mapped objects:', mapping.objectIds)
-  try {
-    // Use basic connector binding to highlight objects
-    await $baseBinding?.highlightObjects(mapping.objectIds)
-  } catch (error) {
-    console.error('Failed to highlight objects:', error)
-  }
-}
-
+// === CATEGORY CLEARING ===
 const clearMapping = async (mapping: CategoryMapping) => {
-  console.log('Clearing mapping for category:', mapping.category.label)
-
-  try {
-    // Call binding to clear category assignment for these objects
-    await $revitMapperBinding?.clearCategoryAssignment(mapping.objectIds)
-    await refreshMappings()
-
-    console.log('Successfully cleared mapping')
-  } catch (error) {
-    console.error('Failed to clear mapping:', error)
-  }
+  await $revitMapperBinding?.clearCategoryAssignment(mapping.objectIds)
+  await refreshMappings()
 }
-
 const clearAllMappings = async () => {
-  console.log('Clearing all mappings')
-
-  try {
-    // Call binding to clear all assignments
-    await $revitMapperBinding?.clearAllCategoryAssignments()
-    await refreshMappings()
-
-    console.log('Successfully cleared all mappings')
-  } catch (error) {
-    console.error('Failed to clear all mappings:', error)
-  }
+  await $revitMapperBinding?.clearAllCategoryAssignments()
+  await refreshMappings()
 }
 
-const loadCategories = async () => {
-  try {
-    const categories = (await $revitMapperBinding?.getAvailableCategories()) || []
-
-    // Convert backend format to UI format
-    categoryOptions.value = categories.map((cat) => ({
-      value: cat.value,
-      label: cat.label
-    }))
-
-    console.log('Loaded categories from backend:', categoryOptions.value.length)
-  } catch (error) {
-    console.error('Failed to load categories:', error)
-    categoryOptions.value = []
-  }
+// === OBJECT SELECTION ===
+const selectMappedObjects = async (mapping: CategoryMapping) => {
+  await $baseBinding?.highlightObjects(mapping.objectIds)
 }
 
-// Initialize selection on mount
+// === LIFECYCLE ===
 onMounted(async () => {
   await loadCategories()
   await refreshMappings()

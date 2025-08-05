@@ -7,7 +7,7 @@ export const IRevitMapperBindingKey = 'revitMapperBinding'
 
 export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
   // Gets list of available Revit categories for the UI dropdown
-  getAvailableCategories: () => Promise<CategoryOption[]>
+  getAvailableCategories: () => Promise<Category[]>
 
   // Assigns selected objects to a specific Revit category
   assignToCategory: (objectIds: string[], categoryValue: string) => Promise<void>
@@ -43,43 +43,43 @@ export interface CategoryMapping {
 export class MockedMapperBinding implements IRevitMapperBinding {
   private mockMappings: CategoryMapping[] = []
 
-  public async assignToCategory(
-    objectIds: string[],
-    categoryValue: string
-  ): Promise<void> {
+  public assignToCategory(objectIds: string[], categoryValue: string): Promise<void> {
     console.log('Mock: Assigning objects to category', { objectIds, categoryValue })
-    // Mock implementation
+    return Promise.resolve()
   }
 
-  public async getAvailableCategories(): Promise<CategoryOption[]> {
-    // Return a few mock categories for dev
-    return [
+  public getAvailableCategories(): Promise<Category[]> {
+    return Promise.resolve([
       { value: 'OST_Walls', label: 'Walls' },
       { value: 'OST_Floors', label: 'Floors' },
       { value: 'OST_Ceilings', label: 'Ceilings' },
       { value: 'OST_Columns', label: 'Columns' }
-    ]
+    ])
   }
 
-  public async clearCategoryAssignment(objectIds: string[]): Promise<void> {
+  public clearCategoryAssignment(objectIds: string[]): Promise<void> {
     console.log('Mock: Clearing category assignment', { objectIds })
+    return Promise.resolve()
   }
 
-  public async clearAllCategoryAssignments(): Promise<void> {
+  public clearAllCategoryAssignments(): Promise<void> {
     console.log('Mock: Clearing all assignments')
     this.mockMappings = []
+    return Promise.resolve()
   }
 
-  public async getCurrentMappings(): Promise<CategoryMapping[]> {
-    return this.mockMappings
+  public getCurrentMappings(): Promise<CategoryMapping[]> {
+    return Promise.resolve(this.mockMappings)
   }
 
-  public async showDevTools() {
+  public showDevTools(): Promise<void> {
     console.log('Braaaaa, no way!')
+    return Promise.resolve()
   }
 
-  public async openUrl(url: string) {
+  public openUrl(url: string): Promise<void> {
     window.open(url)
+    return Promise.resolve()
   }
 
   public on() {
