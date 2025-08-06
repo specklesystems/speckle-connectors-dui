@@ -37,6 +37,18 @@
             </div>
           </MenuItem>
           <div class="border-t border-outline-3 mt-1">
+            <MenuItem v-if="app.$revitMapperBinding" v-slot="{ active }">
+              <button
+                type="button"
+                :class="[
+                  active ? 'bg-highlight-1' : '',
+                  'my-1 text-body-2xs flex px-2 py-1 text-foreground cursor-pointer transition mx-1 rounded'
+                ]"
+                @click="$router.push('/revit-mapper')"
+              >
+                Revit integration
+              </button>
+            </MenuItem>
             <MenuItem
               v-slot="{ active }"
               @click="
@@ -108,6 +120,8 @@ import { storeToRefs } from 'pinia'
 import { XMarkIcon, Bars3Icon } from '@heroicons/vue/20/solid'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { useConfigStore } from '~/store/config'
+
+const app = useNuxtApp()
 
 const uiConfigStore = useConfigStore()
 const { isDarkTheme, hasConfigBindings, isDevMode } = storeToRefs(uiConfigStore)

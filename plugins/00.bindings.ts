@@ -45,6 +45,12 @@ import {
 import type { ITopLevelExpectionHandlerBinding } from '~/lib/bindings/definitions/ITopLevelExceptionHandlerBinding'
 import { ITopLevelExpectionHandlerBindingKey } from '~/lib/bindings/definitions/ITopLevelExceptionHandlerBinding'
 
+import type { IRevitMapperBinding } from '~/lib/bindings/definitions/IRevitMapperBinding'
+import {
+  IRevitMapperBindingKey,
+  MockedMapperBinding
+} from '~/lib/bindings/definitions/IRevitMapperBinding'
+
 // Makes TS happy
 declare let globalThis: Record<string, unknown> & {
   CefSharp?: { BindObjectAsync: (name: string) => Promise<void> }
@@ -116,6 +122,11 @@ export default defineNuxtPlugin(async () => {
       ? await tryHoistBinding<ISelectionBinding>(ISelectionBindingKey)
       : hoistMockBinding(new MockedSelectionBinding(), ISendBindingKey)
 
+  const revitMapperBinding =
+    isRunningOnConnector || !isDev
+      ? await tryHoistBinding<IRevitMapperBinding>(IRevitMapperBindingKey)
+      : hoistMockBinding(new MockedMapperBinding(), IRevitMapperBindingKey)
+
   const topLevelExceptionHandlerBinding =
     await tryHoistBinding<ITopLevelExpectionHandlerBinding>(
       ITopLevelExpectionHandlerBindingKey
@@ -145,7 +156,8 @@ export default defineNuxtPlugin(async () => {
       selectionBinding,
       topLevelExceptionHandlerBinding,
       showDevTools,
-      openUrl
+      openUrl,
+      revitMapperBinding
     }
   }
 })
