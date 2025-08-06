@@ -27,6 +27,7 @@
         <FormSelectBase
           v-model="selectedCategory"
           name="categoryMapping"
+          label="Target Category"
           placeholder="Select a category"
           class="w-full"
           fixed-height
@@ -34,7 +35,7 @@
           :items="categoryOptions"
           :allow-unset="false"
           mount-menu-on-body
-          show-label
+          :show-label="false"
         >
           <template #something-selected="{ value }">
             <span class="text-primary text-base text-sm">
