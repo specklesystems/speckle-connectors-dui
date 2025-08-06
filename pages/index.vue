@@ -59,18 +59,6 @@
                   </FormButton>
                 </div>
               </div>
-              <!--Revit Integration button (only if mapper binding exists)-->
-              <div v-if="app.$revitMapperBinding" class="mt-4">
-                <hr class="border-outline-2 mb-4" />
-                <FormButton
-                  v-tippy="'Map objects to Revit categories'"
-                  color="outline"
-                  full-width
-                  @click="$router.push('/revit-mapper')"
-                >
-                  Revit Integration
-                </FormButton>
-              </div>
             </div>
             <div v-else>
               <div v-if="store.documentInfo?.message" class="text-foreground-2">
@@ -108,6 +96,7 @@
                   Getting started
                 </FormButton>
               </div>
+
               <!-- 
               <FormButton
                 text
@@ -125,6 +114,19 @@
                   New connectors announcement
                 </span>
               </FormButton> -->
+            </div>
+            <!--Revit Integration button (only if mapper binding exists)-->
+            <div v-if="app.$revitMapperBinding" class="mt-2">
+              <hr class="border-outline-2 mb-2" />
+              <FormButton
+                v-tippy="'Map objects to Revit categories'"
+                size="sm"
+                color="outline"
+                full-width
+                @click="$router.push('/revit-mapper')"
+              >
+                Revit Integration
+              </FormButton>
             </div>
           </LayoutPanel>
         </div>
