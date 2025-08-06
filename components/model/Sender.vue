@@ -13,7 +13,7 @@
         size="sm"
         color="subtle"
         class="block text-foreground-2 hover:text-foreground overflow-hidden max-w-full !justify-start"
-        :disabled="!!modelCard.progress || !props.canEdit"
+        :disabled="!!modelCard.progress || !props.canEdit || isSendSettingsMissing"
         full-width
         @click.stop="openFilterDialog = true"
       >
@@ -80,6 +80,10 @@
       </form>
     </CommonDialog>
     <template #states>
+      <CommonModelNotification
+        v-if="isSendSettingsMissing"
+        :notification="sendSettingsMissingNotification"
+      />
       <CommonModelNotification
         v-if="expiredNotification"
         :notification="expiredNotification"
@@ -222,6 +226,27 @@ const saveFilterAndSend = async () => {
   store.sendModel(props.modelCard.modelCardId, 'Filter')
   hasSetVersionMessage.value = false
 }
+
+const isSendSettingsMissing = computed(
+  () => store.sendSettings && store.sendSettings.length > 0 && !props.modelCard.settings
+)
+
+const sendSettingsMissingNotification = computed(() => {
+  const notification = {} as ModelCardNotification
+  notification.dismissible = false
+  notification.level = 'danger'
+  notification.text = 'Publish settings are corrupted for some reason.'
+
+  notification.cta = {
+    name: 'Refresh',
+    action: async () => {
+      await store.patchModel(props.modelCard.modelCardId, {
+        settings: store.sendSettings
+      })
+    }
+  }
+  return notification
+})
 
 const expiredNotification = computed(() => {
   if (!props.modelCard.expired) return
