@@ -24,38 +24,42 @@
     <div v-if="hasObjectsSelected" class="px-2">
       <p class="h5">Target Category</p>
       <div class="space-y-2 my-2">
-        <FormSelectBase
-          v-model="selectedCategory"
-          name="categoryMapping"
-          label="Target Category"
-          placeholder="Select a category"
-          class="w-full"
-          fixed-height
-          size="sm"
-          :items="categoryOptions"
-          :allow-unset="false"
-          mount-menu-on-body
-          :show-label="false"
-        >
-          <template #something-selected="{ value }">
-            <span class="text-primary text-base text-sm">
-              {{ Array.isArray(value) ? value[0]?.label : value.label }}
-            </span>
-          </template>
-          <template #option="{ item }">
-            <span class="text-base text-sm">{{ item.label }}</span>
-          </template>
-        </FormSelectBase>
+        <!-- Flex layout with dropdown and apply button side by side -->
+        <div class="flex space-x-2">
+          <div class="flex-1">
+            <FormSelectBase
+              v-model="selectedCategory"
+              name="categoryMapping"
+              placeholder="Select a category"
+              label="Target Category"
+              fixed-height
+              size="sm"
+              :items="categoryOptions"
+              :allow-unset="false"
+              mount-menu-on-body
+            >
+              <template #something-selected="{ value }">
+                <span class="text-primary text-base text-sm">
+                  {{ Array.isArray(value) ? value[0]?.label : value.label }}
+                </span>
+              </template>
+              <template #option="{ item }">
+                <span class="text-base text-sm">{{ item.label }}</span>
+              </template>
+            </FormSelectBase>
+          </div>
 
-        <!-- Action button -->
-        <FormButton
-          color="primary"
-          class="w-full mt-2"
-          :disabled="!selectedCategory"
-          @click="assignToCategory()"
-        >
-          Apply Mapping
-        </FormButton>
+          <!-- Apply button - same height as dropdown -->
+          <FormButton
+            color="primary"
+            size="sm"
+            class="h-8"
+            :disabled="!selectedCategory"
+            @click="assignToCategory()"
+          >
+            Apply
+          </FormButton>
+        </div>
       </div>
     </div>
 
@@ -68,7 +72,7 @@
         <div
           v-for="mapping in mappings"
           :key="mapping.categoryValue"
-          class="p-3 bg-foundation border rounded-lg"
+          class="p-2 bg-foundation border rounded-lg"
         >
           <div class="flex justify-between items-center">
             <div>
@@ -94,7 +98,7 @@
           </div>
         </div>
 
-        <!-- Clear all button -->
+        <!-- Clear all button - keep original styling -->
         <FormButton color="outline" class="w-full mt-2" @click="clearAllMappings()">
           Clear All Mappings
         </FormButton>
