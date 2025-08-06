@@ -57,7 +57,7 @@
             :disabled="!selectedCategory"
             @click="assignToCategory()"
           >
-            Apply
+            Apply Mapping
           </FormButton>
         </div>
       </div>
