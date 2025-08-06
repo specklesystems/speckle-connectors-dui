@@ -27,7 +27,6 @@
         <FormSelectBase
           v-model="selectedCategory"
           name="categoryMapping"
-          label="Target Category"
           placeholder="Select a category"
           class="w-full"
           fixed-height
