@@ -28,23 +28,27 @@
         <div class="flex space-x-2">
           <div class="flex-1">
             <FormSelectBase
+              key="label"
               v-model="selectedCategory"
               name="categoryMapping"
               placeholder="Select a category"
               label="Target Category"
               fixed-height
               size="sm"
+              search
+              :search-placeholder="''"
+              :filter-predicate="searchFilterPredicate"
               :items="categoryOptions"
               :allow-unset="false"
               mount-menu-on-body
             >
               <template #something-selected="{ value }">
-                <span class="text-primary text-base text-sm">
+                <span class="text-primary text-xs">
                   {{ Array.isArray(value) ? value[0]?.label : value.label }}
                 </span>
               </template>
               <template #option="{ item }">
-                <span class="text-base text-sm">{{ item.label }}</span>
+                <span class="text-xs">{{ item.label }}</span>
               </template>
             </FormSelectBase>
           </div>
@@ -68,39 +72,49 @@
     <!-- Step 3: Mappings Summary Table -->
     <div v-if="mappings.length > 0" class="px-2">
       <p class="h5">Current Mappings</p>
-      <div class="space-y-2 my-2">
+
+      <!-- Only mapping items get space-y -->
+      <div class="space-y-1 my-2">
         <div
           v-for="mapping in mappings"
           :key="mapping.categoryValue"
-          class="p-2 bg-foundation border rounded-lg"
+          class="py-1 px-2 bg-foundation border rounded-lg"
         >
           <div class="flex justify-between items-center">
-            <div>
-              <div class="text-sm font-medium">{{ mapping.categoryLabel }}</div>
-              <div class="text-xs text-foreground-2">
+            <div class="text-sm font-medium grow">{{ mapping.categoryLabel }}</div>
+
+            <div class="flex space-x-1">
+              <div
+                class="flex justify-center items-center text-xs text-foreground-2 mr-1"
+              >
                 {{ mapping.objectCount }} object{{
                   mapping.objectCount !== 1 ? 's' : ''
                 }}
               </div>
-            </div>
-            <div class="flex space-x-2">
               <FormButton
                 size="sm"
                 color="outline"
+                :icon-left="CursorArrowRaysIcon"
+                hide-text
                 @click="selectMappedObjects(mapping)"
+              />
+              <FormButton
+                class="!px-1.5"
+                size="sm"
+                color="outline"
+                @click="clearMapping(mapping)"
               >
-                Select
-              </FormButton>
-              <FormButton size="sm" color="danger" @click="clearMapping(mapping)">
-                Clear
+                <TrashIcon class="w-3 h-3" />
               </FormButton>
             </div>
           </div>
         </div>
+      </div>
 
-        <!-- Clear all button - keep original styling -->
-        <FormButton color="outline" class="w-full mt-2" @click="clearAllMappings()">
-          Clear All Mappings
+      <!-- Clear all button separated, with custom margin -->
+      <div class="flex justify-end">
+        <FormButton size="sm" color="danger" @click="clearAllMappings()">
+          Clear All
         </FormButton>
       </div>
     </div>
@@ -110,7 +124,8 @@
 <script setup lang="ts">
 // === IMPORTS ===
 import { storeToRefs } from 'pinia'
-import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
+import { ArrowLeftIcon, CursorArrowRaysIcon } from '@heroicons/vue/20/solid'
+import { TrashIcon } from '@heroicons/vue/24/outline'
 import { useSelectionStore } from '~/store/selection'
 import type {
   Category,
@@ -131,6 +146,11 @@ const mappings = ref<CategoryMapping[]>([])
 const hasObjectsSelected = computed(
   () => (selectionInfo.value?.selectedObjectIds?.length || 0) > 0
 )
+
+const searchFilterPredicate = (
+  item: { value: string; label: string },
+  search: string
+) => item.label.toLocaleLowerCase().includes(search.toLocaleLowerCase())
 
 // === WATCHERS ===
 watch(
