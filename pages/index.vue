@@ -64,9 +64,9 @@
                 <hr class="border-outline-2 mb-4" />
                 <FormButton
                   v-tippy="'Map objects to Revit categories'"
-                  to="/revit-mapper"
                   color="outline"
                   full-width
+                  @click="$router.push('/revit-mapper')"
                 >
                   Revit Integration
                 </FormButton>
