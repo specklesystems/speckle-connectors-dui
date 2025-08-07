@@ -19,7 +19,7 @@
         color="subtle"
         class="block text-foreground-2 hover:text-foreground overflow-hidden max-w-full !justify-start"
         full-width
-        :disabled="!!modelCard.progress || !canEdit"
+        :disabled="!!modelCard.progress || !canEdit || isReceiveSettingsMissing"
         @click.stop="openVersionsDialog = true"
       >
         <span>
@@ -58,6 +58,10 @@
       />
     </CommonDialog>
     <template #states>
+      <CommonModelNotification
+        v-if="isReceiveSettingsMissing"
+        :notification="receiveSettingsMissingNotification"
+      />
       <CommonModelNotification
         v-if="expiredNotification"
         :notification="expiredNotification"
@@ -119,6 +123,30 @@ const projectAccount = computed(() =>
 
 app.$baseBinding?.on('documentChanged', () => {
   openVersionsDialog.value = false
+})
+
+const isReceiveSettingsMissing = computed(
+  () =>
+    store.receiveSettings &&
+    store.receiveSettings.length > 0 &&
+    !props.modelCard.settings
+)
+
+const receiveSettingsMissingNotification = computed(() => {
+  const notification = {} as ModelCardNotification
+  notification.dismissible = false
+  notification.level = 'danger'
+  notification.text = 'Load settings are corrupted for some reason.'
+
+  notification.cta = {
+    name: 'Refresh',
+    action: async () => {
+      await store.patchModel(props.modelCard.modelCardId, {
+        settings: store.receiveSettings
+      })
+    }
+  }
+  return notification
 })
 
 const isExpired = computed(() => {

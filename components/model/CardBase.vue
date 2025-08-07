@@ -19,7 +19,7 @@
             "
             hide-text
             class=""
-            :disabled="!canEdit"
+            :disabled="!canEdit || isSettingsMissing"
             @click.stop="$emit('manual-publish-or-load')"
           ></FormButton>
         </div>
@@ -57,6 +57,16 @@
               </button>
             </template>
           </AutomateResultDialog>
+          <!-- To test missing settings -->
+          <!-- <FormButton
+            v-if="!isSettingsMissing"
+            v-tippy="'Refresh settings are needed'"
+            color="subtle"
+            :icon-left="TrashIcon"
+            hide-text
+            size="sm"
+            @click="deleteSettings"
+          /> -->
           <FormButton
             v-if="store.hostAppName !== 'navisworks' && store.hostAppName !== 'etabs'"
             v-tippy="'Highlight'"
@@ -337,6 +347,31 @@ const highlightModel = () => {
   app.$baseBinding.highlightModel(props.modelCard.modelCardId)
   trackEvent('DUI3 Action', { name: 'Highlight Model' }, props.modelCard.accountId)
 }
+
+const isSettingsMissing = computed(() =>
+  isSender.value ? isSendSettingsMissing.value : isReceiveSettingsMissing.value
+)
+
+const isSendSettingsMissing = computed(
+  () =>
+    isSender.value &&
+    store.sendSettings &&
+    store.sendSettings.length > 0 &&
+    !props.modelCard.settings
+)
+
+const isReceiveSettingsMissing = computed(
+  () =>
+    !isSender.value &&
+    store.receiveSettings &&
+    store.receiveSettings.length > 0 &&
+    !props.modelCard.settings
+)
+
+// To test missing settings
+// const deleteSettings = async () => {
+//   await store.patchModel(props.modelCard.modelCardId, { settings: undefined })
+// }
 
 const viewModel = () => {
   // previously with DUI2, it was Stream View but actually it is "Version View" now. Also having conflict with old/new terminology.
