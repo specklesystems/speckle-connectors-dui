@@ -9,17 +9,17 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
   // Gets list of available Revit categories for the UI dropdown
   getAvailableCategories: () => Promise<Category[]>
 
-  // Assigns selected objects to a specific Revit category
-  assignToCategory: (objectIds: string[], categoryValue: string) => Promise<void>
+  // Object methods
+  assignObjectsToCategory: (objectIds: string[], categoryValue: string) => Promise<void>
+  clearObjectsCategoryAssignment: (objectIds: string[]) => Promise<void>
+  clearAllObjectsCategoryAssignments: () => Promise<void>
+  getCurrentObjectsMappings: () => Promise<CategoryMapping[]>
 
-  // Removes category assignments from specific objects
-  clearCategoryAssignment: (objectIds: string[]) => Promise<void>
-
-  // Removes all category assignments in the doc
-  clearAllCategoryAssignments: () => Promise<void>
-
-  // Gets all current mappings to show in the UI table
-  getCurrentMappings: () => Promise<CategoryMapping[]>
+  // Layer methods
+  assignLayerToCategory: (layerIds: string[], categoryValue: string) => Promise<void>
+  clearLayerCategoryAssignment: (layerIds: string[]) => Promise<void>
+  clearAllLayerCategoryAssignments: () => Promise<void>
+  getCurrentLayerMappings: () => Promise<LayerCategoryMapping[]>
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
@@ -39,11 +39,22 @@ export interface CategoryMapping {
   objectCount: number
 }
 
+export interface LayerCategoryMapping {
+  categoryValue: string
+  categoryLabel: string
+  layerIds: string[]
+  layerNames: string[]
+  layerCount: number
+}
+
 // Mock implementation for dev/testing
 export class MockedMapperBinding implements IRevitMapperBinding {
   private mockMappings: CategoryMapping[] = []
 
-  public assignToCategory(objectIds: string[], categoryValue: string): Promise<void> {
+  public assignObjectsToCategory(
+    objectIds: string[],
+    categoryValue: string
+  ): Promise<void> {
     console.log('Mock: Assigning objects to category', { objectIds, categoryValue })
     return Promise.resolve()
   }
@@ -57,18 +68,18 @@ export class MockedMapperBinding implements IRevitMapperBinding {
     ])
   }
 
-  public clearCategoryAssignment(objectIds: string[]): Promise<void> {
+  public clearObjectsCategoryAssignment(objectIds: string[]): Promise<void> {
     console.log('Mock: Clearing category assignment', { objectIds })
     return Promise.resolve()
   }
 
-  public clearAllCategoryAssignments(): Promise<void> {
+  public clearAllObjectsCategoryAssignments(): Promise<void> {
     console.log('Mock: Clearing all assignments')
     this.mockMappings = []
     return Promise.resolve()
   }
 
-  public getCurrentMappings(): Promise<CategoryMapping[]> {
+  public getCurrentObjectsMappings(): Promise<CategoryMapping[]> {
     return Promise.resolve(this.mockMappings)
   }
 

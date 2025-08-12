@@ -169,7 +169,7 @@ const loadCategories = async () => {
   categoryOptions.value = categories
 }
 const refreshMappings = async () => {
-  const currentMappings = (await $revitMapperBinding?.getCurrentMappings()) || []
+  const currentMappings = (await $revitMapperBinding?.getCurrentObjectsMappings()) || []
   mappings.value = currentMappings
 }
 
@@ -179,17 +179,20 @@ const assignToCategory = async () => {
     return
   }
   const objectIds = selectionInfo.value.selectedObjectIds
-  await $revitMapperBinding?.assignToCategory(objectIds, selectedCategory.value.value)
+  await $revitMapperBinding?.assignObjectsToCategory(
+    objectIds,
+    selectedCategory.value.value
+  )
   await refreshMappings()
   selectedCategory.value = undefined
 }
 // === CATEGORY CLEARING ===
 const clearMapping = async (mapping: CategoryMapping) => {
-  await $revitMapperBinding?.clearCategoryAssignment(mapping.objectIds)
+  await $revitMapperBinding?.clearObjectsCategoryAssignment(mapping.objectIds)
   await refreshMappings()
 }
 const clearAllMappings = async () => {
-  await $revitMapperBinding?.clearAllCategoryAssignments()
+  await $revitMapperBinding?.clearAllObjectsCategoryAssignments()
   await refreshMappings()
 }
 
