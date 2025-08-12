@@ -48,7 +48,7 @@
           <div class="space-y-2 my-2">
             <!-- Multi-select layer dropdown -->
             <div>
-              <FormSelectBase
+              <FormSelectMulti
                 v-model="selectedLayers"
                 name="layerSelection"
                 label="Select layers"
@@ -57,7 +57,6 @@
                 size="sm"
                 :items="layerOptions"
                 :allow-unset="false"
-                :multiple="true"
                 by="id"
                 search
                 :search-placeholder="'Search layers...'"
@@ -67,18 +66,14 @@
                 <template #something-selected="{ value }">
                   <span class="text-primary text-base text-sm">
                     {{
-                      Array.isArray(value)
-                        ? `${value.length} layer${
-                            value.length !== 1 ? 's' : ''
-                          } selected`
-                        : value?.name
+                      `${value.length} layer${value.length !== 1 ? 's' : ''} selected`
                     }}
                   </span>
                 </template>
                 <template #option="{ item }">
                   <span class="text-base text-sm">{{ item.name }}</span>
                 </template>
-              </FormSelectBase>
+              </FormSelectMulti>
             </div>
 
             <!-- Layer selection summary -->
@@ -428,6 +423,7 @@ const assignToCategory = async () => {
         selectedLayers.value.map((layer) => layer.id),
         selectedCategory.value.value
       )
+      selectedLayers.value = []
     }
 
     selectedCategory.value = null
