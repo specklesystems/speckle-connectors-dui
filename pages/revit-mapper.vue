@@ -7,21 +7,52 @@
       <hr />
     </div>
 
-    <!-- Step 1: Selection Mode (currently only support by selection) -->
+    <!-- Step 1: Mapping Mode Selection -->
     <div class="px-2">
-      <p class="h5">Selection</p>
+      <p class="h5">Mapping Mode</p>
       <div class="space-y-2 my-2">
-        <div class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
-          <div v-if="(selectionInfo?.selectedObjectIds?.length || 0) === 0">
-            No objects selected, go ahead and select some from your model!
+        <div>
+          <FormSelectBase
+            v-model="selectedMappingMode"
+            name="mappingMode"
+            label="Mapping mode"
+            class="w-full"
+            fixed-height
+            size="sm"
+            :items="mappingModeOptions"
+            :allow-unset="false"
+            mount-menu-on-body
+          >
+            <template #something-selected="{ value }">
+              <span class="text-primary text-base text-sm">{{ value }}</span>
+            </template>
+            <template #option="{ item }">
+              <span class="text-base text-sm">{{ item }}</span>
+            </template>
+          </FormSelectBase>
+        </div>
+
+        <!-- Mode-specific content -->
+        <div v-if="selectedMappingMode === 'Selection'">
+          <div class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
+            <div v-if="(selectionInfo?.selectedObjectIds?.length || 0) === 0">
+              No objects selected, go ahead and select some from your model!
+            </div>
+            <div v-else>{{ selectionInfo?.summary }}</div>
           </div>
-          <div v-else>{{ selectionInfo?.summary }}</div>
+        </div>
+
+        <div v-if="selectedMappingMode === 'Layer'">
+          <div class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
+            <!-- TODO: Implement layer selection interface -->
+            <div class="text-foreground-2">TODO: Layer selection interface ...</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Step 2: Category Selection (only shown when objects are selected) -->
-    <div v-if="hasObjectsSelected" class="px-2">
+    <!-- Step 2: Category Selection -->
+    <div v-if="hasTargetsSelected" class="px-2">
       <p class="h5">Target Category</p>
       <div class="space-y-2 my-2">
         <!-- Flex layout with dropdown and apply button side by side -->
@@ -67,7 +98,7 @@
       </div>
     </div>
 
-    <hr v-if="hasObjectsSelected" />
+    <hr v-if="hasTargetsSelected" />
 
     <!-- Step 3: Mappings Summary Table -->
     <div v-if="mappings.length > 0" class="px-2">
@@ -132,84 +163,116 @@ import type {
   CategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
 
-// === STORE INTEGRATION ===
+// === STORES ===
 const selectionStore = useSelectionStore()
-const { selectionInfo, hasBinding: hasSelectionBinding } = storeToRefs(selectionStore)
-const { $revitMapperBinding, $baseBinding } = useNuxtApp()
+const { selectionInfo } = storeToRefs(selectionStore)
 
-// === REACTIVE STATE ===
+// === STATE ===
+const selectedMappingMode = ref<string>('Selection')
+const mappingModeOptions = ['Selection', 'Layer']
+const selectedCategory = ref<Category | null>(null)
 const categoryOptions = ref<Category[]>([])
-const selectedCategory = ref<Category | undefined>(undefined)
 const mappings = ref<CategoryMapping[]>([])
 
 // === COMPUTED ===
-const hasObjectsSelected = computed(
-  () => (selectionInfo.value?.selectedObjectIds?.length || 0) > 0
-)
-
-const searchFilterPredicate = (
-  item: { value: string; label: string },
-  search: string
-) => item.label.toLocaleLowerCase().includes(search.toLocaleLowerCase())
-
-// === WATCHERS ===
-watch(
-  hasSelectionBinding,
-  (newValue) => {
-    if (newValue) {
-      selectionStore.refreshSelectionFromHostApp()
-    }
-  },
-  { immediate: true }
-)
-
-// === INITIALIZATION ===
-const loadCategories = async () => {
-  const categories = (await $revitMapperBinding?.getAvailableCategories()) || []
-  categoryOptions.value = categories
-}
-const refreshMappings = async () => {
-  const currentMappings = (await $revitMapperBinding?.getCurrentObjectsMappings()) || []
-  mappings.value = currentMappings
-}
-
-// === CATEGORY ASSIGNMENT ===
-const assignToCategory = async () => {
-  if (!selectedCategory.value || !selectionInfo.value?.selectedObjectIds) {
-    return
+const hasTargetsSelected = computed(() => {
+  if (selectedMappingMode.value === 'Selection') {
+    return (selectionInfo.value?.selectedObjectIds?.length || 0) > 0
   }
-  const objectIds = selectionInfo.value.selectedObjectIds
-  await $revitMapperBinding?.assignObjectsToCategory(
-    objectIds,
-    selectedCategory.value.value
-  )
-  await refreshMappings()
-  selectedCategory.value = undefined
-}
-// === CATEGORY CLEARING ===
-const clearMapping = async (mapping: CategoryMapping) => {
-  await $revitMapperBinding?.clearObjectsCategoryAssignment(mapping.objectIds)
-  await refreshMappings()
-}
-const clearAllMappings = async () => {
-  await $revitMapperBinding?.clearAllObjectsCategoryAssignments()
-  await refreshMappings()
+  // TODO: Add layer selection check when implemented
+  return false
+})
+
+// === METHODS ===
+const app = useNuxtApp()
+const { $revitMapperBinding, $baseBinding } = app
+
+// Search predicate for category dropdown
+const searchFilterPredicate = (item: Category, query: string) => {
+  return item.label.toLowerCase().includes(query.toLowerCase())
 }
 
-// === OBJECT SELECTION ===
+// Assign selected objects to the chosen category
+const assignToCategory = async () => {
+  if (!selectedCategory.value || !hasTargetsSelected.value) return
+
+  try {
+    if (selectedMappingMode.value === 'Selection') {
+      await $revitMapperBinding?.assignObjectsToCategory(
+        selectionInfo.value?.selectedObjectIds || [],
+        selectedCategory.value.value
+      )
+    }
+    // TODO: Add layer assignment when layer selection is implemented
+
+    selectedCategory.value = null
+    await refreshMappings()
+  } catch (error) {
+    console.error('Failed to assign to category:', error)
+  }
+}
+
+// Clear a specific mapping
+const clearMapping = async (mapping: CategoryMapping) => {
+  try {
+    await $revitMapperBinding?.clearObjectsCategoryAssignment(mapping.objectIds)
+    await refreshMappings()
+  } catch (error) {
+    console.error('Failed to clear mapping:', error)
+  }
+}
+
+// Clear all mappings
+const clearAllMappings = async () => {
+  try {
+    await $revitMapperBinding?.clearAllObjectsCategoryAssignments()
+    await refreshMappings()
+  } catch (error) {
+    console.error('Failed to clear all mappings:', error)
+  }
+}
+
+// Select mapped objects in Rhino
 const selectMappedObjects = async (mapping: CategoryMapping) => {
-  await $baseBinding?.highlightObjects(mapping.objectIds)
+  try {
+    await $baseBinding?.highlightObjects(mapping.objectIds)
+  } catch (error) {
+    console.error('Failed to highlight objects:', error)
+  }
+}
+
+// Load available categories and current mappings
+const loadData = async () => {
+  try {
+    const [categories, currentMappings] = await Promise.all([
+      $revitMapperBinding?.getAvailableCategories() || [],
+      $revitMapperBinding?.getCurrentObjectsMappings() || []
+    ])
+    categoryOptions.value = categories
+    mappings.value = currentMappings
+  } catch (error) {
+    console.error('Failed to load mapper data:', error)
+  }
+}
+
+// Refresh just the mappings
+const refreshMappings = async () => {
+  try {
+    const currentMappings =
+      (await $revitMapperBinding?.getCurrentObjectsMappings()) || []
+    mappings.value = currentMappings
+  } catch (error) {
+    console.error('Failed to refresh mappings:', error)
+  }
 }
 
 // === LIFECYCLE ===
-onMounted(async () => {
-  $revitMapperBinding?.on('mappingsChanged', (updatedMappings: CategoryMapping[]) => {
-    mappings.value = updatedMappings
+onMounted(() => {
+  loadData()
+
+  // Listen for mappings changes from backend with null safety
+  $revitMapperBinding?.on('mappingsChanged', (newMappings: CategoryMapping[]) => {
+    mappings.value = newMappings
   })
-  await loadCategories()
-  await refreshMappings()
-  if (hasSelectionBinding.value) {
-    selectionStore.refreshSelectionFromHostApp()
-  }
 })
 </script>
