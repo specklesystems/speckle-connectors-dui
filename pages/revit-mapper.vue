@@ -559,11 +559,17 @@ const refreshLayerMappings = async () => {
 onMounted(() => {
   loadData()
 
-  // Listen for mappings changes from backend (with null safety)
+  // Listen for mappings changes from backend
   $revitMapperBinding?.on('mappingsChanged', (newMappings: CategoryMapping[]) => {
     mappings.value = newMappings
     // Also refresh layer mappings when backend notifies of changes
     refreshLayerMappings()
+  })
+
+  // Listen for document changes to refresh layer list
+  $baseBinding?.on('documentChanged', async () => {
+    await loadData()
+    selectedLayers.value = []
   })
 })
 </script>
