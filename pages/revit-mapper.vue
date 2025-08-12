@@ -42,10 +42,61 @@
           </div>
         </div>
 
-        <div v-if="selectedMappingMode === 'Layer'">
-          <div class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
-            <!-- TODO: Implement layer selection interface -->
-            <div class="text-foreground-2">TODO: Layer selection interface ...</div>
+        <div v-if="selectedMappingMode === 'Layer'" class="px-2">
+          <p class="h5">Layer Selection</p>
+          <div class="space-y-2 my-2">
+            <!-- Multi-select layer dropdown -->
+            <div>
+              <FormSelectBase
+                v-model="selectedLayers"
+                name="layerSelection"
+                label="Select layers"
+                class="w-full"
+                fixed-height
+                size="sm"
+                :items="layerOptions"
+                :allow-unset="false"
+                :multiple="true"
+                by="id"
+                search
+                :search-placeholder="'Search layers...'"
+                :filter-predicate="layerSearchFilterPredicate"
+                mount-menu-on-body
+              >
+                <template #something-selected="{ value }">
+                  <span class="text-primary text-base text-sm">
+                    {{
+                      Array.isArray(value)
+                        ? `${value.length} layer${
+                            value.length !== 1 ? 's' : ''
+                          } selected`
+                        : value.name
+                    }}
+                  </span>
+                </template>
+                <template #option="{ item }">
+                  <span class="text-base text-sm">{{ item.name }}</span>
+                </template>
+              </FormSelectBase>
+            </div>
+
+            <!-- Layer selection summary -->
+            <div
+              v-if="selectedLayers.length === 0"
+              class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs"
+            >
+              <div class="text-foreground-2">
+                No layers selected, choose layers from the dropdown above!
+              </div>
+            </div>
+            <div v-else class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
+              <div>
+                Selected {{ selectedLayers.length }} layer{{
+                  selectedLayers.length !== 1 ? 's' : ''
+                }}:
+                {{ selectedLayers.map((l) => l.name).join(', ') }}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -160,7 +211,8 @@ import { TrashIcon } from '@heroicons/vue/24/outline'
 import { useSelectionStore } from '~/store/selection'
 import type {
   Category,
-  CategoryMapping
+  CategoryMapping,
+  LayerCategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
 
 // === STORES ===
@@ -174,12 +226,23 @@ const selectedCategory = ref<Category | null>(null)
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
 
+// Layer-specific state
+const selectedLayers = ref<LayerOption[]>([])
+const layerOptions = ref<LayerOption[]>([])
+
+// === TYPES ===
+interface LayerOption {
+  id: string
+  name: string
+}
+
 // === COMPUTED ===
 const hasTargetsSelected = computed(() => {
   if (selectedMappingMode.value === 'Selection') {
     return (selectionInfo.value?.selectedObjectIds?.length || 0) > 0
+  } else if (selectedMappingMode.value === 'Layer') {
+    return selectedLayers.value.length > 0
   }
-  // TODO: Add layer selection check when implemented
   return false
 })
 
@@ -192,7 +255,12 @@ const searchFilterPredicate = (item: Category, query: string) => {
   return item.label.toLowerCase().includes(query.toLowerCase())
 }
 
-// Assign selected objects to the chosen category
+// Search predicate for layer dropdown
+const layerSearchFilterPredicate = (item: LayerOption, query: string) => {
+  return item.name.toLowerCase().includes(query.toLowerCase())
+}
+
+// Assign selected objects/layers to the chosen category
 const assignToCategory = async () => {
   if (!selectedCategory.value || !hasTargetsSelected.value) return
 
@@ -202,8 +270,12 @@ const assignToCategory = async () => {
         selectionInfo.value?.selectedObjectIds || [],
         selectedCategory.value.value
       )
+    } else if (selectedMappingMode.value === 'Layer') {
+      await $revitMapperBinding?.assignLayerToCategory(
+        selectedLayers.value.map((layer) => layer.id),
+        selectedCategory.value.value
+      )
     }
-    // TODO: Add layer assignment when layer selection is implemented
 
     selectedCategory.value = null
     await refreshMappings()
@@ -241,17 +313,30 @@ const selectMappedObjects = async (mapping: CategoryMapping) => {
   }
 }
 
-// Load available categories and current mappings
+// Load available categories, layers, and current mappings
 const loadData = async () => {
   try {
-    const [categories, currentMappings] = await Promise.all([
+    const [categories, currentMappings, layers] = await Promise.all([
       $revitMapperBinding?.getAvailableCategories() || [],
-      $revitMapperBinding?.getCurrentObjectsMappings() || []
+      $revitMapperBinding?.getCurrentObjectsMappings() || [],
+      loadAvailableLayers()
     ])
     categoryOptions.value = categories
     mappings.value = currentMappings
+    layerOptions.value = layers
   } catch (error) {
     console.error('Failed to load mapper data:', error)
+  }
+}
+
+// Load available layers from Rhino doc
+const loadAvailableLayers = async (): Promise<LayerOption[]> => {
+  try {
+    const layers = (await $revitMapperBinding?.getAvailableLayers()) || []
+    return layers
+  } catch (error) {
+    console.error('Failed to load layers:', error)
+    return []
   }
 }
 
