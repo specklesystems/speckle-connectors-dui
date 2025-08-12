@@ -83,6 +83,28 @@ export class MockedMapperBinding implements IRevitMapperBinding {
     return Promise.resolve(this.mockMappings)
   }
 
+  public assignLayerToCategory(
+    layerIds: string[],
+    categoryValue: string
+  ): Promise<void> {
+    console.log('Mock: Assigning layers to category', { layerIds, categoryValue })
+    return Promise.resolve()
+  }
+
+  public clearLayerCategoryAssignment(layerIds: string[]): Promise<void> {
+    console.log('Mock: Clearing layer category assignment', { layerIds })
+    return Promise.resolve()
+  }
+
+  public clearAllLayerCategoryAssignments(): Promise<void> {
+    console.log('Mock: Clearing all layer assignments')
+    return Promise.resolve()
+  }
+
+  public getCurrentLayerMappings(): Promise<LayerCategoryMapping[]> {
+    return Promise.resolve([])
+  }
+
   public showDevTools(): Promise<void> {
     console.log('Braaaaa, no way!')
     return Promise.resolve()
