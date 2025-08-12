@@ -239,8 +239,16 @@
         </div>
       </div>
 
-      <!-- Clear all button -->
-      <div class="flex justify-end">
+      <!-- Clear All and Select All buttons -->
+      <div class="flex justify-end space-x-2">
+        <FormButton
+          v-if="selectedMappingMode === 'Selection' && currentMappings.length > 0"
+          size="sm"
+          color="outline"
+          @click="selectAllMappedObjects()"
+        >
+          Select All
+        </FormButton>
         <FormButton
           v-if="selectedMappingMode === 'Selection' && currentMappings.length > 0"
           size="sm"
@@ -248,6 +256,15 @@
           @click="clearAllMappings()"
         >
           Clear All Objects
+        </FormButton>
+
+        <FormButton
+          v-if="selectedMappingMode === 'Layer' && currentLayerMappings.length > 0"
+          size="sm"
+          color="outline"
+          @click="selectAllMappedLayers()"
+        >
+          Select All
         </FormButton>
         <FormButton
           v-if="selectedMappingMode === 'Layer' && currentLayerMappings.length > 0"
@@ -258,27 +275,27 @@
           Clear All Layers
         </FormButton>
       </div>
+
+      <!-- Mode Confirmation Dialog -->
+      <CommonDialog
+        v-model:open="showModeConfirmDialog"
+        title="Switch Mapping Mode"
+        fullscreen="none"
+      >
+        <div class="text-sm text-foreground">
+          {{ conflictMessage }}
+        </div>
+
+        <div class="mt-4 flex justify-end space-x-2">
+          <FormButton size="sm" color="outline" @click="cancelModeChange()">
+            Cancel
+          </FormButton>
+          <FormButton size="sm" color="danger" @click="confirmModeChange()">
+            Clear & Switch
+          </FormButton>
+        </div>
+      </CommonDialog>
     </div>
-
-    <!-- Mode Confirmation Dialog -->
-    <CommonDialog
-      v-model:open="showModeConfirmDialog"
-      title="Switch Mapping Mode"
-      fullscreen="none"
-    >
-      <div class="text-sm text-foreground">
-        {{ conflictMessage }}
-      </div>
-
-      <div class="mt-4 flex justify-end space-x-2">
-        <FormButton size="sm" color="outline" @click="cancelModeChange()">
-          Cancel
-        </FormButton>
-        <FormButton size="sm" color="danger" @click="confirmModeChange()">
-          Clear & Switch
-        </FormButton>
-      </div>
-    </CommonDialog>
   </div>
 </template>
 
@@ -499,6 +516,43 @@ const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
   }
 }
 
+// Select all mapped objects (Selection mode)
+const selectAllMappedObjects = async () => {
+  try {
+    const allObjectIds = currentMappings.value.flatMap((mapping) => mapping.objectIds)
+    if (allObjectIds.length > 0) {
+      await $baseBinding?.highlightObjects(allObjectIds)
+    }
+  } catch (error) {
+    console.error('Failed to select all mapped objects:', error)
+  }
+}
+
+// Select all objects affected by layer mappings (Layer mode)
+const selectAllMappedLayers = async () => {
+  try {
+    const allEffectiveObjectIds: string[] = []
+
+    // Get effective objects for each layer mapping
+    for (const layerMapping of currentLayerMappings.value) {
+      const effectiveObjectIds =
+        (await $revitMapperBinding?.getEffectiveObjectsForLayerMapping(
+          layerMapping.layerIds,
+          layerMapping.categoryValue
+        )) || []
+      allEffectiveObjectIds.push(...effectiveObjectIds)
+    }
+
+    // Remove duplicates and highlight
+    const uniqueObjectIds = [...new Set(allEffectiveObjectIds)]
+    if (uniqueObjectIds.length > 0) {
+      await $baseBinding?.highlightObjects(uniqueObjectIds)
+    }
+  } catch (error) {
+    console.error('Failed to select all layer-mapped objects:', error)
+  }
+}
+
 // Load available categories, layers, and current mappings
 const loadData = async () => {
   try {
@@ -559,16 +613,15 @@ const refreshLayerMappings = async () => {
 onMounted(() => {
   loadData()
 
-  // Listen for mappings changes from backend
+  // Listen for mappings changes
   $revitMapperBinding?.on('mappingsChanged', (newMappings: CategoryMapping[]) => {
     mappings.value = newMappings
-    // Also refresh layer mappings when backend notifies of changes
     refreshLayerMappings()
   })
 
-  // Listen for document changes to refresh layer list
-  $baseBinding?.on('documentChanged', async () => {
-    await loadData()
+  // Listen for layer list changes
+  $revitMapperBinding?.on('layersChanged', (newLayers: LayerOption[]) => {
+    layerOptions.value = newLayers
     selectedLayers.value = []
   })
 })
