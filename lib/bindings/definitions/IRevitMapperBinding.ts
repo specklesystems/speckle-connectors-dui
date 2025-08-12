@@ -21,6 +21,10 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
   clearLayerCategoryAssignment: (layerIds: string[]) => Promise<void>
   clearAllLayerCategoryAssignments: () => Promise<void>
   getCurrentLayerMappings: () => Promise<LayerCategoryMapping[]>
+  getEffectiveObjectsForLayerMapping: (
+    layerIds: string[],
+    categoryValue: string
+  ) => Promise<string[]>
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
@@ -118,6 +122,17 @@ export class MockedMapperBinding implements IRevitMapperBinding {
 
   public getCurrentLayerMappings(): Promise<LayerCategoryMapping[]> {
     return Promise.resolve([])
+  }
+
+  public getEffectiveObjectsForLayerMapping(
+    layerIds: string[],
+    categoryValue: string
+  ): Promise<string[]> {
+    console.log('Mock: Getting effective objects for layer mapping', {
+      layerIds,
+      categoryValue
+    })
+    return Promise.resolve(['obj1', 'obj2', 'obj3'])
   }
 
   public showDevTools(): Promise<void> {
