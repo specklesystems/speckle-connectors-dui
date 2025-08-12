@@ -22,7 +22,7 @@
             :items="mappingModeOptions"
             :allow-unset="false"
             mount-menu-on-body
-            @update:model-value="handleModeChange"
+            @update:model-value="(value) => handleModeChange(value as string)"
           >
             <template #something-selected="{ value }">
               <span class="text-primary text-base text-sm">{{ value }}</span>
@@ -301,7 +301,7 @@ const { selectionInfo } = storeToRefs(selectionStore)
 // === STATE ===
 const selectedMappingMode = ref<string>('Selection')
 const mappingModeOptions = ['Selection', 'Layer']
-const selectedCategory = ref<Category | null>(null)
+const selectedCategory = ref<Category | undefined>(undefined)
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
 
@@ -426,7 +426,7 @@ const assignToCategory = async () => {
       selectedLayers.value = []
     }
 
-    selectedCategory.value = null
+    selectedCategory.value = undefined
     await refreshMappings()
   } catch (error) {
     console.error('Failed to assign to category:', error)
