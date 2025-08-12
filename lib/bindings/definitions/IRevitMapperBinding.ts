@@ -28,8 +28,8 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
-  // Notify when mappings change
   mappingsChanged: (mappings: CategoryMapping[]) => void
+  layersChanged: (layers: LayerOption[]) => void
 }
 
 export interface Category {
