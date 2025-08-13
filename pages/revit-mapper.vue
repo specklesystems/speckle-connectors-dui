@@ -35,66 +35,17 @@
 
         <!-- Mode-specific content -->
         <div v-if="selectedMappingMode === 'Selection'">
-          <div class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
-            <div v-if="(selectionInfo?.selectedObjectIds?.length || 0) === 0">
-              No objects selected, go ahead and select some from your model!
-            </div>
-            <div v-else>{{ selectionInfo?.summary }}</div>
-          </div>
+          <SelectionMapper
+            :has-selection="(selectionInfo?.selectedObjectIds?.length || 0) > 0"
+            :selection-summary="selectionInfo?.summary || ''"
+          />
         </div>
 
-        <div v-if="selectedMappingMode === 'Layer'" class="px-2">
-          <p class="h5">Layer Selection</p>
-          <div class="space-y-2 my-2">
-            <!-- Multi-select layer dropdown -->
-            <div>
-              <FormSelectMulti
-                v-model="selectedLayers"
-                name="layerSelection"
-                label="Select layers"
-                class="w-full"
-                fixed-height
-                size="sm"
-                :items="layerOptions"
-                :allow-unset="false"
-                by="id"
-                search
-                :search-placeholder="'Search layers...'"
-                :filter-predicate="layerSearchFilterPredicate"
-                mount-menu-on-body
-              >
-                <template #something-selected="{ value }">
-                  <span class="text-primary text-base text-sm">
-                    {{
-                      `${value.length} layer${value.length !== 1 ? 's' : ''} selected`
-                    }}
-                  </span>
-                </template>
-                <template #option="{ item }">
-                  <span class="text-base text-sm">{{ item.name }}</span>
-                </template>
-              </FormSelectMulti>
-            </div>
-
-            <!-- Layer selection summary -->
-            <div
-              v-if="selectedLayers.length === 0"
-              class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs"
-            >
-              <div class="text-foreground-2">
-                No layers selected, choose layers from the dropdown above!
-              </div>
-            </div>
-            <div v-else class="space-y-2 p-2 bg-highlight-1 rounded-md text-body-xs">
-              <div>
-                Selected {{ selectedLayers.length }} layer{{
-                  selectedLayers.length !== 1 ? 's' : ''
-                }}:
-                {{ selectedLayers.map((l) => l.name).join(', ') }}
-              </div>
-            </div>
-          </div>
-        </div>
+        <LayerMapper
+          v-if="selectedMappingMode === 'Layer'"
+          v-model:selected-layers="selectedLayers"
+          :layer-options="layerOptions"
+        />
       </div>
     </div>
 
@@ -157,40 +108,16 @@
       <div v-if="currentMappings.length > 0" class="my-2">
         <div class="text-sm font-medium text-foreground-2 mb-1">Object Mappings</div>
         <div class="space-y-1">
-          <div
+          <MappedElementItem
             v-for="mapping in currentMappings"
             :key="mapping.categoryValue"
-            class="py-1 px-2 bg-foundation border rounded-lg"
-          >
-            <div class="flex justify-between items-center">
-              <div class="text-sm font-medium grow">{{ mapping.categoryLabel }}</div>
-
-              <div class="flex space-x-1">
-                <div
-                  class="flex justify-center items-center text-xs text-foreground-2 mr-1"
-                >
-                  {{ mapping.objectCount }} object{{
-                    mapping.objectCount !== 1 ? 's' : ''
-                  }}
-                </div>
-                <FormButton
-                  size="sm"
-                  color="outline"
-                  :icon-left="CursorArrowRaysIcon"
-                  hide-text
-                  @click="selectMappedObjects(mapping)"
-                />
-                <FormButton
-                  class="!px-1.5"
-                  size="sm"
-                  color="outline"
-                  @click="clearMapping(mapping)"
-                >
-                  <TrashIcon class="w-3 h-3" />
-                </FormButton>
-              </div>
-            </div>
-          </div>
+            :category-label="mapping.categoryLabel"
+            :count-text="`${mapping.objectCount} object${
+              mapping.objectCount !== 1 ? 's' : ''
+            }`"
+            @select="selectMappedObjects(mapping)"
+            @clear="clearMapping(mapping)"
+          />
         </div>
       </div>
 
@@ -198,44 +125,17 @@
       <div v-if="currentLayerMappings.length > 0" class="my-2">
         <div class="text-sm font-medium text-foreground-2 mb-1">Layer Mappings</div>
         <div class="space-y-1">
-          <div
+          <MappedElementItem
             v-for="layerMapping in currentLayerMappings"
             :key="layerMapping.categoryValue"
-            class="py-1 px-2 bg-foundation border rounded-lg"
-          >
-            <div class="flex justify-between items-center">
-              <div class="text-sm font-medium grow">
-                {{ layerMapping.categoryLabel }}
-              </div>
-
-              <div class="flex space-x-1">
-                <div
-                  class="flex justify-center items-center text-xs text-foreground-2 mr-1"
-                >
-                  {{ layerMapping.layerCount }} layer{{
-                    layerMapping.layerCount !== 1 ? 's' : ''
-                  }}
-                </div>
-                <!-- Tooltip showing layer names -->
-                <FormButton
-                  v-tippy="`Layers: ${layerMapping.layerNames.join(', ')}`"
-                  size="sm"
-                  color="outline"
-                  :icon-left="CursorArrowRaysIcon"
-                  hide-text
-                  @click="selectMappedLayers(layerMapping)"
-                />
-                <FormButton
-                  class="!px-1.5"
-                  size="sm"
-                  color="outline"
-                  @click="clearLayerMapping(layerMapping)"
-                >
-                  <TrashIcon class="w-3 h-3" />
-                </FormButton>
-              </div>
-            </div>
-          </div>
+            :category-label="layerMapping.categoryLabel"
+            :count-text="`${layerMapping.layerCount} layer${
+              layerMapping.layerCount !== 1 ? 's' : ''
+            }`"
+            :tooltip-text="`Layers: ${layerMapping.layerNames.join(', ')}`"
+            @select="selectMappedLayers(layerMapping)"
+            @clear="clearLayerMapping(layerMapping)"
+          />
         </div>
       </div>
 
@@ -302,14 +202,18 @@
 <script setup lang="ts">
 // === IMPORTS ===
 import { storeToRefs } from 'pinia'
-import { ArrowLeftIcon, CursorArrowRaysIcon } from '@heroicons/vue/20/solid'
-import { TrashIcon } from '@heroicons/vue/24/outline'
+import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
 import type {
   Category,
   CategoryMapping,
   LayerCategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
+
+// Import components
+import SelectionMapper from '~/components/mapper/SelectionMapper.vue'
+import LayerMapper from '~/components/mapper/LayerMapper.vue'
+import MappedElementItem from '~/components/mapper/MappedElementItem.vue'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
@@ -366,11 +270,6 @@ const searchFilterPredicate = (item: Category, query: string) => {
   return item.label.toLowerCase().includes(query.toLowerCase())
 }
 
-// Search predicate for layer dropdown
-const layerSearchFilterPredicate = (item: LayerOption, query: string) => {
-  return item.name.toLowerCase().includes(query.toLowerCase())
-}
-
 // Handle mode changes with conflict checking
 const handleModeChange = (newMode: string) => {
   // If switching to same mode, do nothing
@@ -398,7 +297,6 @@ const cancelModeChange = () => {
   showModeConfirmDialog.value = false
   pendingMode.value = ''
   conflictMessage.value = ''
-  // FormSelectBase will remain at current value since we didn't update selectedMappingMode
 }
 
 // Confirm mode change and clear conflicting mappings
