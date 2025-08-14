@@ -6,8 +6,7 @@ import type {
 export const IRevitMapperBindingKey = 'revitMapperBinding'
 
 export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
-  // Gets list of available Revit categories for the UI dropdown
-  getAvailableCategories: () => Promise<Category[]>
+  // Gets list of defined layers in doc
   getAvailableLayers: () => Promise<LayerOption[]>
 
   // Object methods
@@ -67,15 +66,6 @@ export class MockedMapperBinding implements IRevitMapperBinding {
   ): Promise<void> {
     console.log('Mock: Assigning objects to category', { objectIds, categoryValue })
     return Promise.resolve()
-  }
-
-  public getAvailableCategories(): Promise<Category[]> {
-    return Promise.resolve([
-      { value: 'OST_Walls', label: 'Walls' },
-      { value: 'OST_Floors', label: 'Floors' },
-      { value: 'OST_Ceilings', label: 'Ceilings' },
-      { value: 'OST_Columns', label: 'Columns' }
-    ])
   }
 
   public getAvailableLayers(): Promise<LayerOption[]> {

@@ -215,6 +215,9 @@ import SelectionMapper from '~/components/mapper/SelectionMapper.vue'
 import LayerMapper from '~/components/mapper/LayerMapper.vue'
 import MappedElementItem from '~/components/mapper/MappedElementItem.vue'
 
+// Import categories
+import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
+
 // === STORES ===
 const selectionStore = useSelectionStore()
 const { selectionInfo } = storeToRefs(selectionStore)
@@ -454,16 +457,26 @@ const selectAllMappedLayers = async () => {
 // Load available categories, layers, and current mappings
 const loadData = async () => {
   try {
-    const [categories, currentMappings, currentLayerMappings, layers] =
-      await Promise.all([
-        $revitMapperBinding?.getAvailableCategories() || [],
-        $revitMapperBinding?.getCurrentObjectsMappings() || [],
-        $revitMapperBinding?.getCurrentLayerMappings() || [],
-        loadAvailableLayers()
-      ])
+    const [categories, rawMappings, rawLayerMappings, layers] = await Promise.all([
+      getAvailableCategories() || [],
+      $revitMapperBinding?.getCurrentObjectsMappings() || [],
+      $revitMapperBinding?.getCurrentLayerMappings() || [],
+      loadAvailableLayers()
+    ])
+
     categoryOptions.value = categories
-    mappings.value = currentMappings
-    layerMappings.value = currentLayerMappings
+
+    // Mappings need to be changed human-readable labels
+    mappings.value = rawMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
+
+    layerMappings.value = rawLayerMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
+
     layerOptions.value = layers
   } catch (error) {
     console.error('Failed to load mapper data:', error)
@@ -473,12 +486,21 @@ const loadData = async () => {
 // Refresh both object and layer mappings
 const refreshMappings = async () => {
   try {
-    const [currentMappings, currentLayerMappings] = await Promise.all([
+    const [rawMappings, rawLayerMappings] = await Promise.all([
       $revitMapperBinding?.getCurrentObjectsMappings() || [],
       $revitMapperBinding?.getCurrentLayerMappings() || []
     ])
-    mappings.value = currentMappings
-    layerMappings.value = currentLayerMappings
+
+    // Transform to resolve labels
+    mappings.value = rawMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
+
+    layerMappings.value = rawLayerMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
   } catch (error) {
     console.error('Failed to refresh mappings:', error)
   }
@@ -499,9 +521,13 @@ const loadAvailableLayers = async (): Promise<LayerOption[]> => {
 // Refresh just the layer mappings
 const refreshLayerMappings = async () => {
   try {
-    const currentLayerMappings =
+    const rawLayerMappings =
       (await $revitMapperBinding?.getCurrentLayerMappings()) || []
-    layerMappings.value = currentLayerMappings
+
+    layerMappings.value = rawLayerMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
   } catch (error) {
     console.error('Failed to refresh layer mappings:', error)
   }
@@ -513,7 +539,10 @@ onMounted(() => {
 
   // Listen for mappings changes
   $revitMapperBinding?.on('mappingsChanged', (newMappings: CategoryMapping[]) => {
-    mappings.value = newMappings
+    mappings.value = newMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
     refreshLayerMappings()
   })
 
