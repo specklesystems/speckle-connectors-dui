@@ -139,39 +139,31 @@
 
       <!-- Clear All and Select All buttons -->
       <div class="flex justify-end space-x-2">
-        <FormButton
+        <!-- Selection mode buttons -->
+        <div
           v-if="selectedMappingMode === 'Selection' && currentMappings.length > 0"
-          size="sm"
-          color="outline"
-          @click="selectAllMappedObjects()"
+          class="flex space-x-2"
         >
-          Select All
-        </FormButton>
-        <FormButton
-          v-if="selectedMappingMode === 'Selection' && currentMappings.length > 0"
-          size="sm"
-          color="danger"
-          @click="clearAllMappings()"
-        >
-          Clear All Objects
-        </FormButton>
+          <FormButton size="sm" color="outline" @click="selectAllMappedObjects()">
+            Select All
+          </FormButton>
+          <FormButton size="sm" color="danger" @click="clearAllMappings()">
+            Clear All Objects
+          </FormButton>
+        </div>
 
-        <FormButton
-          v-if="selectedMappingMode === 'Layer' && currentLayerMappings.length > 0"
-          size="sm"
-          color="outline"
-          @click="selectAllMappedLayers()"
+        <!-- Layer mode buttons -->
+        <div
+          v-else-if="selectedMappingMode === 'Layer' && currentLayerMappings.length > 0"
+          class="flex space-x-2"
         >
-          Select All
-        </FormButton>
-        <FormButton
-          v-if="selectedMappingMode === 'Layer' && currentLayerMappings.length > 0"
-          size="sm"
-          color="danger"
-          @click="clearAllLayerMappings()"
-        >
-          Clear All Layers
-        </FormButton>
+          <FormButton size="sm" color="outline" @click="selectAllMappedLayers()">
+            Select All
+          </FormButton>
+          <FormButton size="sm" color="danger" @click="clearAllLayerMappings()">
+            Clear All Layers
+          </FormButton>
+        </div>
       </div>
 
       <!-- Mode Confirmation Dialog -->
