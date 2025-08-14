@@ -11,27 +11,25 @@
     <div class="px-2">
       <p class="h5">Mapping Mode</p>
       <div class="space-y-2 my-2">
-        <div>
-          <FormSelectBase
-            :model-value="selectedMappingMode"
-            name="mappingMode"
-            label="Mapping mode"
-            class="w-full"
-            fixed-height
-            size="sm"
-            :items="mappingModeOptions"
-            :allow-unset="false"
-            mount-menu-on-body
-            @update:model-value="(value) => handleModeChange(value as string)"
-          >
-            <template #something-selected="{ value }">
-              <span class="text-primary text-base text-sm">{{ value }}</span>
-            </template>
-            <template #option="{ item }">
-              <span class="text-base text-sm">{{ item }}</span>
-            </template>
-          </FormSelectBase>
-        </div>
+        <FormSelectBase
+          :model-value="selectedMappingMode"
+          name="mappingMode"
+          label="Mapping mode"
+          class="w-full"
+          fixed-height
+          size="sm"
+          :items="mappingModeOptions"
+          :allow-unset="false"
+          mount-menu-on-body
+          @update:model-value="(value) => handleModeChange(value as string)"
+        >
+          <template #something-selected="{ value }">
+            <span class="text-primary text-base text-sm">{{ value }}</span>
+          </template>
+          <template #option="{ item }">
+            <span class="text-base text-sm">{{ item }}</span>
+          </template>
+        </FormSelectBase>
 
         <!-- Mode-specific content -->
         <div v-if="selectedMappingMode === 'Selection'">
