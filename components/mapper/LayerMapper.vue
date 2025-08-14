@@ -3,33 +3,31 @@
     <p class="h5">Layer Selection</p>
     <div class="space-y-2 my-2">
       <!-- Multi-select layer dropdown -->
-      <div>
-        <FormSelectMulti
-          :model-value="selectedLayers"
-          name="layerSelection"
-          label="Select layers"
-          class="w-full"
-          fixed-height
-          size="sm"
-          :items="layerOptions"
-          :allow-unset="false"
-          by="id"
-          search
-          :search-placeholder="'Search layers...'"
-          :filter-predicate="layerSearchFilterPredicate"
-          mount-menu-on-body
-          @update:model-value="(value) => $emit('update:selectedLayers', value as LayerOption[])"
-        >
-          <template #something-selected="{ value }">
-            <span class="text-primary text-base text-sm">
-              {{ `${value.length} layer${value.length !== 1 ? 's' : ''} selected` }}
-            </span>
-          </template>
-          <template #option="{ item }">
-            <span class="text-base text-sm">{{ item.name }}</span>
-          </template>
-        </FormSelectMulti>
-      </div>
+      <FormSelectMulti
+        :model-value="selectedLayers"
+        name="layerSelection"
+        label="Select layers"
+        class="w-full"
+        fixed-height
+        size="sm"
+        :items="layerOptions"
+        :allow-unset="false"
+        by="id"
+        search
+        :search-placeholder="'Search layers...'"
+        :filter-predicate="layerSearchFilterPredicate"
+        mount-menu-on-body
+        @update:model-value="(value) => $emit('update:selectedLayers', value as LayerOption[])"
+      >
+        <template #something-selected="{ value }">
+          <span class="text-primary text-base text-sm">
+            {{ `${value.length} layer${value.length !== 1 ? 's' : ''} selected` }}
+          </span>
+        </template>
+        <template #option="{ item }">
+          <span class="text-base text-sm">{{ item.name }}</span>
+        </template>
+      </FormSelectMulti>
 
       <!-- Layer selection summary -->
       <div

@@ -210,11 +210,6 @@ import type {
   LayerCategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
 
-// Import components
-import SelectionMapper from '~/components/mapper/SelectionMapper.vue'
-import LayerMapper from '~/components/mapper/LayerMapper.vue'
-import MappedElementItem from '~/components/mapper/MappedElementItem.vue'
-
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
 
