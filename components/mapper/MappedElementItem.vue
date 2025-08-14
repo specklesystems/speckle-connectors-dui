@@ -35,13 +35,11 @@
 <script setup lang="ts">
 import { CursorArrowRaysIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
-interface Props {
+defineProps<{
   categoryLabel: string
   countText: string
   tooltipText?: string
-}
-
-defineProps<Props>()
+}>()
 
 defineEmits<{
   select: []

@@ -8,10 +8,8 @@
 </template>
 
 <script setup lang="ts">
-interface Props {
+defineProps<{
   hasSelection: boolean
   selectionSummary: string
-}
-
-defineProps<Props>()
+}>()
 </script>

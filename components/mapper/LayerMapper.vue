@@ -57,12 +57,10 @@ interface LayerOption {
   [key: string]: unknown
 }
 
-interface Props {
+defineProps<{
   selectedLayers: LayerOption[]
   layerOptions: LayerOption[]
-}
-
-defineProps<Props>()
+}>()
 
 defineEmits<{
   'update:selectedLayers': [layers: LayerOption[]]
