@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col space-y-2">
-    <div class="px-2 mt-2">
-      <FormButton to="/" size="sm" :icon-left="ArrowLeftIcon" class="my-2">
+    <div class="px-2 space-y-1">
+      <FormButton to="/" size="sm" :icon-left="ArrowLeftIcon" class="my-1">
         Home
       </FormButton>
       <hr />
@@ -24,10 +24,10 @@
           @update:model-value="(value) => handleModeChange(value as string)"
         >
           <template #something-selected="{ value }">
-            <span class="text-primary text-base text-sm">{{ value }}</span>
+            <span class="text-primary text-xs">{{ value }}</span>
           </template>
           <template #option="{ item }">
-            <span class="text-base text-sm">{{ item }}</span>
+            <span class="text-xs">{{ item }}</span>
           </template>
         </FormSelectBase>
 
@@ -51,7 +51,7 @@
     <div v-if="hasTargetsSelected" class="px-2">
       <p class="h5">Target Category</p>
       <div class="space-y-2 my-2">
-        <div class="flex space-x-2">
+        <div class="flex space-x-2 items-center">
           <div class="flex-1">
             <FormSelectBase
               key="label"
@@ -83,28 +83,28 @@
           <FormButton
             color="primary"
             size="sm"
-            class="h-8"
             :disabled="!selectedCategory"
             @click="assignToCategory()"
           >
-            Apply Mapping
+            Apply
           </FormButton>
         </div>
       </div>
     </div>
 
-    <hr v-if="hasTargetsSelected" />
+    <hr />
 
     <!-- Step 3: Mappings Summary Tables -->
     <div
       v-if="currentMappings.length > 0 || currentLayerMappings.length > 0"
       class="px-2"
     >
-      <p class="h5">Current Mappings</p>
+      <p class="h5">
+        {{ `Current Mappings (${currentMappings.length > 0 ? 'Object' : 'Layer'})` }}
+      </p>
 
       <!-- Object Mappings Section -->
       <div v-if="currentMappings.length > 0" class="my-2">
-        <div class="text-sm font-medium text-foreground-2 mb-1">Object Mappings</div>
         <div class="space-y-1">
           <MapperMappedElementItem
             v-for="mapping in currentMappings"
@@ -121,7 +121,6 @@
 
       <!-- Layer Mappings Section -->
       <div v-if="currentLayerMappings.length > 0" class="my-2">
-        <div class="text-sm font-medium text-foreground-2 mb-1">Layer Mappings</div>
         <div class="space-y-1">
           <MapperMappedElementItem
             v-for="layerMapping in currentLayerMappings"

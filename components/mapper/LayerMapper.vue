@@ -20,12 +20,12 @@
         @update:model-value="(value) => $emit('update:selectedLayers', value as LayerOption[])"
       >
         <template #something-selected="{ value }">
-          <span class="text-primary text-base text-sm">
+          <span class="text-primary text-xs">
             {{ `${value.length} layer${value.length !== 1 ? 's' : ''} selected` }}
           </span>
         </template>
         <template #option="{ item }">
-          <span class="text-base text-sm">{{ item.name }}</span>
+          <span class="text-xs">{{ item.name }}</span>
         </template>
       </FormSelectMulti>
 

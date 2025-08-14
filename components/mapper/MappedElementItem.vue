@@ -1,7 +1,7 @@
 <template>
   <div class="py-1 px-2 bg-foundation border rounded-lg">
     <div class="flex justify-between items-center">
-      <div class="text-sm font-medium grow">{{ categoryLabel }}</div>
+      <div class="text-xs font-medium grow">{{ categoryLabel }}</div>
 
       <div class="flex space-x-1">
         <div class="flex justify-center items-center text-xs text-foreground-2 mr-1">
