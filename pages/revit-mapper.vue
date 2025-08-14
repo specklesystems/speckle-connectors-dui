@@ -33,13 +33,13 @@
 
         <!-- Mode-specific content -->
         <div v-if="selectedMappingMode === 'Selection'">
-          <SelectionMapper
+          <MapperSelectionMapper
             :has-selection="(selectionInfo?.selectedObjectIds?.length || 0) > 0"
             :selection-summary="selectionInfo?.summary || ''"
           />
         </div>
 
-        <LayerMapper
+        <MapperLayerMapper
           v-if="selectedMappingMode === 'Layer'"
           v-model:selected-layers="selectedLayers"
           :layer-options="layerOptions"
@@ -106,7 +106,7 @@
       <div v-if="currentMappings.length > 0" class="my-2">
         <div class="text-sm font-medium text-foreground-2 mb-1">Object Mappings</div>
         <div class="space-y-1">
-          <MappedElementItem
+          <MapperMappedElementItem
             v-for="mapping in currentMappings"
             :key="mapping.categoryValue"
             :category-label="mapping.categoryLabel"
@@ -123,7 +123,7 @@
       <div v-if="currentLayerMappings.length > 0" class="my-2">
         <div class="text-sm font-medium text-foreground-2 mb-1">Layer Mappings</div>
         <div class="space-y-1">
-          <MappedElementItem
+          <MapperMappedElementItem
             v-for="layerMapping in currentLayerMappings"
             :key="layerMapping.categoryValue"
             :category-label="layerMapping.categoryLabel"
@@ -199,11 +199,6 @@ import type {
   CategoryMapping,
   LayerCategoryMapping
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
-
-// Import components
-import SelectionMapper from '~/components/mapper/SelectionMapper.vue'
-import LayerMapper from '~/components/mapper/LayerMapper.vue'
-import MappedElementItem from '~/components/mapper/MappedElementItem.vue'
 
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
