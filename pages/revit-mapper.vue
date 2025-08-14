@@ -57,7 +57,7 @@
               key="label"
               v-model="selectedCategory"
               name="categoryMapping"
-              placeholder="Select a category"
+              :placeholder="dropdownPlaceholder"
               label="Target Category"
               fixed-height
               size="sm"
@@ -70,7 +70,13 @@
             >
               <template #something-selected="{ value }">
                 <span class="text-primary text-xs">
-                  {{ Array.isArray(value) ? value[0]?.label : value?.label }}
+                  {{
+                    selectionCategoryStatus?.label === 'Multiple categories'
+                      ? 'Multiple categories'
+                      : Array.isArray(value)
+                      ? value[0]?.label
+                      : value?.label
+                  }}
                 </span>
               </template>
               <template #option="{ item }">
@@ -212,6 +218,8 @@ const mappingModeOptions = ['Selection', 'Layer']
 const selectedCategory = ref<Category | undefined>(undefined)
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
+const selectionCategories = ref<string[]>([])
+const layerCategories = ref<string[]>([])
 
 // Layer-specific state
 const selectedLayers = ref<LayerOption[]>([])
@@ -246,6 +254,40 @@ const currentMappings = computed(() => {
 
 const currentLayerMappings = computed(() => {
   return selectedMappingMode.value === 'Layer' ? layerMappings.value : []
+})
+
+const selectionCategoryStatus = computed(() => {
+  if (selectedMappingMode.value === 'Selection') {
+    if (!selectionInfo.value?.selectedObjectIds?.length) return null
+
+    const categories = selectionCategories.value || []
+
+    if (categories.length === 0) return null
+    if (categories.length === 1) {
+      return categoryOptions.value.find((cat) => cat.value === categories[0])
+    }
+    return { value: 'multiple', label: 'Multiple categories' }
+  } else if (selectedMappingMode.value === 'Layer') {
+    // Only show category status if layers are actually selected in the UI
+    if (!selectedLayers.value?.length) return null
+
+    const categories = layerCategories.value || []
+
+    if (categories.length === 0) return null
+    if (categories.length === 1) {
+      return categoryOptions.value.find((cat) => cat.value === categories[0])
+    }
+    return { value: 'multiple', label: 'Multiple categories' }
+  }
+
+  return null
+})
+
+const dropdownPlaceholder = computed(() => {
+  if (selectionCategoryStatus.value?.label === 'Multiple categories') {
+    return 'Multiple categories'
+  }
+  return 'Select a category'
 })
 
 // === METHODS ===
@@ -384,9 +426,10 @@ const selectMappedObjects = async (mapping: CategoryMapping) => {
   }
 }
 
-// Select mapped layers (highlight objects on those layers)
+// Select mapped layers (highlight objects AND restore UI state)
 const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
   try {
+    // 1. Highlight objects in Rhino
     const effectiveObjectIds =
       (await $revitMapperBinding?.getEffectiveObjectsForLayerMapping(
         layerMapping.layerIds,
@@ -396,6 +439,21 @@ const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
     if (effectiveObjectIds.length > 0) {
       await $baseBinding?.highlightObjects(effectiveObjectIds)
     }
+
+    // 2. Restore UI state - populate layer selection
+    const layersToSelect = layerOptions.value.filter((layer) =>
+      layerMapping.layerIds.includes(layer.id)
+    )
+    selectedLayers.value = layersToSelect
+
+    // 3. Pre-select category in dropdown
+    const categoryToSelect = categoryOptions.value.find(
+      (cat) => cat.value === layerMapping.categoryValue
+    )
+    selectedCategory.value = categoryToSelect
+
+    // 4. Update reactive state
+    layerCategories.value = [layerMapping.categoryValue]
   } catch (error) {
     console.error('Failed to highlight effective objects:', error)
   }
@@ -516,6 +574,109 @@ const refreshLayerMappings = async () => {
     console.error('Failed to refresh layer mappings:', error)
   }
 }
+
+const updateDropdownFromCategories = (categories: string[]) => {
+  if (categories.length === 1) {
+    selectedCategory.value = categoryOptions.value.find(
+      (cat) => cat.value === categories[0]
+    )
+  } else if (categories.length > 1) {
+    // Multiple categories - clear selection
+    selectedCategory.value = undefined
+  }
+}
+
+// === WATCHERS === (update existing watchers)
+// Watch for selection changes (objects)
+watch(
+  () => selectionInfo.value?.selectedObjectIds,
+  async (newSelection) => {
+    if (
+      newSelection?.length &&
+      selectedMappingMode.value === 'Selection' &&
+      $revitMapperBinding
+    ) {
+      try {
+        const categories = await $revitMapperBinding.getCategoryMappingsForObjects(
+          newSelection
+        )
+        selectionCategories.value = categories
+        updateDropdownFromCategories(categories)
+      } catch (error) {
+        console.error('Failed to get category mappings for selection:', error)
+        selectionCategories.value = []
+      }
+    } else {
+      selectionCategories.value = []
+    }
+  },
+  { immediate: true }
+)
+
+// Watch for layer selection changes
+watch(
+  () => selectedLayers.value,
+  async (newLayers) => {
+    if (
+      newLayers?.length &&
+      selectedMappingMode.value === 'Layer' &&
+      $revitMapperBinding
+    ) {
+      try {
+        const layerIds = newLayers.map((layer) => layer.id)
+        const categories = await $revitMapperBinding.getCategoryMappingsForLayers(
+          layerIds
+        )
+        layerCategories.value = categories
+        updateDropdownFromCategories(categories)
+      } catch (error) {
+        console.error('Failed to get category mappings for layers:', error)
+        layerCategories.value = []
+      }
+    } else {
+      // Clear when no layers selected
+      layerCategories.value = []
+      if (selectedMappingMode.value === 'Layer') {
+        selectedCategory.value = undefined
+      }
+    }
+  },
+  { deep: true, immediate: true }
+)
+
+// Update when switching modes
+watch(selectedMappingMode, async (newMode) => {
+  if (
+    newMode === 'Selection' &&
+    selectionInfo.value?.selectedObjectIds?.length &&
+    $revitMapperBinding
+  ) {
+    try {
+      const categories = await $revitMapperBinding.getCategoryMappingsForObjects(
+        selectionInfo.value.selectedObjectIds
+      )
+      selectionCategories.value = categories
+      updateDropdownFromCategories(categories)
+    } catch (error) {
+      console.error('Failed to get category mappings for selection:', error)
+    }
+  } else if (
+    newMode === 'Layer' &&
+    selectedLayers.value?.length &&
+    $revitMapperBinding
+  ) {
+    try {
+      const layerIds = selectedLayers.value.map((layer) => layer.id)
+      const categories = await $revitMapperBinding.getCategoryMappingsForLayers(
+        layerIds
+      )
+      layerCategories.value = categories
+      updateDropdownFromCategories(categories)
+    } catch (error) {
+      console.error('Failed to get category mappings for layers:', error)
+    }
+  }
+})
 
 // === LIFECYCLE ===
 onMounted(async () => {

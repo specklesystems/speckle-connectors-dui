@@ -14,6 +14,7 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
   clearObjectsCategoryAssignment: (objectIds: string[]) => Promise<void>
   clearAllObjectsCategoryAssignments: () => Promise<void>
   getCurrentObjectsMappings: () => Promise<CategoryMapping[]>
+  getCategoryMappingsForObjects: (objectIds: string[]) => Promise<string[]>
 
   // Layer methods
   assignLayerToCategory: (layerIds: string[], categoryValue: string) => Promise<void>
@@ -24,6 +25,7 @@ export interface IRevitMapperBinding extends IBinding<IMapperBindingEvents> {
     layerIds: string[],
     categoryValue: string
   ) => Promise<string[]>
+  getCategoryMappingsForLayers: (layerIds: string[]) => Promise<string[]>
 }
 
 export interface IMapperBindingEvents extends IBindingSharedEvents {
