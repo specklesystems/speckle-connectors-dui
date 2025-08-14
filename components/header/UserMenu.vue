@@ -46,7 +46,7 @@
                 ]"
                 @click="$router.push('/revit-mapper')"
               >
-                Revit integration
+                Assign Revit Categories
               </button>
             </MenuItem>
             <MenuItem

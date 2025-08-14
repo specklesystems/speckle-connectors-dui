@@ -115,7 +115,7 @@
                 </span>
               </FormButton> -->
             </div>
-            <!--Revit Integration button (only if mapper binding exists)-->
+            <!--Assign Revit Categories button (only if mapper binding exists)-->
             <div v-if="app.$revitMapperBinding" class="mt-2">
               <hr class="border-outline-2 mb-2" />
               <FormButton
@@ -125,7 +125,7 @@
                 full-width
                 @click="$router.push('/revit-mapper')"
               >
-                Revit Integration
+                Assign Revit Categories
               </FormButton>
             </div>
           </LayoutPanel>
