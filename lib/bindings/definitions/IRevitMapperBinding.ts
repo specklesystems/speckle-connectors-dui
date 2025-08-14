@@ -127,6 +127,21 @@ export class MockedMapperBinding implements IRevitMapperBinding {
     return Promise.resolve(['obj1', 'obj2', 'obj3'])
   }
 
+  public getCategoryMappingsForObjects(objectIds: string[]): Promise<string[]> {
+    console.log('Mock: Getting category mappings for objects', { objectIds })
+    // Mock returning some categories for testing
+    return Promise.resolve(
+      objectIds.length > 1 ? ['OST_Walls', 'OST_Doors'] : ['OST_Walls']
+    )
+  }
+
+  public getCategoryMappingsForLayers(layerIds: string[]): Promise<string[]> {
+    console.log('Mock: Getting category mappings for layers', { layerIds })
+    return Promise.resolve(
+      layerIds.length > 1 ? ['OST_Floors', 'OST_Ceilings'] : ['OST_Floors']
+    )
+  }
+
   public showDevTools(): Promise<void> {
     console.log('Braaaaa, no way!')
     return Promise.resolve()

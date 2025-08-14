@@ -55,7 +55,7 @@
           <div class="flex-1">
             <FormSelectBase
               key="label"
-              v-model="selectedCategory"
+              v-model="categoryState.selectedCategory.value"
               name="categoryMapping"
               :placeholder="dropdownPlaceholder"
               label="Target Category"
@@ -68,15 +68,9 @@
               :allow-unset="false"
               mount-menu-on-body
             >
-              <template #something-selected="{ value }">
+              <template #something-selected>
                 <span class="text-primary text-xs">
-                  {{
-                    selectionCategoryStatus?.label === 'Multiple categories'
-                      ? 'Multiple categories'
-                      : Array.isArray(value)
-                      ? value[0]?.label
-                      : value?.label
-                  }}
+                  {{ displayLabel }}
                 </span>
               </template>
               <template #option="{ item }">
@@ -89,7 +83,7 @@
           <FormButton
             color="primary"
             size="sm"
-            :disabled="!selectedCategory"
+            :disabled="!categoryState.selectedCategory.value"
             @click="assignToCategory()"
           >
             Apply
@@ -199,6 +193,7 @@
 import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
+import { useRevitCategoryState } from '~/lib/mapper/useRevitCategoryState'
 import type {
   Category,
   CategoryMapping,
@@ -215,11 +210,8 @@ const { selectionInfo } = storeToRefs(selectionStore)
 // === STATE ===
 const selectedMappingMode = ref<string>('Selection')
 const mappingModeOptions = ['Selection', 'Layer']
-const selectedCategory = ref<Category | undefined>(undefined)
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
-const selectionCategories = ref<string[]>([])
-const layerCategories = ref<string[]>([])
 
 // Layer-specific state
 const selectedLayers = ref<LayerOption[]>([])
@@ -236,6 +228,12 @@ interface LayerOption {
   id: string
   name: string
 }
+
+// === MAPPING CATEGORY STATE MGMT ===
+const app = useNuxtApp()
+const { $revitMapperBinding, $baseBinding } = app
+
+const categoryState = useRevitCategoryState(categoryOptions, $revitMapperBinding)
 
 // === COMPUTED ===
 const hasTargetsSelected = computed(() => {
@@ -256,43 +254,19 @@ const currentLayerMappings = computed(() => {
   return selectedMappingMode.value === 'Layer' ? layerMappings.value : []
 })
 
-const selectionCategoryStatus = computed(() => {
-  if (selectedMappingMode.value === 'Selection') {
-    if (!selectionInfo.value?.selectedObjectIds?.length) return null
-
-    const categories = selectionCategories.value || []
-
-    if (categories.length === 0) return null
-    if (categories.length === 1) {
-      return categoryOptions.value.find((cat) => cat.value === categories[0])
-    }
-    return { value: 'multiple', label: 'Multiple categories' }
-  } else if (selectedMappingMode.value === 'Layer') {
-    // Only show category status if layers are actually selected in the UI
-    if (!selectedLayers.value?.length) return null
-
-    const categories = layerCategories.value || []
-
-    if (categories.length === 0) return null
-    if (categories.length === 1) {
-      return categoryOptions.value.find((cat) => cat.value === categories[0])
-    }
-    return { value: 'multiple', label: 'Multiple categories' }
-  }
-
-  return null
+const dropdownPlaceholder = computed(() => {
+  const status = categoryState.categoryStatus.value
+  return status?.isMultiple ? 'Multiple categories' : 'Select a category'
 })
 
-const dropdownPlaceholder = computed(() => {
-  if (selectionCategoryStatus.value?.label === 'Multiple categories') {
-    return 'Multiple categories'
-  }
-  return 'Select a category'
+const displayLabel = computed(() => {
+  const status = categoryState.categoryStatus.value
+  return status?.isMultiple
+    ? 'Multiple categories'
+    : categoryState.selectedCategory.value?.label || ''
 })
 
 // === METHODS ===
-const app = useNuxtApp()
-const { $revitMapperBinding, $baseBinding } = app
 
 // Search predicate for category dropdown
 const searchFilterPredicate = (item: Category, query: string) => {
@@ -354,23 +328,23 @@ const confirmModeChange = async () => {
 
 // Assign selected objects/layers to the chosen category
 const assignToCategory = async () => {
-  if (!selectedCategory.value || !hasTargetsSelected.value) return
+  if (!categoryState.selectedCategory.value || !hasTargetsSelected.value) return
 
   try {
     if (selectedMappingMode.value === 'Selection') {
       await $revitMapperBinding?.assignObjectsToCategory(
         selectionInfo.value?.selectedObjectIds || [],
-        selectedCategory.value.value
+        categoryState.selectedCategory.value.value
       )
     } else if (selectedMappingMode.value === 'Layer') {
       await $revitMapperBinding?.assignLayerToCategory(
         selectedLayers.value.map((layer) => layer.id),
-        selectedCategory.value.value
+        categoryState.selectedCategory.value.value
       )
       selectedLayers.value = []
     }
 
-    selectedCategory.value = undefined
+    categoryState.selectedCategory.value = undefined
     await refreshMappings()
   } catch (error) {
     console.error('Failed to assign to category:', error)
@@ -450,10 +424,10 @@ const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
     const categoryToSelect = categoryOptions.value.find(
       (cat) => cat.value === layerMapping.categoryValue
     )
-    selectedCategory.value = categoryToSelect
+    categoryState.selectedCategory.value = categoryToSelect
 
     // 4. Update reactive state
-    layerCategories.value = [layerMapping.categoryValue]
+    categoryState.currentCategories.value = [layerMapping.categoryValue]
   } catch (error) {
     console.error('Failed to highlight effective objects:', error)
   }
@@ -560,123 +534,22 @@ const loadAvailableLayers = async (): Promise<LayerOption[]> => {
   }
 }
 
-// Refresh just the layer mappings
-const refreshLayerMappings = async () => {
-  try {
-    const rawLayerMappings =
-      (await $revitMapperBinding?.getCurrentLayerMappings()) || []
-
-    layerMappings.value = rawLayerMappings.map((mapping) => ({
-      ...mapping,
-      categoryLabel: getCategoryLabel(mapping.categoryValue)
-    }))
-  } catch (error) {
-    console.error('Failed to refresh layer mappings:', error)
-  }
-}
-
-const updateDropdownFromCategories = (categories: string[]) => {
-  if (categories.length === 1) {
-    selectedCategory.value = categoryOptions.value.find(
-      (cat) => cat.value === categories[0]
-    )
-  } else if (categories.length > 1) {
-    // Multiple categories - clear selection
-    selectedCategory.value = undefined
-  }
-}
-
-// === WATCHERS === (update existing watchers)
-// Watch for selection changes (objects)
+// === WATCHER ===
 watch(
-  () => selectionInfo.value?.selectedObjectIds,
-  async (newSelection) => {
-    if (
-      newSelection?.length &&
-      selectedMappingMode.value === 'Selection' &&
-      $revitMapperBinding
-    ) {
-      try {
-        const categories = await $revitMapperBinding.getCategoryMappingsForObjects(
-          newSelection
-        )
-        selectionCategories.value = categories
-        updateDropdownFromCategories(categories)
-      } catch (error) {
-        console.error('Failed to get category mappings for selection:', error)
-        selectionCategories.value = []
-      }
-    } else {
-      selectionCategories.value = []
+  () => ({
+    mode: selectedMappingMode.value,
+    objectIds: selectionInfo.value?.selectedObjectIds || [],
+    layerIds: selectedLayers.value.map((l) => l.id)
+  }),
+  async ({ mode, objectIds, layerIds }) => {
+    if (mode === 'Selection') {
+      await categoryState.updateFromTargets(objectIds, false)
+    } else if (mode === 'Layer') {
+      await categoryState.updateFromTargets(layerIds, true)
     }
   },
-  { immediate: true }
+  { immediate: true, deep: true }
 )
-
-// Watch for layer selection changes
-watch(
-  () => selectedLayers.value,
-  async (newLayers) => {
-    if (
-      newLayers?.length &&
-      selectedMappingMode.value === 'Layer' &&
-      $revitMapperBinding
-    ) {
-      try {
-        const layerIds = newLayers.map((layer) => layer.id)
-        const categories = await $revitMapperBinding.getCategoryMappingsForLayers(
-          layerIds
-        )
-        layerCategories.value = categories
-        updateDropdownFromCategories(categories)
-      } catch (error) {
-        console.error('Failed to get category mappings for layers:', error)
-        layerCategories.value = []
-      }
-    } else {
-      // Clear when no layers selected
-      layerCategories.value = []
-      if (selectedMappingMode.value === 'Layer') {
-        selectedCategory.value = undefined
-      }
-    }
-  },
-  { deep: true, immediate: true }
-)
-
-// Update when switching modes
-watch(selectedMappingMode, async (newMode) => {
-  if (
-    newMode === 'Selection' &&
-    selectionInfo.value?.selectedObjectIds?.length &&
-    $revitMapperBinding
-  ) {
-    try {
-      const categories = await $revitMapperBinding.getCategoryMappingsForObjects(
-        selectionInfo.value.selectedObjectIds
-      )
-      selectionCategories.value = categories
-      updateDropdownFromCategories(categories)
-    } catch (error) {
-      console.error('Failed to get category mappings for selection:', error)
-    }
-  } else if (
-    newMode === 'Layer' &&
-    selectedLayers.value?.length &&
-    $revitMapperBinding
-  ) {
-    try {
-      const layerIds = selectedLayers.value.map((layer) => layer.id)
-      const categories = await $revitMapperBinding.getCategoryMappingsForLayers(
-        layerIds
-      )
-      layerCategories.value = categories
-      updateDropdownFromCategories(categories)
-    } catch (error) {
-      console.error('Failed to get category mappings for layers:', error)
-    }
-  }
-})
 
 // === LIFECYCLE ===
 onMounted(async () => {
@@ -699,4 +572,19 @@ onMounted(async () => {
     selectedLayers.value = []
   })
 })
+
+// Refresh just layer mappings
+const refreshLayerMappings = async () => {
+  try {
+    const rawLayerMappings =
+      (await $revitMapperBinding?.getCurrentLayerMappings()) || []
+
+    layerMappings.value = rawLayerMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
+  } catch (error) {
+    console.error('Failed to refresh layer mappings:', error)
+  }
+}
 </script>
