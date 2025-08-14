@@ -518,8 +518,10 @@ const refreshLayerMappings = async () => {
 }
 
 // === LIFECYCLE ===
-onMounted(() => {
-  loadData()
+onMounted(async () => {
+  await selectionStore.refreshSelectionFromHostApp()
+
+  await loadData()
 
   // Listen for mappings changes
   $revitMapperBinding?.on('mappingsChanged', (newMappings: CategoryMapping[]) => {
