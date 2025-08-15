@@ -348,7 +348,7 @@ const assignToCategory = async () => {
 
       // Track the assignment
       trackEvent('DUI3 Action', {
-        name: 'Assign Category',
+        name: 'Mapper Assign Category',
         category: categoryValue,
         count: assignedCount,
         mappingType: 'object'
@@ -360,7 +360,7 @@ const assignToCategory = async () => {
 
       // Track the assignment
       trackEvent('DUI3 Action', {
-        name: 'Assign Category',
+        name: 'Mapper Assign Category',
         category: categoryValue,
         count: assignedCount,
         mappingType: 'layer'
