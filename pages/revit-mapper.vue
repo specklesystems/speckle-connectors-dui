@@ -581,10 +581,38 @@ watch(
     if (mode === 'Selection') {
       await revitMapperStore.updateFromTargets(objectIds, false)
     } else if (mode === 'Layer') {
-      await revitMapperStore.updateFromTargets(layerIds, true)
+      // In Layer mode, we need to watch both manual layer selection AND object selection
+      // This keeps dropdowns clear when objects are deselected (like Selection mode)
+      // while still supporting manual layer selection
+      if (layerIds.length > 0) {
+        // User has manually selected layers in UI - use layer mode logic
+        await revitMapperStore.updateFromTargets(layerIds, true)
+      } else {
+        // No manual layer selection - use object mode logic (like Selection mode)
+        // This handles the case where selectMappedLayers populated the UI but objects were deselected
+        await revitMapperStore.updateFromTargets(objectIds, false)
+      }
     }
   },
   { immediate: true, deep: true }
+)
+
+// This handles clearing selectedLayers when objects are deselected in Layer mode
+watch(
+  () => selectionInfo.value?.selectedObjectIds?.length || 0,
+  async (newCount, oldCount) => {
+    // Only act in Layer mode when selection count goes to 0 and we have selected layers
+    if (
+      selectedMappingMode.value === 'Layer' &&
+      newCount === 0 &&
+      oldCount > 0 &&
+      selectedLayers.value.length > 0
+    ) {
+      // nextTick to avoid interfering with the main watcher?
+      await nextTick()
+      selectedLayers.value = []
+    }
+  }
 )
 
 // === LIFECYCLE ===
