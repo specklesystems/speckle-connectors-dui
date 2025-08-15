@@ -55,7 +55,7 @@
           <div class="flex-1">
             <FormSelectBase
               key="label"
-              v-model="categoryState.selectedCategory.value"
+              v-model="revitMapperStore.selectedCategory"
               name="categoryMapping"
               :placeholder="dropdownPlaceholder"
               label="Target Category"
@@ -83,7 +83,7 @@
           <FormButton
             color="primary"
             size="sm"
-            :disabled="!categoryState.selectedCategory.value"
+            :disabled="!revitMapperStore.selectedCategory?.value"
             @click="assignToCategory()"
           >
             Apply
@@ -193,7 +193,7 @@
 import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
-import { useRevitCategoryState } from '~/lib/mapper/useRevitCategoryState'
+import { useRevitMapper } from '~/store/revitMapper'
 import type {
   Category,
   CategoryMapping,
@@ -206,6 +206,7 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
+const revitMapperStore = useRevitMapper()
 const { selectionInfo } = storeToRefs(selectionStore)
 const { trackEvent } = useMixpanel()
 
@@ -234,7 +235,7 @@ interface LayerOption {
 // === MAPPING CATEGORY STATE MGMT ===
 const app = useNuxtApp()
 const { $revitMapperBinding, $baseBinding } = app
-const categoryState = useRevitCategoryState(categoryOptions, $revitMapperBinding)
+// const categoryState = useRevitCategoryState(categoryOptions, $revitMapperBinding)
 
 // === COMPUTED ===
 const hasTargetsSelected = computed(() => {
@@ -256,15 +257,19 @@ const currentLayerMappings = computed(() => {
 })
 
 const dropdownPlaceholder = computed(() => {
-  const status = categoryState.categoryStatus.value
-  return status?.isMultiple ? 'Multiple categories' : 'Select a category'
+  if (revitMapperStore.categoryStatus) {
+    return revitMapperStore.categoryStatus?.isMultiple
+      ? 'Multiple categories'
+      : 'Select a category'
+  }
+  return undefined
 })
 
 const displayLabel = computed(() => {
-  const status = categoryState.categoryStatus.value
-  return status?.isMultiple
+  const multiple = revitMapperStore.categoryStatus?.isMultiple
+  return multiple
     ? 'Multiple categories'
-    : categoryState.selectedCategory.value?.label || ''
+    : revitMapperStore.selectedCategory?.label || ''
 })
 
 // === METHODS ===
@@ -335,13 +340,14 @@ const confirmModeChange = async () => {
 
 // Assign selected objects/layers to the chosen category
 const assignToCategory = async () => {
-  if (!categoryState.selectedCategory.value || !hasTargetsSelected.value) return
+  if (!revitMapperStore.selectedCategory?.value || !hasTargetsSelected.value) return
 
   try {
     let assignedCount = 0
-    const categoryValue = categoryState.selectedCategory.value.value
+    const { selectedCategory } = storeToRefs(revitMapperStore)
+    const categoryValue = selectedCategory?.value?.value
 
-    if (selectedMappingMode.value === 'Selection') {
+    if (selectedMappingMode.value === 'Selection' && categoryValue) {
       const objectIds = selectionInfo.value?.selectedObjectIds || []
       await $revitMapperBinding?.assignObjectsToCategory(objectIds, categoryValue)
       assignedCount = objectIds.length
@@ -353,7 +359,7 @@ const assignToCategory = async () => {
         count: assignedCount,
         mappingType: 'object'
       })
-    } else if (selectedMappingMode.value === 'Layer') {
+    } else if (selectedMappingMode.value === 'Layer' && categoryValue) {
       const layerIds = selectedLayers.value.map((layer) => layer.id)
       await $revitMapperBinding?.assignLayerToCategory(layerIds, categoryValue)
       assignedCount = selectedLayers.value.length
@@ -369,7 +375,7 @@ const assignToCategory = async () => {
       selectedLayers.value = []
     }
 
-    categoryState.selectedCategory.value = undefined
+    selectedCategory.value = undefined
     await refreshMappings()
   } catch (error) {
     console.error('Failed to assign to category:', error)
@@ -449,10 +455,13 @@ const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
     const categoryToSelect = categoryOptions.value.find(
       (cat) => cat.value === layerMapping.categoryValue
     )
-    categoryState.selectedCategory.value = categoryToSelect
+
+    const { selectedCategory, currentCategories } = storeToRefs(revitMapperStore)
+
+    selectedCategory.value = categoryToSelect
 
     // 4. Update reactive state
-    categoryState.currentCategories.value = [layerMapping.categoryValue]
+    currentCategories.value = [layerMapping.categoryValue]
   } catch (error) {
     console.error('Failed to highlight effective objects:', error)
   }
@@ -567,10 +576,12 @@ watch(
     layerIds: selectedLayers.value.map((l) => l.id)
   }),
   async ({ mode, objectIds, layerIds }) => {
+    console.log('watcher', { mode, objectIds, layerIds })
+
     if (mode === 'Selection') {
-      await categoryState.updateFromTargets(objectIds, false)
+      await revitMapperStore.updateFromTargets(objectIds, false)
     } else if (mode === 'Layer') {
-      await categoryState.updateFromTargets(layerIds, true)
+      await revitMapperStore.updateFromTargets(layerIds, true)
     }
   },
   { immediate: true, deep: true }
