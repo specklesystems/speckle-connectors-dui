@@ -216,8 +216,6 @@ const mappingModeOptions = ['Selection', 'Layer']
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
 
-const selectedCategory = computed(() => revitMapperStore.selectedCategory)
-
 // Layer-specific state
 const selectedLayers = ref<LayerOption[]>([])
 const layerOptions = ref<LayerOption[]>([])
@@ -268,15 +266,10 @@ const dropdownPlaceholder = computed(() => {
 })
 
 const displayLabel = computed(() => {
-  console.log(revitMapperStore)
-
-  if (revitMapperStore.categoryStatus) {
-    const multiple = revitMapperStore.categoryStatus.isMultiple
-    return multiple
-      ? 'Multiple categories'
-      : revitMapperStore.selectedCategory?.label || ''
-  }
-  return ''
+  const multiple = revitMapperStore.categoryStatus?.isMultiple
+  return multiple
+    ? 'Multiple categories'
+    : revitMapperStore.selectedCategory?.label || ''
 })
 
 // === METHODS ===
