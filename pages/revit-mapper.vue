@@ -211,7 +211,7 @@ const { selectionInfo } = storeToRefs(selectionStore)
 const { trackEvent } = useMixpanel()
 
 // === STATE ===
-const selectedMappingMode = ref<string>('Selection')
+const selectedMappingMode = ref<string | undefined>(undefined)
 const mappingModeOptions = ['Selection', 'Layer']
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
@@ -516,7 +516,7 @@ const loadData = async () => {
 
     categoryOptions.value = categories
 
-    // Mappings need to be changed human-readable labels
+    // Transform mappings to include human-readable labels
     mappings.value = rawMappings.map((mapping) => ({
       ...mapping,
       categoryLabel: getCategoryLabel(mapping.categoryValue)
@@ -528,8 +528,34 @@ const loadData = async () => {
     }))
 
     layerOptions.value = layers
+
+    // IMPORTANT: Determine initial mapping mode based on existing mappings
+    // This preserves the user's last used mode and prevents mixed state scenarios
+    if (!selectedMappingMode.value) {
+      if (rawLayerMappings.length > 0 && rawMappings.length === 0) {
+        // Only layer mappings exist - user was in Layer mode
+        selectedMappingMode.value = 'Layer'
+      } else if (rawMappings.length > 0 && rawLayerMappings.length === 0) {
+        // Only object mappings exist - user was in Selection mode
+        selectedMappingMode.value = 'Selection'
+      } else if (rawLayerMappings.length > 0 && rawMappings.length > 0) {
+        // Mixed state detected - this shouldn't happen, but default to Selection
+        // and let the conflict handling take care of it
+        selectedMappingMode.value = 'Selection'
+        console.warn(
+          'Mixed mapping state detected - both object and layer mappings exist'
+        )
+      } else {
+        // No existing mappings - default to Selection mode
+        selectedMappingMode.value = 'Selection'
+      }
+    }
   } catch (error) {
     console.error('Failed to load mapper data:', error)
+    // Fallback to Selection mode if loading fails
+    if (!selectedMappingMode.value) {
+      selectedMappingMode.value = 'Selection'
+    }
   }
 }
 

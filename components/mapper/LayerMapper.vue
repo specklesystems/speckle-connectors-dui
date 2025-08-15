@@ -4,6 +4,7 @@
     <div class="space-y-2 my-2">
       <!-- Multi-select layer dropdown -->
       <FormSelectMulti
+        :key="selectedLayers.length === 0 ? 'empty' : 'hasSelection'"
         :model-value="selectedLayers"
         name="layerSelection"
         label="Select layers"
@@ -13,8 +14,9 @@
         :items="layerOptions"
         :allow-unset="false"
         by="id"
-        search
-        :search-placeholder="'Search layers...'"
+        clearable
+        :search="true"
+        :search-placeholder="''"
         :filter-predicate="layerSearchFilterPredicate"
         mount-menu-on-body
         @update:model-value="(value) => $emit('update:selectedLayers', value as LayerOption[])"
