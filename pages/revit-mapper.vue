@@ -202,10 +202,12 @@ import type {
 
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
+import { useMixpanel } from '~/lib/core/composables/mixpanel'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
 const { selectionInfo } = storeToRefs(selectionStore)
+const { trackEvent } = useMixpanel()
 
 // === STATE ===
 const selectedMappingMode = ref<string>('Selection')
@@ -232,7 +234,6 @@ interface LayerOption {
 // === MAPPING CATEGORY STATE MGMT ===
 const app = useNuxtApp()
 const { $revitMapperBinding, $baseBinding } = app
-
 const categoryState = useRevitCategoryState(categoryOptions, $revitMapperBinding)
 
 // === COMPUTED ===
@@ -313,6 +314,13 @@ const confirmModeChange = async () => {
       await $revitMapperBinding?.clearAllLayerCategoryAssignments()
     }
 
+    // Track the manual mode switch
+    trackEvent('DUI3 Action', {
+      name: 'Mapper Mode Changed',
+      previousMode: selectedMappingMode.value,
+      newMode: pendingMode.value
+    })
+
     // Switch mode
     selectedMappingMode.value = pendingMode.value
     await refreshMappings()
@@ -331,16 +339,34 @@ const assignToCategory = async () => {
   if (!categoryState.selectedCategory.value || !hasTargetsSelected.value) return
 
   try {
+    let assignedCount = 0
+    const categoryValue = categoryState.selectedCategory.value.value
+
     if (selectedMappingMode.value === 'Selection') {
-      await $revitMapperBinding?.assignObjectsToCategory(
-        selectionInfo.value?.selectedObjectIds || [],
-        categoryState.selectedCategory.value.value
-      )
+      const objectIds = selectionInfo.value?.selectedObjectIds || []
+      await $revitMapperBinding?.assignObjectsToCategory(objectIds, categoryValue)
+      assignedCount = objectIds.length
+
+      // Track the assignment
+      trackEvent('DUI3 Action', {
+        name: 'Assign Category',
+        category: categoryValue,
+        objectCount: assignedCount,
+        mappingType: 'object'
+      })
     } else if (selectedMappingMode.value === 'Layer') {
-      await $revitMapperBinding?.assignLayerToCategory(
-        selectedLayers.value.map((layer) => layer.id),
-        categoryState.selectedCategory.value.value
-      )
+      const layerIds = selectedLayers.value.map((layer) => layer.id)
+      await $revitMapperBinding?.assignLayerToCategory(layerIds, categoryValue)
+      assignedCount = selectedLayers.value.length
+
+      // Track the assignment
+      trackEvent('DUI3 Action', {
+        name: 'Assign Category',
+        category: categoryValue,
+        layerCount: assignedCount,
+        mappingType: 'layer'
+      })
+
       selectedLayers.value = []
     }
 
@@ -570,6 +596,12 @@ onMounted(async () => {
   $revitMapperBinding?.on('layersChanged', (newLayers: LayerOption[]) => {
     layerOptions.value = newLayers
     selectedLayers.value = []
+  })
+
+  // Track mapper opened with the initial mode (after loadData determines it)
+  trackEvent('DUI3 Action', {
+    name: 'Mapper Opened',
+    mode: selectedMappingMode.value
   })
 })
 
