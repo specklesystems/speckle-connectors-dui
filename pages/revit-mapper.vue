@@ -55,9 +55,9 @@
           <div class="flex-1">
             <FormSelectBase
               key="label"
-              v-model="selectedCategory"
+              v-model="revitMapperStore.selectedCategory"
               name="categoryMapping"
-              placeholder="Select a category"
+              :placeholder="dropdownPlaceholder"
               label="Target Category"
               fixed-height
               size="sm"
@@ -68,9 +68,9 @@
               :allow-unset="false"
               mount-menu-on-body
             >
-              <template #something-selected="{ value }">
+              <template #something-selected>
                 <span class="text-primary text-xs">
-                  {{ Array.isArray(value) ? value[0]?.label : value?.label }}
+                  {{ displayLabel }}
                 </span>
               </template>
               <template #option="{ item }">
@@ -83,7 +83,7 @@
           <FormButton
             color="primary"
             size="sm"
-            :disabled="!selectedCategory"
+            :disabled="!revitMapperStore.selectedCategory?.value"
             @click="assignToCategory()"
           >
             Apply
@@ -193,6 +193,7 @@
 import { storeToRefs } from 'pinia'
 import { ArrowLeftIcon } from '@heroicons/vue/20/solid'
 import { useSelectionStore } from '~/store/selection'
+import { useRevitMapper } from '~/store/revitMapper'
 import type {
   Category,
   CategoryMapping,
@@ -201,15 +202,17 @@ import type {
 
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
+import { useMixpanel } from '~/lib/core/composables/mixpanel'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
+const revitMapperStore = useRevitMapper()
 const { selectionInfo } = storeToRefs(selectionStore)
+const { trackEvent } = useMixpanel()
 
 // === STATE ===
 const selectedMappingMode = ref<string | undefined>(undefined)
 const mappingModeOptions = ['Selection', 'Layer']
-const selectedCategory = ref<Category | undefined>(undefined)
 const categoryOptions = ref<Category[]>([])
 const mappings = ref<CategoryMapping[]>([])
 
@@ -228,6 +231,11 @@ interface LayerOption {
   id: string
   name: string
 }
+
+// === MAPPING CATEGORY STATE MGMT ===
+const app = useNuxtApp()
+const { $revitMapperBinding, $baseBinding } = app
+// const categoryState = useRevitCategoryState(categoryOptions, $revitMapperBinding)
 
 // === COMPUTED ===
 const hasTargetsSelected = computed(() => {
@@ -248,9 +256,23 @@ const currentLayerMappings = computed(() => {
   return selectedMappingMode.value === 'Layer' ? layerMappings.value : []
 })
 
+const dropdownPlaceholder = computed(() => {
+  if (revitMapperStore.categoryStatus) {
+    return revitMapperStore.categoryStatus?.isMultiple
+      ? 'Multiple categories'
+      : 'Select a category'
+  }
+  return undefined
+})
+
+const displayLabel = computed(() => {
+  const multiple = revitMapperStore.categoryStatus?.isMultiple
+  return multiple
+    ? 'Multiple categories'
+    : revitMapperStore.selectedCategory?.label || ''
+})
+
 // === METHODS ===
-const app = useNuxtApp()
-const { $revitMapperBinding, $baseBinding } = app
 
 // Search predicate for category dropdown
 const searchFilterPredicate = (item: Category, query: string) => {
@@ -297,6 +319,12 @@ const confirmModeChange = async () => {
       await $revitMapperBinding?.clearAllLayerCategoryAssignments()
     }
 
+    // Track the manual mode switch
+    trackEvent('DUI3 Action', {
+      name: 'Mapper Mode Changed',
+      mode: selectedMappingMode.value
+    })
+
     // Switch mode
     selectedMappingMode.value = pendingMode.value
     await refreshMappings()
@@ -312,19 +340,38 @@ const confirmModeChange = async () => {
 
 // Assign selected objects/layers to the chosen category
 const assignToCategory = async () => {
-  if (!selectedCategory.value || !hasTargetsSelected.value) return
+  if (!revitMapperStore.selectedCategory?.value || !hasTargetsSelected.value) return
 
   try {
-    if (selectedMappingMode.value === 'Selection') {
-      await $revitMapperBinding?.assignObjectsToCategory(
-        selectionInfo.value?.selectedObjectIds || [],
-        selectedCategory.value.value
-      )
-    } else if (selectedMappingMode.value === 'Layer') {
-      await $revitMapperBinding?.assignLayerToCategory(
-        selectedLayers.value.map((layer) => layer.id),
-        selectedCategory.value.value
-      )
+    let assignedCount = 0
+    const { selectedCategory } = storeToRefs(revitMapperStore)
+    const categoryValue = selectedCategory?.value?.value
+
+    if (selectedMappingMode.value === 'Selection' && categoryValue) {
+      const objectIds = selectionInfo.value?.selectedObjectIds || []
+      await $revitMapperBinding?.assignObjectsToCategory(objectIds, categoryValue)
+      assignedCount = objectIds.length
+
+      // Track the assignment
+      trackEvent('DUI3 Action', {
+        name: 'Mapper Assign Category',
+        category: categoryValue,
+        count: assignedCount,
+        mappingType: 'object'
+      })
+    } else if (selectedMappingMode.value === 'Layer' && categoryValue) {
+      const layerIds = selectedLayers.value.map((layer) => layer.id)
+      await $revitMapperBinding?.assignLayerToCategory(layerIds, categoryValue)
+      assignedCount = selectedLayers.value.length
+
+      // Track the assignment
+      trackEvent('DUI3 Action', {
+        name: 'Mapper Assign Category',
+        category: categoryValue,
+        count: assignedCount,
+        mappingType: 'layer'
+      })
+
       selectedLayers.value = []
     }
 
@@ -384,9 +431,10 @@ const selectMappedObjects = async (mapping: CategoryMapping) => {
   }
 }
 
-// Select mapped layers (highlight objects on those layers)
+// Select mapped layers (highlight objects AND restore UI state)
 const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
   try {
+    // 1. Highlight objects in Rhino
     const effectiveObjectIds =
       (await $revitMapperBinding?.getEffectiveObjectsForLayerMapping(
         layerMapping.layerIds,
@@ -396,6 +444,24 @@ const selectMappedLayers = async (layerMapping: LayerCategoryMapping) => {
     if (effectiveObjectIds.length > 0) {
       await $baseBinding?.highlightObjects(effectiveObjectIds)
     }
+
+    // 2. Restore UI state - populate layer selection
+    const layersToSelect = layerOptions.value.filter((layer) =>
+      layerMapping.layerIds.includes(layer.id)
+    )
+    selectedLayers.value = layersToSelect
+
+    // 3. Pre-select category in dropdown
+    const categoryToSelect = categoryOptions.value.find(
+      (cat) => cat.value === layerMapping.categoryValue
+    )
+
+    const { selectedCategory, currentCategories } = storeToRefs(revitMapperStore)
+
+    selectedCategory.value = categoryToSelect
+
+    // 4. Update reactive state
+    currentCategories.value = [layerMapping.categoryValue]
   } catch (error) {
     console.error('Failed to highlight effective objects:', error)
   }
@@ -496,9 +562,14 @@ const loadData = async () => {
 // Refresh both object and layer mappings
 const refreshMappings = async () => {
   try {
+    if (!$revitMapperBinding) {
+      console.warn('No revit mapper binding available')
+      return
+    }
+
     const [rawMappings, rawLayerMappings] = await Promise.all([
-      $revitMapperBinding?.getCurrentObjectsMappings() || [],
-      $revitMapperBinding?.getCurrentLayerMappings() || []
+      $revitMapperBinding.getCurrentObjectsMappings(),
+      $revitMapperBinding.getCurrentLayerMappings()
     ])
 
     // Transform to resolve labels
@@ -528,20 +599,51 @@ const loadAvailableLayers = async (): Promise<LayerOption[]> => {
   }
 }
 
-// Refresh just the layer mappings
-const refreshLayerMappings = async () => {
-  try {
-    const rawLayerMappings =
-      (await $revitMapperBinding?.getCurrentLayerMappings()) || []
+// === WATCHER ===
+// Main watcher
+watch(
+  () => ({
+    mode: selectedMappingMode.value,
+    objectIds: selectionInfo.value?.selectedObjectIds || [],
+    layerIds: selectedLayers.value.map((l) => l.id)
+  }),
+  async ({ mode, objectIds, layerIds }) => {
+    if (mode === 'Selection') {
+      await revitMapperStore.updateFromTargets(objectIds, false)
+    } else if (mode === 'Layer') {
+      // In Layer mode, we need to watch both manual layer selection AND object selection
+      // This keeps dropdowns clear when objects are deselected (like Selection mode)
+      // while still supporting manual layer selection
+      if (layerIds.length > 0) {
+        // User has manually selected layers in UI - use layer mode logic
+        await revitMapperStore.updateFromTargets(layerIds, true)
+      } else {
+        // No manual layer selection - use object mode logic (like Selection mode)
+        // This handles the case where selectMappedLayers populated the UI but objects were deselected
+        await revitMapperStore.updateFromTargets(objectIds, false)
+      }
+    }
+  },
+  { immediate: true, deep: true }
+)
 
-    layerMappings.value = rawLayerMappings.map((mapping) => ({
-      ...mapping,
-      categoryLabel: getCategoryLabel(mapping.categoryValue)
-    }))
-  } catch (error) {
-    console.error('Failed to refresh layer mappings:', error)
+// This handles clearing selectedLayers when objects are deselected in Layer mode
+watch(
+  () => selectionInfo.value?.selectedObjectIds?.length || 0,
+  async (newCount, oldCount) => {
+    // Only act in Layer mode when selection count goes to 0 and we have selected layers
+    if (
+      selectedMappingMode.value === 'Layer' &&
+      newCount === 0 &&
+      oldCount > 0 &&
+      selectedLayers.value.length > 0
+    ) {
+      // nextTick to avoid interfering with the main watcher? not nice :(
+      await nextTick()
+      selectedLayers.value = []
+    }
   }
-}
+)
 
 // === LIFECYCLE ===
 onMounted(async () => {
@@ -563,5 +665,26 @@ onMounted(async () => {
     layerOptions.value = newLayers
     selectedLayers.value = []
   })
+
+  // Track mapper opened with the initial mode (after loadData determines it)
+  trackEvent('DUI3 Action', {
+    name: 'Mapper Opened',
+    mode: selectedMappingMode.value
+  })
 })
+
+// Refresh just layer mappings
+const refreshLayerMappings = async () => {
+  try {
+    const rawLayerMappings =
+      (await $revitMapperBinding?.getCurrentLayerMappings()) || []
+
+    layerMappings.value = rawLayerMappings.map((mapping) => ({
+      ...mapping,
+      categoryLabel: getCategoryLabel(mapping.categoryValue)
+    }))
+  } catch (error) {
+    console.error('Failed to refresh layer mappings:', error)
+  }
+}
 </script>
