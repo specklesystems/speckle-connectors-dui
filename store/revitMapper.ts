@@ -10,6 +10,8 @@ export const useRevitMapper = defineStore('revitMapper', () => {
   const categoryOptions = REVIT_CATEGORIES
 
   const categoryStatus = computed(() => {
+    console.log('categoryStatus', currentCategories.value)
+
     if (currentCategories.value.length === 0) {
       return undefined
     }
@@ -42,6 +44,8 @@ export const useRevitMapper = defineStore('revitMapper', () => {
       const categories = isLayerMode
         ? await $revitMapperBinding.getCategoryMappingsForLayers(targetIds)
         : await $revitMapperBinding.getCategoryMappingsForObjects(targetIds)
+
+      console.log('categories', categories)
 
       currentCategories.value = categories
 

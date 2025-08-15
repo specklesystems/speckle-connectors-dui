@@ -55,7 +55,7 @@
           <div class="flex-1">
             <FormSelectBase
               key="label"
-              v-model="selectedCategory"
+              v-model="revitMapperStore.selectedCategory"
               name="categoryMapping"
               :placeholder="dropdownPlaceholder"
               label="Target Category"
@@ -268,11 +268,13 @@ const dropdownPlaceholder = computed(() => {
 })
 
 const displayLabel = computed(() => {
+  console.log(revitMapperStore)
+
   if (revitMapperStore.categoryStatus) {
     const multiple = revitMapperStore.categoryStatus.isMultiple
     return multiple
       ? 'Multiple categories'
-      : revitMapperStore.selectedCategory.value?.label || ''
+      : revitMapperStore.selectedCategory?.label || ''
   }
   return ''
 })
@@ -581,6 +583,8 @@ watch(
     layerIds: selectedLayers.value.map((l) => l.id)
   }),
   async ({ mode, objectIds, layerIds }) => {
+    console.log('watcher', { mode, objectIds, layerIds })
+
     if (mode === 'Selection') {
       await revitMapperStore.updateFromTargets(objectIds, false)
     } else if (mode === 'Layer') {
