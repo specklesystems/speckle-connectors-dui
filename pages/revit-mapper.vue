@@ -317,8 +317,7 @@ const confirmModeChange = async () => {
     // Track the manual mode switch
     trackEvent('DUI3 Action', {
       name: 'Mapper Mode Changed',
-      previousMode: selectedMappingMode,
-      newMode: pendingMode.value
+      mode: selectedMappingMode.value
     })
 
     // Switch mode
