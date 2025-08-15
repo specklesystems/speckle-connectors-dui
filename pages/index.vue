@@ -115,18 +115,28 @@
                 </span>
               </FormButton> -->
             </div>
-            <!--Assign Revit Categories button (only if mapper binding exists)-->
-            <div v-if="app.$revitMapperBinding" class="mt-2">
-              <hr class="border-outline-2 mb-2" />
-              <FormButton
-                v-tippy="'Map objects to Revit categories'"
-                size="sm"
-                color="outline"
-                full-width
-                @click="$router.push('/revit-mapper')"
+            <!--Apply Revit Categories section (only if mapper binding exists)-->
+            <div
+              v-if="app.$revitMapperBinding"
+              class="mt-2 bg-highlight-1 rounded-md p-2"
+            >
+              <h1
+                class="text-heading-sm w-full bg-gradient-to-r from-blue-500 via-blue-400 to-blue-600 inline-block py-1 text-transparent bg-clip-text"
               >
                 Assign Revit Categories
-              </FormButton>
+              </h1>
+              <div class="text-foreground-2 text-body-xs">
+                Set Rhino geometry categories for accurate DirectShape loading in Revit.
+                <FormButton
+                  size="sm"
+                  color="outline"
+                  class="my-2"
+                  full-width
+                  @click="$router.push('/revit-mapper')"
+                >
+                  Assign categories
+                </FormButton>
+              </div>
             </div>
           </LayoutPanel>
         </div>
