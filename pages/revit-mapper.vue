@@ -536,9 +536,14 @@ const loadData = async () => {
 // Refresh both object and layer mappings
 const refreshMappings = async () => {
   try {
+    if (!$revitMapperBinding) {
+      console.warn('No revit mapper binding available')
+      return
+    }
+
     const [rawMappings, rawLayerMappings] = await Promise.all([
-      $revitMapperBinding?.getCurrentObjectsMappings() || [],
-      $revitMapperBinding?.getCurrentLayerMappings() || []
+      $revitMapperBinding.getCurrentObjectsMappings(),
+      $revitMapperBinding.getCurrentLayerMappings()
     ])
 
     // Transform to resolve labels
@@ -569,6 +574,7 @@ const loadAvailableLayers = async (): Promise<LayerOption[]> => {
 }
 
 // === WATCHER ===
+// Main watcher
 watch(
   () => ({
     mode: selectedMappingMode.value,
@@ -608,7 +614,7 @@ watch(
       oldCount > 0 &&
       selectedLayers.value.length > 0
     ) {
-      // nextTick to avoid interfering with the main watcher?
+      // nextTick to avoid interfering with the main watcher? not nice :(
       await nextTick()
       selectedLayers.value = []
     }
