@@ -582,8 +582,6 @@ watch(
     layerIds: selectedLayers.value.map((l) => l.id)
   }),
   async ({ mode, objectIds, layerIds }) => {
-    console.log('watcher', { mode, objectIds, layerIds })
-
     if (mode === 'Selection') {
       await revitMapperStore.updateFromTargets(objectIds, false)
     } else if (mode === 'Layer') {
