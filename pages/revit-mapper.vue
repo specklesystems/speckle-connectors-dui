@@ -317,7 +317,7 @@ const confirmModeChange = async () => {
     // Track the manual mode switch
     trackEvent('DUI3 Action', {
       name: 'Mapper Mode Changed',
-      previousMode: selectedMappingMode.value,
+      previousMode: selectedMappingMode,
       newMode: pendingMode.value
     })
 
@@ -351,7 +351,7 @@ const assignToCategory = async () => {
       trackEvent('DUI3 Action', {
         name: 'Assign Category',
         category: categoryValue,
-        objectCount: assignedCount,
+        count: assignedCount,
         mappingType: 'object'
       })
     } else if (selectedMappingMode.value === 'Layer') {
@@ -363,7 +363,7 @@ const assignToCategory = async () => {
       trackEvent('DUI3 Action', {
         name: 'Assign Category',
         category: categoryValue,
-        layerCount: assignedCount,
+        count: assignedCount,
         mappingType: 'layer'
       })
 
