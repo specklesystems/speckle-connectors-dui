@@ -500,7 +500,10 @@ const selectAllMappedLayers = async () => {
       await $baseBinding?.highlightObjects(uniqueObjectIds)
     }
   } catch (error) {
-    console.error('Failed to select all objects with categories assigned by layer:', error)
+    console.error(
+      'Failed to select all objects with categories assigned by layer:',
+      error
+    )
   }
 }
 
