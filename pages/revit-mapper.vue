@@ -14,7 +14,7 @@
         <FormSelectBase
           :model-value="selectedMappingMode"
           name="mappingMode"
-          label="Mapping mode"
+          label="Assign by"
           class="w-full"
           fixed-height
           size="sm"
@@ -100,7 +100,7 @@
       class="px-2"
     >
       <p class="h5">
-        {{ `Current Mappings (${currentMappings.length > 0 ? 'Object' : 'Layer'})` }}
+        {{ `Assigned Categories (${currentMappings.length > 0 ? 'Object' : 'Layer'})` }}
       </p>
 
       <!-- Object Mappings Section -->
@@ -168,7 +168,7 @@
       <!-- Mode Confirmation Dialog -->
       <CommonDialog
         v-model:open="showModeConfirmDialog"
-        title="Switch Mapping Mode"
+        title="Switch Category Assignment Mode"
         fullscreen="none"
       >
         <div class="text-sm text-foreground">
@@ -288,12 +288,12 @@ const handleModeChange = (newMode: string) => {
   if (newMode === 'Layer' && mappings.value.length > 0) {
     // Switching to Layer mode with existing object mappings
     pendingMode.value = newMode
-    conflictMessage.value = `Switching to Layer mode will clear all current object mappings. Continue?`
+    conflictMessage.value = `Switching to Layer assignment mode will clear all current object category assignments. Continue?`
     showModeConfirmDialog.value = true
   } else if (newMode === 'Selection' && layerMappings.value.length > 0) {
     // Switching to Selection mode with existing layer mappings
     pendingMode.value = newMode
-    conflictMessage.value = `Switching to Selection mode will clear all current layer mappings. Continue?`
+    conflictMessage.value = `Switching to Selection assignment mode will clear all current layer category assignments. Continue?`
     showModeConfirmDialog.value = true
   } else {
     // No conflicts, switch directly (no existing mappings or switching to same mode)
@@ -334,7 +334,7 @@ const confirmModeChange = async () => {
     pendingMode.value = ''
     conflictMessage.value = ''
   } catch (error) {
-    console.error('Failed to clear mappings during mode switch:', error)
+    console.error('Failed to clear category assignments during mode switch:', error)
   }
 }
 
@@ -388,7 +388,7 @@ const clearMapping = async (mapping: CategoryMapping) => {
     await $revitMapperBinding?.clearObjectsCategoryAssignment(mapping.objectIds)
     await refreshMappings()
   } catch (error) {
-    console.error('Failed to clear mapping:', error)
+    console.error('Failed to clear category assignment:', error)
   }
 }
 
@@ -398,7 +398,7 @@ const clearAllMappings = async () => {
     await $revitMapperBinding?.clearAllObjectsCategoryAssignments()
     await refreshMappings()
   } catch (error) {
-    console.error('Failed to clear all mappings:', error)
+    console.error('Failed to clear all category assignments:', error)
   }
 }
 
@@ -408,7 +408,7 @@ const clearLayerMapping = async (layerMapping: LayerCategoryMapping) => {
     await $revitMapperBinding?.clearLayerCategoryAssignment(layerMapping.layerIds)
     await refreshMappings()
   } catch (error) {
-    console.error('Failed to clear layer mapping:', error)
+    console.error('Failed to clear layer assignment:', error)
   }
 }
 
@@ -418,7 +418,7 @@ const clearAllLayerMappings = async () => {
     await $revitMapperBinding?.clearAllLayerCategoryAssignments()
     await refreshMappings()
   } catch (error) {
-    console.error('Failed to clear all layer mappings:', error)
+    console.error('Failed to clear all layer assignments:', error)
   }
 }
 
@@ -475,7 +475,7 @@ const selectAllMappedObjects = async () => {
       await $baseBinding?.highlightObjects(allObjectIds)
     }
   } catch (error) {
-    console.error('Failed to select all mapped objects:', error)
+    console.error('Failed to select all objects with categories assigned:', error)
   }
 }
 
@@ -500,7 +500,7 @@ const selectAllMappedLayers = async () => {
       await $baseBinding?.highlightObjects(uniqueObjectIds)
     }
   } catch (error) {
-    console.error('Failed to select all layer-mapped objects:', error)
+    console.error('Failed to select all objects with categories assigned by layer:', error)
   }
 }
 
@@ -543,7 +543,7 @@ const loadData = async () => {
         // and let the conflict handling take care of it
         selectedMappingMode.value = 'Selection'
         console.warn(
-          'Mixed mapping state detected - both object and layer mappings exist'
+          'Mixed assignment state detected - both object and layer assignments exist'
         )
       } else {
         // No existing mappings - default to Selection mode
@@ -551,7 +551,7 @@ const loadData = async () => {
       }
     }
   } catch (error) {
-    console.error('Failed to load mapper data:', error)
+    console.error('Failed to load categorizer data:', error)
     // Fallback to Selection mode if loading fails
     if (!selectedMappingMode.value) {
       selectedMappingMode.value = 'Selection'
@@ -563,7 +563,7 @@ const loadData = async () => {
 const refreshMappings = async () => {
   try {
     if (!$revitMapperBinding) {
-      console.warn('No revit mapper binding available')
+      console.warn('No Revit category assignment binding available')
       return
     }
 
@@ -583,7 +583,7 @@ const refreshMappings = async () => {
       categoryLabel: getCategoryLabel(mapping.categoryValue)
     }))
   } catch (error) {
-    console.error('Failed to refresh mappings:', error)
+    console.error('Failed to refresh category assignments:', error)
   }
 }
 
@@ -684,7 +684,7 @@ const refreshLayerMappings = async () => {
       categoryLabel: getCategoryLabel(mapping.categoryValue)
     }))
   } catch (error) {
-    console.error('Failed to refresh layer mappings:', error)
+    console.error('Failed to refresh layer category assignments:', error)
   }
 }
 </script>
