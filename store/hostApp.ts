@@ -711,8 +711,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     // Intercom shenanningans below
     // Do not poke intercom in ancient revit version
     if (
-      hostAppName.value?.toLowerCase() === 'revit' &&
-      hostAppVersion.value?.includes('2022')
+      (hostAppName.value?.toLowerCase() === 'revit' &&
+        hostAppVersion.value?.includes('2022')) ||
+      !isDistributedBySpeckle.value
     )
       return
 
