@@ -388,10 +388,7 @@ const handleWorkspaceSelected = async (
     useMutation(setActiveWorkspaceMutation)
   )
   try {
-    await mutate({
-      slug: newSelectedWorkspace.slug,
-      isProjectsActive: newSelectedWorkspace.id === 'personalProject'
-    })
+    await mutate({ slug: newSelectedWorkspace.slug })
   } catch (error) {
     // I dont believe we should throw toast for this, but good to be critical on console
     console.error(error)
