@@ -3,7 +3,9 @@ import { graphql } from '~~/lib/common/generated/gql'
 export const setActiveWorkspaceMutation = graphql(`
   mutation SetActiveWorkspaceMutation($slug: String) {
     activeUserMutations {
-      setActiveWorkspace(slug: $slug)
+      setActiveWorkspace(slug: $slug) {
+        id
+      }
     }
   }
 `)
@@ -251,7 +253,8 @@ export const activeWorkspaceQuery = graphql(`
   query ActiveWorkspace {
     activeUser {
       activeWorkspace {
-        ...WorkspaceListWorkspaceItem
+        id
+        name
       }
     }
   }

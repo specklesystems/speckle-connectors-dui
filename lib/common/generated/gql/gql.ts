@@ -14,7 +14,7 @@ import type { TypedDocumentNode as DocumentNode } from '@graphql-typed-document-
  * Learn more about it here: https://the-guild.dev/graphql/codegen/plugins/presets/preset-client#reducing-bundle-size
  */
 type Documents = {
-    "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": typeof types.SetActiveWorkspaceMutationDocument,
+    "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug) {\n        id\n      }\n    }\n  }\n": typeof types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.VersionMutationsDocument,
     "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": typeof types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": typeof types.MarkReceivedVersionDocument,
@@ -33,7 +33,7 @@ type Documents = {
     "\n  query CanCreatePersonalProject {\n    activeUser {\n      permissions {\n        canCreatePersonalProject {\n          authorized\n          code\n          message\n          payload\n        }\n      }\n    }\n  }\n": typeof types.CanCreatePersonalProjectDocument,
     "\n  query CanCreateProjectInWorkspace($workspaceId: String!) {\n    workspace(id: $workspaceId) {\n      permissions {\n        canCreateProject {\n          authorized\n          code\n          message\n          payload\n        }\n      }\n    }\n  }\n": typeof types.CanCreateProjectInWorkspaceDocument,
     "\n  query CanCreateModelInProject($projectId: String!) {\n    project(id: $projectId) {\n      permissions {\n        canCreateModel {\n          authorized\n          code\n          message\n        }\n      }\n    }\n  }\n": typeof types.CanCreateModelInProjectDocument,
-    "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        ...WorkspaceListWorkspaceItem\n      }\n    }\n  }\n": typeof types.ActiveWorkspaceDocument,
+    "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        id\n        name\n      }\n    }\n  }\n": typeof types.ActiveWorkspaceDocument,
     "\n  fragment ProjectListProjectItem on Project {\n    id\n    name\n    role\n    updatedAt\n    workspaceId\n    workspace {\n      id\n      name\n      slug\n      role\n    }\n    models {\n      totalCount\n    }\n    permissions {\n      canLoad {\n        authorized\n        code\n        message\n      }\n      canPublish {\n        authorized\n        code\n        message\n      }\n    }\n  }\n": typeof types.ProjectListProjectItemFragmentDoc,
     "\n  query ProjectListQuery($limit: Int!, $filter: UserProjectsFilter, $cursor: String) {\n    activeUser {\n      id\n      projects(limit: $limit, filter: $filter, cursor: $cursor) {\n        totalCount\n        cursor\n        items {\n          ...ProjectListProjectItem\n        }\n      }\n    }\n  }\n": typeof types.ProjectListQueryDocument,
     "\n  fragment ModelListModelItem on Model {\n    displayName\n    name\n    id\n    previewUrl\n    updatedAt\n    versions(limit: 1) {\n      totalCount\n      items {\n        ...VersionListItem\n      }\n    }\n  }\n": typeof types.ModelListModelItemFragmentDoc,
@@ -56,7 +56,7 @@ type Documents = {
     "\n  subscription ProjectCommentsUpdated($target: ViewerUpdateTrackingTarget!) {\n    projectCommentsUpdated(target: $target) {\n      comment {\n        author {\n          avatar\n          id\n          name\n        }\n        id\n        hasParent\n        parent {\n          id\n        }\n      }\n      type\n    }\n  }\n": typeof types.ProjectCommentsUpdatedDocument,
 };
 const documents: Documents = {
-    "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n": types.SetActiveWorkspaceMutationDocument,
+    "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug) {\n        id\n      }\n    }\n  }\n": types.SetActiveWorkspaceMutationDocument,
     "\n  mutation VersionMutations($input: CreateVersionInput!) {\n    versionMutations {\n      create(input: $input) {\n        id\n      }\n    }\n  }\n": types.VersionMutationsDocument,
     "\n  mutation Update($input: UpdateVersionInput!) {\n    versionMutations {\n      update(input: $input) {\n        id\n      }\n    }\n  }\n": types.UpdateDocument,
     "\n  mutation MarkReceivedVersion($input: MarkReceivedVersionInput!) {\n    versionMutations {\n      markReceived(input: $input)\n    }\n  }\n": types.MarkReceivedVersionDocument,
@@ -75,7 +75,7 @@ const documents: Documents = {
     "\n  query CanCreatePersonalProject {\n    activeUser {\n      permissions {\n        canCreatePersonalProject {\n          authorized\n          code\n          message\n          payload\n        }\n      }\n    }\n  }\n": types.CanCreatePersonalProjectDocument,
     "\n  query CanCreateProjectInWorkspace($workspaceId: String!) {\n    workspace(id: $workspaceId) {\n      permissions {\n        canCreateProject {\n          authorized\n          code\n          message\n          payload\n        }\n      }\n    }\n  }\n": types.CanCreateProjectInWorkspaceDocument,
     "\n  query CanCreateModelInProject($projectId: String!) {\n    project(id: $projectId) {\n      permissions {\n        canCreateModel {\n          authorized\n          code\n          message\n        }\n      }\n    }\n  }\n": types.CanCreateModelInProjectDocument,
-    "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        ...WorkspaceListWorkspaceItem\n      }\n    }\n  }\n": types.ActiveWorkspaceDocument,
+    "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        id\n        name\n      }\n    }\n  }\n": types.ActiveWorkspaceDocument,
     "\n  fragment ProjectListProjectItem on Project {\n    id\n    name\n    role\n    updatedAt\n    workspaceId\n    workspace {\n      id\n      name\n      slug\n      role\n    }\n    models {\n      totalCount\n    }\n    permissions {\n      canLoad {\n        authorized\n        code\n        message\n      }\n      canPublish {\n        authorized\n        code\n        message\n      }\n    }\n  }\n": types.ProjectListProjectItemFragmentDoc,
     "\n  query ProjectListQuery($limit: Int!, $filter: UserProjectsFilter, $cursor: String) {\n    activeUser {\n      id\n      projects(limit: $limit, filter: $filter, cursor: $cursor) {\n        totalCount\n        cursor\n        items {\n          ...ProjectListProjectItem\n        }\n      }\n    }\n  }\n": types.ProjectListQueryDocument,
     "\n  fragment ModelListModelItem on Model {\n    displayName\n    name\n    id\n    previewUrl\n    updatedAt\n    versions(limit: 1) {\n      totalCount\n      items {\n        ...VersionListItem\n      }\n    }\n  }\n": types.ModelListModelItemFragmentDoc,
@@ -115,7 +115,7 @@ export function graphql(source: string): unknown;
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n"): (typeof documents)["\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug)\n    }\n  }\n"];
+export function graphql(source: "\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug) {\n        id\n      }\n    }\n  }\n"): (typeof documents)["\n  mutation SetActiveWorkspaceMutation($slug: String) {\n    activeUserMutations {\n      setActiveWorkspace(slug: $slug) {\n        id\n      }\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
@@ -191,7 +191,7 @@ export function graphql(source: "\n  query CanCreateModelInProject($projectId: S
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
-export function graphql(source: "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        ...WorkspaceListWorkspaceItem\n      }\n    }\n  }\n"): (typeof documents)["\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        ...WorkspaceListWorkspaceItem\n      }\n    }\n  }\n"];
+export function graphql(source: "\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        id\n        name\n      }\n    }\n  }\n"): (typeof documents)["\n  query ActiveWorkspace {\n    activeUser {\n      activeWorkspace {\n        id\n        name\n      }\n    }\n  }\n"];
 /**
  * The graphql function is used to parse GraphQL queries into a document that can be used by GraphQL clients.
  */
