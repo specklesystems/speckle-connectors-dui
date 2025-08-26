@@ -52,7 +52,7 @@ export class MockedConfigBinding implements IConfigBinding {
   }
 
   public async getGlobalConfig() {
-    return await { isUpdateNotificationEnabled: true }
+    return await { isUpdateNotificationDisabled: true }
   }
 
   public async updateConfig() {
