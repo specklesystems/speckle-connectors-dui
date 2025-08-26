@@ -545,7 +545,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     if (canGetGlobalConfig) {
       const globalConfig = await app.$configBinding.getGlobalConfig()
-      isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
+      if (globalConfig) {
+        isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
+      }
     }
 
     // Checks whether new version available for the connector or not and throws a toast notification if any.
