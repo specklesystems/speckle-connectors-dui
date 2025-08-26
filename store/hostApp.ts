@@ -27,6 +27,7 @@ import {
 } from '~/lib/core/composables/updateConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -535,9 +536,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
-    const globalConfig = await app.$configBinding.getGlobalConfig()
+    let isUpdateNotificationEnabled = true
+
+    const canGetGlobalConfig = ['getGlobalConfig', 'GetGlobalConfig'].some((name) =>
+      (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+    )
+
+    if (canGetGlobalConfig) {
+      const globalConfig = await app.$configBinding.getGlobalConfig()
+      isUpdateNotificationEnabled = globalConfig.isUpdateNotificationEnabled
+    }
+
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    if (app.$isRunningOnConnector && globalConfig.isUpdateNotificationEnabled) {
+    if (app.$isRunningOnConnector && isUpdateNotificationEnabled) {
+      console.log('will check update')
+
       await checkUpdate()
     }
   }
