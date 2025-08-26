@@ -134,6 +134,11 @@ export type AddDomainToWorkspaceInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type AdminAccessToWorkspaceFeatureInput = {
+  featureFlagName: WorkspaceFeatureFlagName;
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type AdminInviteList = {
   __typename?: 'AdminInviteList';
   cursor?: Maybe<Scalars['String']['output']>;
@@ -143,7 +148,19 @@ export type AdminInviteList = {
 
 export type AdminMutations = {
   __typename?: 'AdminMutations';
+  giveAccessToWorkspaceFeature: Scalars['Boolean']['output'];
+  removeAccessToWorkspaceFeature: Scalars['Boolean']['output'];
   updateWorkspacePlan: Scalars['Boolean']['output'];
+};
+
+
+export type AdminMutationsGiveAccessToWorkspaceFeatureArgs = {
+  input: AdminAccessToWorkspaceFeatureInput;
+};
+
+
+export type AdminMutationsRemoveAccessToWorkspaceFeatureArgs = {
+  input: AdminAccessToWorkspaceFeatureInput;
 };
 
 
@@ -5244,8 +5261,14 @@ export type WorkspaceEmbedOptions = {
   hideSpeckleBranding: Scalars['Boolean']['output'];
 };
 
+export enum WorkspaceFeatureFlagName {
+  AccIntegration = 'accIntegration',
+  Dashboards = 'dashboards'
+}
+
 export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
+  Dashboards = 'dashboards',
   DomainBasedSecurityPolicies = 'domainBasedSecurityPolicies',
   ExclusiveMembership = 'exclusiveMembership',
   HideSpeckleBranding = 'hideSpeckleBranding',

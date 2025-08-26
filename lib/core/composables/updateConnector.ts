@@ -33,6 +33,8 @@ export function useUpdateConnector() {
 
   async function checkUpdate() {
     try {
+      console.log('check update')
+
       await getVersions()
     } catch (e) {
       console.error(e)

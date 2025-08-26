@@ -56,8 +56,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const documentInfo = ref<DocumentInfo>()
   const documentModelStore = ref<DocumentModelStore>({ models: [] })
 
-  const isUpdateNotificationEnabled = ref(true)
-
   const availableViews = ref<string[]>() // TODO: later we can align views with -> const revitAvailableViews = ref<ISendFilterSelectItem[]>()
   const navisworksAvailableSavedSets = ref<ISendFilterSelectItem[]>()
 
@@ -535,15 +533,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const getHostAppVersion = async () =>
     (hostAppVersion.value = await app.$baseBinding.getSourceApplicationVersion())
 
-  const getIsUpdateNotificationEnabled = async () => {
-    const globalConfig = await app.$configBinding.getGlobalConfig()
-    isUpdateNotificationEnabled.value = globalConfig.isUpdateNotificationEnabled
-  }
-
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
+    const globalConfig = await app.$configBinding.getGlobalConfig()
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    if (app.$isRunningOnConnector && isUpdateNotificationEnabled.value) {
+    if (app.$isRunningOnConnector && globalConfig.isUpdateNotificationEnabled) {
       await checkUpdate()
     }
   }
