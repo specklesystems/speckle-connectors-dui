@@ -545,13 +545,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     if (canGetGlobalConfig) {
       const globalConfig = await app.$configBinding.getGlobalConfig()
-      if ('isUpdateNotificationDisabled' in globalConfig)
-        // because if the value is false, we do not get it from bridge
-        isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
+      isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
     }
 
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    if (app.$isRunningOnConnector && !isUpdateNotificationDisabled) {
+    if (app.$isRunningOnConnector && !isUpdateNotificationDisabled.value) {
       await checkUpdate()
     }
   }
