@@ -14,6 +14,7 @@ export const IConfigBindingKey = 'configBinding'
 export interface IConfigBinding extends IBinding<IConfigBindingEvents> {
   getIsDevMode: () => Promise<boolean>
   getConfig: () => Promise<ConnectorConfig>
+  getGlobalConfig: () => Promise<GlobalConfig>
   updateConfig: (config: ConnectorConfig) => void
   setUserSelectedAccountId: (accountId: string) => void
   getUserSelectedAccountId: () => Promise<AccountsConfig>
@@ -23,6 +24,10 @@ export interface IConfigBinding extends IBinding<IConfigBindingEvents> {
 }
 
 export interface IConfigBindingEvents extends IBindingSharedEvents {}
+
+export type GlobalConfig = {
+  isUpdateNotificationEnabled: boolean
+}
 
 export type ConnectorConfig = {
   darkTheme: boolean
@@ -44,6 +49,10 @@ export class MockedConfigBinding implements IConfigBinding {
 
   public async getConfig() {
     return await { darkTheme: false }
+  }
+
+  public async getGlobalConfig() {
+    return await { isUpdateNotificationEnabled: true }
   }
 
   public async updateConfig() {
