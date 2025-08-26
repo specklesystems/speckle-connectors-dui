@@ -549,8 +549,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     // Checks whether new version available for the connector or not and throws a toast notification if any.
     if (app.$isRunningOnConnector && isUpdateNotificationEnabled) {
-      console.log('will check update')
-
       await checkUpdate()
     }
   }
