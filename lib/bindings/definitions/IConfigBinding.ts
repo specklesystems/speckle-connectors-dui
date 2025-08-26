@@ -26,7 +26,7 @@ export interface IConfigBinding extends IBinding<IConfigBindingEvents> {
 export interface IConfigBindingEvents extends IBindingSharedEvents {}
 
 export type GlobalConfig = {
-  isUpdateNotificationEnabled: boolean
+  isUpdateNotificationDisabled: boolean
 }
 
 export type ConnectorConfig = {

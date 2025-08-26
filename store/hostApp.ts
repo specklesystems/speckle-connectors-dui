@@ -60,6 +60,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const availableViews = ref<string[]>() // TODO: later we can align views with -> const revitAvailableViews = ref<ISendFilterSelectItem[]>()
   const navisworksAvailableSavedSets = ref<ISendFilterSelectItem[]>()
 
+  const isUpdateNotificationDisabled = ref(false)
+
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
 
@@ -536,7 +538,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
-    let isUpdateNotificationEnabled = true
 
     const canGetGlobalConfig = ['getGlobalConfig', 'GetGlobalConfig'].some((name) =>
       (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
@@ -544,11 +545,13 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     if (canGetGlobalConfig) {
       const globalConfig = await app.$configBinding.getGlobalConfig()
-      isUpdateNotificationEnabled = globalConfig.isUpdateNotificationEnabled
+      if ('isUpdateNotificationDisabled' in globalConfig)
+        // because if the value is false, we do not get it from bridge
+        isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
     }
 
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    if (app.$isRunningOnConnector && isUpdateNotificationEnabled) {
+    if (app.$isRunningOnConnector && !isUpdateNotificationDisabled) {
       await checkUpdate()
     }
   }
@@ -762,6 +765,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     navisworksAvailableSavedSets,
     availableSelectSendFilters,
     isDistributedBySpeckle,
+    isUpdateNotificationDisabled,
     setIsDistributedBySpeckle,
     setNotification,
     setModelError,
