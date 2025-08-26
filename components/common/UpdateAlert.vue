@@ -1,6 +1,10 @@
 <template>
   <CommonAlert
-    v-if="!store.isConnectorUpToDate && !hasDismissedAlert"
+    v-if="
+      !store.isConnectorUpToDate &&
+      !hasDismissedAlert &&
+      !store.isUpdateNotificationDisabled
+    "
     v-tippy="
       'Version: ' + store.latestAvailableVersion?.Number + ', released ' + createdAgo
     "

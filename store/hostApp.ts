@@ -27,6 +27,7 @@ import {
 } from '~/lib/core/composables/updateConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -58,6 +59,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const availableViews = ref<string[]>() // TODO: later we can align views with -> const revitAvailableViews = ref<ISendFilterSelectItem[]>()
   const navisworksAvailableSavedSets = ref<ISendFilterSelectItem[]>()
+
+  const isUpdateNotificationDisabled = ref(false)
 
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
@@ -535,8 +538,20 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
+
+    const canGetGlobalConfig = ['getGlobalConfig', 'GetGlobalConfig'].some((name) =>
+      (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+    )
+
+    if (canGetGlobalConfig) {
+      const globalConfig = await app.$configBinding.getGlobalConfig()
+      if ('isUpdateNotificationDisabled' in globalConfig)
+        // because if the value is false, we do not get it from bridge
+        isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
+    }
+
     // Checks whether new version available for the connector or not and throws a toast notification if any.
-    if (app.$isRunningOnConnector) {
+    if (app.$isRunningOnConnector && !isUpdateNotificationDisabled) {
       await checkUpdate()
     }
   }
@@ -750,6 +765,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     navisworksAvailableSavedSets,
     availableSelectSendFilters,
     isDistributedBySpeckle,
+    isUpdateNotificationDisabled,
     setIsDistributedBySpeckle,
     setNotification,
     setModelError,
