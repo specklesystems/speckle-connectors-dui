@@ -9,7 +9,7 @@
 
     <!-- Step 1: Mapping Mode Selection -->
     <div class="px-2">
-      <p class="h5">Mapping Mode</p>
+      <p class="h5">Assign by</p>
       <div class="space-y-2 my-2">
         <FormSelectBase
           :model-value="selectedMappingMode"
