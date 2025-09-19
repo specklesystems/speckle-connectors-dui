@@ -3,6 +3,9 @@
     <div class="text-foreground-2 text-body-2xs mb-1 pl-1">
       {{ control.label }}
     </div>
+    <!-- button next to component (like revit send categories) -->
+    <!-- min width to keep components "in-sync" at narrow sizes -->
+    <!-- size "sm" matches height of select all toggle -->
     <div class="flex items-center space-x-2 min-w-72">
       <FormSelectMulti
         :model-value="modelValue"
@@ -51,7 +54,7 @@
       </FormSelectMulti>
 
       <!-- Select All / Deselect All button - positioned next to dropdown like Revit -->
-      <FormButton color="outline" size="sm" class="min-w-24" @click="toggleSelectAll">
+      <FormButton color="outline" class="min-w-28" size="base" @click="toggleSelectAll">
         {{ allSelected ? 'Deselect all' : 'Select all' }}
       </FormButton>
     </div>
