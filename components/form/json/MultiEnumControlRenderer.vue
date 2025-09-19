@@ -19,6 +19,7 @@
       button-style="tinted"
       :validate-on-value-update="validateOnValueUpdate"
       mount-menu-on-body
+      fixed-height
       @update:model-value="handleChange"
     >
       <template #nothing-selected>
