@@ -3,50 +3,58 @@
     <div class="text-foreground-2 text-body-2xs mb-1 pl-1">
       {{ control.label }}
     </div>
-    <FormSelectMulti
-      :model-value="modelValue"
-      :name="fieldName"
-      :rules="multiValidator"
-      :label="control.label"
-      :items="control.options"
-      clearable
-      :search="true"
-      :search-placeholder="'Search'"
-      :filter-predicate="searchFilterPredicate"
-      :help="control.description"
-      :allow-unset="false"
-      by="value"
-      button-style="tinted"
-      :validate-on-value-update="validateOnValueUpdate"
-      mount-menu-on-body
-      fixed-height
-      @update:model-value="handleChange"
-    >
-      <template #nothing-selected>
-        {{
-          appliedOptions['placeholder']
-            ? appliedOptions['placeholder']
-            : 'Select values'
-        }}
-      </template>
-      <template #something-selected="{ value }">
-        <div ref="elementToWatchForChanges" class="flex items-center space-x-0.5">
-          <div ref="itemContainer" class="flex flex-wrap overflow-hidden space-x-0.5">
-            <div v-for="(item, i) in value" :key="item.value" class="text-foreground">
-              {{ item.label + (i < value.length - 1 ? ', ' : '') }}
+    <div class="flex items-center space-x-2">
+      <FormSelectMulti
+        :model-value="modelValue"
+        :name="fieldName"
+        :rules="multiValidator"
+        :label="control.label"
+        :items="control.options"
+        class="flex-1"
+        clearable
+        :search="true"
+        :search-placeholder="'Search'"
+        :filter-predicate="searchFilterPredicate"
+        :help="control.description"
+        :allow-unset="false"
+        by="value"
+        button-style="tinted"
+        :validate-on-value-update="validateOnValueUpdate"
+        mount-menu-on-body
+        fixed-height
+        @update:model-value="handleChange"
+      >
+        <template #nothing-selected>
+          {{
+            appliedOptions['placeholder']
+              ? appliedOptions['placeholder']
+              : 'Select values'
+          }}
+        </template>
+        <template #something-selected="{ value }">
+          <div ref="elementToWatchForChanges" class="flex items-center space-x-0.5">
+            <div ref="itemContainer" class="flex flex-wrap overflow-hidden space-x-0.5">
+              <div v-for="(item, i) in value" :key="item.value" class="text-foreground">
+                {{ item.label + (i < value.length - 1 ? ', ' : '') }}
+              </div>
+            </div>
+            <div v-if="hiddenSelectedItemCount > 0" class="text-foreground-2 normal">
+              +{{ hiddenSelectedItemCount }}
             </div>
           </div>
-          <div v-if="hiddenSelectedItemCount > 0" class="text-foreground-2 normal">
-            +{{ hiddenSelectedItemCount }}
+        </template>
+        <template #option="{ item }">
+          <div class="flex items-center text-foreground-2 text-body-2xs">
+            <span class="truncate">{{ item.label }}</span>
           </div>
-        </div>
-      </template>
-      <template #option="{ item }">
-        <div class="flex items-center text-foreground-2 text-body-2xs">
-          <span class="truncate">{{ item.label }}</span>
-        </div>
-      </template>
-    </FormSelectMulti>
+        </template>
+      </FormSelectMulti>
+
+      <!-- Select all / Deselect all like Revit next to dropdown -->
+      <FormButton color="outline" size="sm" @click="toggleSelectAll">
+        {{ allSelected ? 'Deselect all' : 'Select all' }}
+      </FormButton>
+    </div>
   </div>
 </template>
 <script setup lang="ts">
@@ -109,4 +117,27 @@ const modelValue = computed(() => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   return control.value.options.filter((o) => val?.includes(o.value))
 })
+
+/**
+ * Computed property to check if all available options are selected.
+ */
+const allSelected = computed(() => {
+  const currentSelection = modelValue.value || []
+  const allOptions = control.value.options || []
+  return currentSelection.length === allOptions.length && allOptions.length > 0
+})
+
+/**
+ * Toggle between selecting all categories and clearing all selections.
+ */
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    // deselect all -> pass empty array
+    handleChange([])
+  } else {
+    // select all available options
+    const allOptions = control.value.options || []
+    handleChange(allOptions)
+  }
+}
 </script>
