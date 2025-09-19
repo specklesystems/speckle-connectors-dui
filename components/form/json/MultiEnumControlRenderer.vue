@@ -3,14 +3,14 @@
     <div class="text-foreground-2 text-body-2xs mb-1 pl-1">
       {{ control.label }}
     </div>
-    <div class="flex items-center space-x-2">
+    <div class="flex items-center space-x-2 min-w-72">
       <FormSelectMulti
         :model-value="modelValue"
         :name="fieldName"
         :rules="multiValidator"
         :label="control.label"
         :items="control.options"
-        class="flex-1"
+        class="flex-1 min-w-0"
         clearable
         :search="true"
         :search-placeholder="'Search'"
@@ -50,8 +50,8 @@
         </template>
       </FormSelectMulti>
 
-      <!-- Select all / Deselect all like Revit next to dropdown -->
-      <FormButton color="outline" size="sm" @click="toggleSelectAll">
+      <!-- Select All / Deselect All button - positioned next to dropdown like Revit -->
+      <FormButton color="outline" size="sm" class="min-w-20" @click="toggleSelectAll">
         {{ allSelected ? 'Deselect all' : 'Select all' }}
       </FormButton>
     </div>
