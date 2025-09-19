@@ -51,7 +51,7 @@
       </FormSelectMulti>
 
       <!-- Select All / Deselect All button - positioned next to dropdown like Revit -->
-      <FormButton color="outline" size="sm" class="min-w-20" @click="toggleSelectAll">
+      <FormButton color="outline" size="sm" class="min-w-24" @click="toggleSelectAll">
         {{ allSelected ? 'Deselect all' : 'Select all' }}
       </FormButton>
     </div>
