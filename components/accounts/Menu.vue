@@ -106,6 +106,7 @@ defineEmits<{
 }>()
 
 const showAddNewAccount = ref(false)
+// const showAccountsDialog = ref(false)
 
 const showAccountsDialog = defineModel<boolean>('open', {
   required: false,
@@ -152,6 +153,17 @@ const removeAccount = async (acc: DUIAccount) => {
 }
 
 const user = computed(() => {
+  // if (!defaultAccount.value) return undefined
+  // let acc = defaultAccount.value
+  // if (props.currentSelectedAccountId) {
+  //   const currentSelectedAccount = accounts.value.find(
+  //     (acc) => acc.accountInfo.id === props.currentSelectedAccountId
+  //   ) as DUIAccount
+  //   // currentSelectedAccount could be removed by user
+  //   if (currentSelectedAccount) {
+  //     acc = currentSelectedAccount
+  //   }
+  // }
   return {
     name: activeAccount.value.accountInfo.userInfo.name,
     avatar: activeAccount.value.accountInfo.userInfo.avatar
