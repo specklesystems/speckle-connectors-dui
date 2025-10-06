@@ -6,16 +6,17 @@ interface CustomProperties {
   [key: string]: object | string | boolean | number | undefined | null
 }
 
-// Cached email and server
+// Cached email, server, and userId
 const lastEmail: Ref<string | undefined> = ref(undefined)
 const lastServer: Ref<string | undefined> = ref(undefined)
+const lastUserId: Ref<string | undefined> = ref(undefined)
 
 /**
  * Get Mixpanel functions
  * In DUI3, quite likely to change distinct id of the track operation since we can trigger repetitive calls that belongs to different account.
  * Also we have some operations that explicitly not belong to any account, i.e. first "Send" or "Load" click,
- * with this case we use default account on manager to get "email" and "server" and cache them for later anonymous track.
- * In each call we update "lastEmail" and "lastServer" for the following potential anonymous tracks.
+ * with this case we use default account on manager to get "email", "server", and "userId" and cache them for later anonymous track.
+ * In each call we update "lastEmail", "lastServer", and "lastUserId" for the following potential anonymous tracks.
  */
 export function useMixpanel() {
   const hostApp = useHostAppStore()
@@ -42,11 +43,13 @@ export function useMixpanel() {
       const account = accounts.find((a) => a.accountInfo.id === accountId)
       lastEmail.value = account?.accountInfo.userInfo.email
       lastServer.value = account?.accountInfo.serverInfo.url
+      lastUserId.value = account?.accountInfo.userInfo.id
     } else {
       // do not set if they cached already
       if (lastEmail.value === undefined || lastServer.value === undefined) {
         lastEmail.value = activeAccount.accountInfo.userInfo.email
         lastServer.value = activeAccount.accountInfo.serverInfo.url
+        lastUserId.value = activeAccount.accountInfo.userInfo.id
       }
     }
 
@@ -92,6 +95,7 @@ export function useMixpanel() {
         // eslint-disable-next-line camelcase
         core_version: hostApp.connectorVersion,
         email: lastEmail.value,
+        userId: lastUserId.value,
         ...customProperties
       }
 
