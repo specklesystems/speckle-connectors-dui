@@ -86,7 +86,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     if (!latestAvailableVersion.value?.Number || !connectorVersion.value) return true
     return connectorVersion.value === latestAvailableVersion.value.Number
   })
-  
+
   const setHostAppError = (error: Nullable<HostAppError>) => {
     hostAppError.value = error
   }
