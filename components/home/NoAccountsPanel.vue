@@ -10,16 +10,22 @@
     </div>
     <div v-else>
       <div class="text-foreground-2 mt-2 mb-4">
-        Click the button below to sign into Speckle via Manager. This will allow you to
-        publish or load data.
+        To sign in and start using Speckle, you'll need the Desktop Service running.
+        This lightweight background service handles secure authentication.
       </div>
-      <div class="text-foreground-2 text-sm mt-2 mb-4"></div>
-      <div class="flex flex-wrap justify-center space-y-2 max-width">
-        <FormButton full-width @click="$openUrl(`speckle://accounts`)">
-          Sign In
+      <div class="space-y-3">
+        <FormButton
+          full-width
+          @click="
+            $openUrl(
+              'https://releases.speckle.systems/api/desktop-services/latest-installer'
+            )
+          "
+        >
+          Download Desktop Service
         </FormButton>
-        <div>
-          <div class="text-xs">Already done?</div>
+        <div class="text-center">
+          <div class="text-foreground-2 text-xs mb-2">Already installed?</div>
           <FormButton
             size="sm"
             full-width
@@ -27,13 +33,14 @@
             link
             @click="accountStore.refreshAccounts()"
           >
-            Click to refresh
+            Refresh to check again
           </FormButton>
         </div>
       </div>
     </div>
   </LayoutPanel>
 </template>
+
 <script setup lang="ts">
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
