@@ -81,10 +81,12 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     $openUrl(latestAvailableVersion.value?.Url as string)
   }
 
-  const isConnectorUpToDate = computed(
-    () => connectorVersion.value === latestAvailableVersion.value?.Number
-  )
-
+  const isConnectorUpToDate = computed(() => {
+    if (!isDistributedBySpeckle.value) return true
+    if (!latestAvailableVersion.value?.Number || !connectorVersion.value) return true
+    return connectorVersion.value === latestAvailableVersion.value.Number
+  })
+  
   const setHostAppError = (error: Nullable<HostAppError>) => {
     hostAppError.value = error
   }
