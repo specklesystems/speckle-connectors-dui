@@ -86,6 +86,7 @@ const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>()
 const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const receieveSettings = ref<CardSetting[] | undefined>(undefined)
+const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -136,6 +137,7 @@ const title = computed(() => {
 
 const handleUpdateSettings = (settings: CardSetting[]) => {
   receieveSettings.value = settings
+  settingsWereChanged.value = true
 }
 
 // accountId, serverUrl,  ModelListModelItemFragment, VersionListItemFragment
@@ -148,6 +150,33 @@ const selectVersionAndAddModel = async (
     step: 'version selected',
     hasSelectedLatestVersion: version.id === latestVersion.id
   })
+
+  // track settings only if user changed them on receive
+  if (settingsWereChanged.value && receieveSettings.value) {
+    const defaultSettings = hostAppStore.receiveSettings || []
+    const settingProperties: Record<string, any> = {
+      name: 'Load Settings Changed'
+    }
+
+    let hasAnyChange = false
+    receieveSettings.value.forEach((setting) => {
+      const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
+      if (defaultSetting) {
+        const isDefault = setting.value === defaultSetting.value
+        if (!isDefault) {
+          hasAnyChange = true
+        }
+        settingProperties['setting_' + setting.id] = isDefault
+          ? `${setting.value} (default)`
+          : setting.value
+      }
+    })
+
+    // only track if user changed a setting
+    if (hasAnyChange) {
+      void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
+    }
+  }
 
   const existingModel = hostAppStore.models.find(
     (m) =>

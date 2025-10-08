@@ -147,17 +147,24 @@ const addModel = async () => {
       name: 'Publish Settings Changed'
     }
 
+    let hasAnyChange = false
     settings.value.forEach((setting) => {
       const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
       if (defaultSetting) {
-        settingProperties['setting_' + setting.id] =
-          setting.value === defaultSetting.value
-            ? `${setting.value} (default)`
-            : setting.value
+        const isDefault = setting.value === defaultSetting.value
+        if (!isDefault) {
+          hasAnyChange = true
+        }
+        settingProperties['setting_' + setting.id] = isDefault
+          ? `${setting.value} (default)`
+          : setting.value
       }
     })
 
-    void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
+    // only track if user changed something from default
+    if (hasAnyChange) {
+      void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
+    }
   }
 
   const existingModel = hostAppStore.models.find(
