@@ -66,6 +66,7 @@
           @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
         />
       </div>
+      <!-- I dont like the way we use revit categories filter for archicad layers, this component need to be generalized if we have one more -->
       <div v-else-if="selectedFilter.id === 'archicadLayers'">
         <FilterRevitCategories
           :filter="(selectedFilter as RevitCategoriesSendFilter)"
