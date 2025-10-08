@@ -32,7 +32,12 @@
       <SendFiltersAndSettings
         v-model="filter"
         @update:filter="(f) => (filter = f)"
-        @update:settings="(s) => (settings = s)"
+        @update:settings="
+          (s) => {
+            settings = s
+            settingsWereChanged = true
+          }
+        "
       />
       <div class="mt-2">
         <FormButton full-width @click="addModel">Publish</FormButton>
@@ -72,6 +77,7 @@ const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const filter = ref<ISendFilter | undefined>(undefined)
 const settings = ref<CardSetting[] | undefined>(undefined)
+const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -133,6 +139,26 @@ const addModel = async () => {
     step: 'objects selected',
     filter: filter.value?.typeDiscriminator
   })
+
+  // track settings only if user changed them
+  if (settingsWereChanged.value && settings.value) {
+    const defaultSettings = hostAppStore.sendSettings || []
+    const settingProperties: Record<string, any> = {
+      name: 'Publish Settings Changed'
+    }
+
+    settings.value.forEach((setting) => {
+      const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
+      if (defaultSetting) {
+        settingProperties['setting_' + setting.id] =
+          setting.value === defaultSetting.value
+            ? `${setting.value} (default)`
+            : setting.value
+      }
+    })
+
+    void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
+  }
 
   const existingModel = hostAppStore.models.find(
     (m) =>
