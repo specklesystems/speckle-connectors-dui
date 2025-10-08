@@ -62,7 +62,7 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent, trackSettingsChange } = useMixpanel()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
 
@@ -142,29 +142,13 @@ const addModel = async () => {
 
   // track settings only if user changed them
   if (settingsWereChanged.value && settings.value) {
-    const defaultSettings = hostAppStore.sendSettings || []
-    const settingProperties: Record<string, string | boolean | number> = {
-      name: 'Publish Settings Changed'
-    }
-
-    let hasAnyChange = false
-    settings.value.forEach((setting) => {
-      const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
-      if (defaultSetting) {
-        const isDefault = setting.value === defaultSetting.value
-        if (!isDefault) {
-          hasAnyChange = true
-        }
-        settingProperties['setting_' + setting.id] = isDefault
-          ? `${setting.value} (default)`
-          : setting.value
-      }
-    })
-
-    // only track if user changed something from default
-    if (hasAnyChange) {
-      void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
-    }
+    trackSettingsChange(
+      'Publish Settings Changed',
+      settings.value,
+      hostAppStore.sendSettings || [],
+      selectedAccountId.value,
+      true
+    )
   }
 
   const existingModel = hostAppStore.models.find(

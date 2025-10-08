@@ -27,7 +27,7 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useHostAppStore } from '~/store/hostApp'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useMixpanel()
 
 const props = defineProps<{
   settings?: CardSetting[]
@@ -48,26 +48,11 @@ const updateSettings = (settings: CardSetting[]) => {
 }
 
 const saveSettings = async () => {
-  const defaultSettings = store.sendSettings || []
-
-  // building dynamic properties
-  // since this can change based on HostApp
-  const settingProperties: Record<string, string | boolean | number> = {
-    name: 'Model Card Settings Updated'
-  }
-
-  newSettings.forEach((setting) => {
-    const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
-    if (defaultSetting) {
-      // if user selects default, just use 'default'
-      settingProperties['setting_' + setting.id] =
-        setting.value === defaultSetting.value
-          ? `${setting.value} (default)`
-          : setting.value
-    }
-  })
-
-  void trackEvent('DUI3 Action', settingProperties)
+  trackSettingsChange(
+    'Model Card Settings Updated',
+    newSettings,
+    store.sendSettings || []
+  )
 
   await store.patchModel(props.modelCardId, {
     settings: newSettings,

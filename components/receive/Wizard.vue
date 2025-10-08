@@ -60,7 +60,7 @@ import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent, trackSettingsChange } = useMixpanel()
 
 const showReceiveDialog = defineModel<boolean>('open', { default: false })
 
@@ -153,29 +153,13 @@ const selectVersionAndAddModel = async (
 
   // track settings only if user changed them on receive
   if (settingsWereChanged.value && receieveSettings.value) {
-    const defaultSettings = hostAppStore.receiveSettings || []
-    const settingProperties: Record<string, string | boolean | number> = {
-      name: 'Load Settings Changed'
-    }
-
-    let hasAnyChange = false
-    receieveSettings.value.forEach((setting) => {
-      const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
-      if (defaultSetting) {
-        const isDefault = setting.value === defaultSetting.value
-        if (!isDefault) {
-          hasAnyChange = true
-        }
-        settingProperties['setting_' + setting.id] = isDefault
-          ? `${setting.value} (default)`
-          : setting.value
-      }
-    })
-
-    // only track if user changed a setting
-    if (hasAnyChange) {
-      void trackEvent('DUI3 Action', settingProperties, selectedAccountId.value)
-    }
+    trackSettingsChange(
+      'Load Settings Changed',
+      receieveSettings.value,
+      hostAppStore.receiveSettings || [],
+      selectedAccountId.value,
+      true
+    )
   }
 
   const existingModel = hostAppStore.models.find(
