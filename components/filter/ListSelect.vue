@@ -66,6 +66,12 @@
           @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
         />
       </div>
+      <div v-else-if="selectedFilter.id === 'revitCategories2'">
+        <FilterRevitCategories
+          :filter="(selectedFilter as RevitCategoriesSendFilter)"
+          @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
+        />
+      </div>
       <!-- Below should have been implemented as sendFilterSelect as above, we can delete it later -->
       <div v-else-if="selectedFilter.id === 'navisworksSavedSets'">
         <FilterFormSelect
