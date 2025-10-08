@@ -66,7 +66,7 @@
           @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
         />
       </div>
-      <div v-else-if="selectedFilter.id === 'revitCategories2'">
+      <div v-else-if="selectedFilter.id === 'archicadLayers'">
         <FilterRevitCategories
           :filter="(selectedFilter as RevitCategoriesSendFilter)"
           @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
