@@ -48,9 +48,27 @@ const updateSettings = (settings: CardSetting[]) => {
 }
 
 const saveSettings = async () => {
-  void trackEvent('DUI3 Action', {
+  const defaultSettings = store.sendSettings || []
+
+  // building dynamic properties
+  // since this can change based on HostApp
+  const settingProperties: Record<string, any> = {
     name: 'Send Settings Updated'
+  }
+
+  newSettings.forEach((setting) => {
+    const defaultSetting = defaultSettings.find((s) => s.id === setting.id)
+    if (defaultSetting) {
+      // if user selects default, just use 'default'
+      settingProperties['setting_' + setting.id] =
+        setting.value === defaultSetting.value
+          ? `${setting.value} (default)`
+          : setting.value
+    }
   })
+
+  void trackEvent('DUI3 Action', settingProperties)
+
   await store.patchModel(props.modelCardId, {
     settings: newSettings,
     expired: true
