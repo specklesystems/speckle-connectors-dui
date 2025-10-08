@@ -53,7 +53,7 @@ const saveSettings = async () => {
   // building dynamic properties
   // since this can change based on HostApp
   const settingProperties: Record<string, any> = {
-    name: 'Send Settings Updated'
+    name: 'Model Card Settings Updated'
   }
 
   newSettings.forEach((setting) => {
