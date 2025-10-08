@@ -62,7 +62,7 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 
-const { trackEvent, trackSettingsChange } = useMixpanel()
+const { trackEvent } = useMixpanel()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
 
@@ -77,7 +77,6 @@ const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const filter = ref<ISendFilter | undefined>(undefined)
 const settings = ref<CardSetting[] | undefined>(undefined)
-const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -96,6 +95,16 @@ watch(showSendDialog, (newVal) => {
   if (newVal) {
     urlParseError.value = undefined
   }
+})
+
+watch(settings, (newSettings) => {
+  const settingProperties = Object.fromEntries(
+    newSettings?.map((setting) => [setting.id, setting.value]) ?? []
+  )
+  void trackEvent('DUI3 Action', {
+    name: 'Publish Settings Changed',
+    ...settingProperties
+  })
 })
 
 const selectProject = (accountId: string, project: ProjectListProjectItemFragment) => {
@@ -139,17 +148,6 @@ const addModel = async () => {
     step: 'objects selected',
     filter: filter.value?.typeDiscriminator
   })
-
-  // track settings only if user changed them
-  if (settingsWereChanged.value && settings.value) {
-    trackSettingsChange(
-      'Publish Settings Changed',
-      settings.value,
-      hostAppStore.sendSettings || [],
-      selectedAccountId.value,
-      true
-    )
-  }
 
   const existingModel = hostAppStore.models.find(
     (m) =>

@@ -60,7 +60,7 @@ import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent, trackSettingsChange } = useMixpanel()
+const { trackEvent } = useMixpanel()
 
 const showReceiveDialog = defineModel<boolean>('open', { default: false })
 
@@ -86,7 +86,6 @@ const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>()
 const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const receieveSettings = ref<CardSetting[] | undefined>(undefined)
-const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -140,6 +139,16 @@ const handleUpdateSettings = (settings: CardSetting[]) => {
   settingsWereChanged.value = true
 }
 
+watch(receieveSettings, (newSettings) => {
+  const settingProperties = Object.fromEntries(
+    newSettings?.map((setting) => [setting.id, setting.value]) ?? []
+  )
+  void trackEvent('DUI3 Action', {
+    name: 'Load Settings Changed',
+    ...settingProperties
+  })
+})
+
 // accountId, serverUrl,  ModelListModelItemFragment, VersionListItemFragment
 const selectVersionAndAddModel = async (
   version: VersionListItemFragment,
@@ -150,17 +159,6 @@ const selectVersionAndAddModel = async (
     step: 'version selected',
     hasSelectedLatestVersion: version.id === latestVersion.id
   })
-
-  // track settings only if user changed them on receive
-  if (settingsWereChanged.value && receieveSettings.value) {
-    trackSettingsChange(
-      'Load Settings Changed',
-      receieveSettings.value,
-      hostAppStore.receiveSettings || [],
-      selectedAccountId.value,
-      true
-    )
-  }
 
   const existingModel = hostAppStore.models.find(
     (m) =>
