@@ -143,7 +143,7 @@ const addModel = async () => {
   // track settings only if user changed them
   if (settingsWereChanged.value && settings.value) {
     const defaultSettings = hostAppStore.sendSettings || []
-    const settingProperties: Record<string, any> = {
+    const settingProperties: Record<string, string | boolean | number> = {
       name: 'Publish Settings Changed'
     }
 

@@ -154,7 +154,7 @@ const selectVersionAndAddModel = async (
   // track settings only if user changed them on receive
   if (settingsWereChanged.value && receieveSettings.value) {
     const defaultSettings = hostAppStore.receiveSettings || []
-    const settingProperties: Record<string, any> = {
+    const settingProperties: Record<string, string | boolean | number> = {
       name: 'Load Settings Changed'
     }
 
