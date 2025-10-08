@@ -50,11 +50,7 @@
                 </div>
                 <FormButton
                   full-width
-                  @click="
-                    $openUrl(
-                      'https://releases.speckle.systems/api/desktop-services/latest-installer'
-                    )
-                  "
+                  @click="$openUrl('https://releases.speckle.systems')"
                 >
                   Download Desktop Service
                 </FormButton>

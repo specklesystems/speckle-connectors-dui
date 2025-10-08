@@ -14,14 +14,7 @@
         This lightweight background service handles secure authentication.
       </div>
       <div class="space-y-3">
-        <FormButton
-          full-width
-          @click="
-            $openUrl(
-              'https://releases.speckle.systems/api/desktop-services/latest-installer'
-            )
-          "
-        >
+        <FormButton full-width @click="$openUrl('https://releases.speckle.systems')">
           Download Desktop Service
         </FormButton>
         <div class="text-center">
