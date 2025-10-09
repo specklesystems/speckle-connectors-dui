@@ -5,7 +5,12 @@
     :title="title"
     :show-back-button="step !== 1"
     @back="step--"
-    @fully-closed="step = 1"
+    @fully-closed="
+      () => {
+        step = 1
+        settingsWereChanged = false
+      }
+    "
   >
     <div v-if="step === 1">
       <WizardProjectSelector
@@ -142,22 +147,23 @@ const addModel = async () => {
     filter: filter.value?.typeDiscriminator
   })
 
-  // track settings only if user changed them
-  if (settingsWereChanged.value && settings.value) {
-    trackSettingsChange(
-      'Publish Settings Changed',
-      settings.value,
-      hostAppStore.sendSettings || [],
-      selectedAccountId.value,
-      true
-    )
-  }
-
   const existingModel = hostAppStore.models.find(
     (m) =>
       m.modelId === selectedModel.value?.id &&
       m.typeDiscriminator.includes('SenderModelCard')
   ) as SenderModelCard
+
+  // track settings only if user changed them
+  // compare against existing model card settings
+  if (settingsWereChanged.value && settings.value) {
+    trackSettingsChange(
+      'Publish Settings Changed',
+      settings.value,
+      existingModel?.settings || hostAppStore.sendSettings || [],
+      selectedAccountId.value,
+      true
+    )
+  }
   if (existingModel) {
     emit('close')
     // Patch the existing model card with new send filter and non-expired state!

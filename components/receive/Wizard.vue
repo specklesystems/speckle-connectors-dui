@@ -5,7 +5,12 @@
     :title="title"
     :show-back-button="step !== 1"
     @back="step--"
-    @fully-closed="step = 1"
+    @fully-closed="
+      () => {
+        step = 1
+        settingsWereChanged = false
+      }
+    "
   >
     <div>
       <div v-if="step === 1">
@@ -153,22 +158,23 @@ const selectVersionAndAddModel = async (
     hasSelectedLatestVersion: version.id === latestVersion.id
   })
 
-  // track settings only if user changed them on receive
-  if (settingsWereChanged.value && receieveSettings.value) {
-    trackSettingsChange(
-      'Load Settings Changed',
-      receieveSettings.value,
-      hostAppStore.receiveSettings || [],
-      selectedAccountId.value,
-      true
-    )
-  }
-
   const existingModel = hostAppStore.models.find(
     (m) =>
       m.modelId === selectedModel.value?.id &&
       m.typeDiscriminator === 'ReceiverModelCard'
   ) as ReceiverModelCard
+
+  // track settings only if user changed them on receive
+  // compare against existing model settings if it exists, otherwise compare against defaults
+  if (settingsWereChanged.value && receieveSettings.value) {
+    trackSettingsChange(
+      'Load Settings Changed',
+      receieveSettings.value,
+      existingModel?.settings || hostAppStore.receiveSettings || [],
+      selectedAccountId.value,
+      true
+    )
+  }
 
   if (existingModel) {
     emit('close')
