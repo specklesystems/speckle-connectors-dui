@@ -66,6 +66,13 @@
           @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
         />
       </div>
+      <!-- I dont like the way we use revit categories filter for archicad layers, this component need to be generalized if we have one more -->
+      <div v-else-if="selectedFilter.id === 'archicadLayers'">
+        <FilterRevitCategories
+          :filter="(selectedFilter as RevitCategoriesSendFilter)"
+          @update:filter="(filter : ISendFilter) => (selectedFilter = filter)"
+        />
+      </div>
       <!-- Below should have been implemented as sendFilterSelect as above, we can delete it later -->
       <div v-else-if="selectedFilter.id === 'navisworksSavedSets'">
         <FilterFormSelect
