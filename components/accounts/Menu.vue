@@ -43,13 +43,28 @@
               <div v-if="isDesktopServiceAvailable">
                 <AccountsSignInFlow />
               </div>
-              <div v-else class="flex flex-wrap justify-center space-x-4 max-width">
-                <FormButton text @click="$openUrl(`speckle://accounts`)">
-                  Add account via Manager
+              <div v-else class="space-y-3">
+                <div class="text-foreground-2 text-sm">
+                  The Speckle Desktop Service is required to add accounts. This
+                  background service handles authentication securely.
+                </div>
+                <FormButton
+                  full-width
+                  @click="$openUrl('https://releases.speckle.systems')"
+                >
+                  Download Desktop Service
                 </FormButton>
-                <FormButton text @click="accountStore.refreshAccounts()">
-                  Refresh accounts
-                </FormButton>
+                <div class="text-center">
+                  <div class="text-foreground-2 text-xs mb-2">Already installed?</div>
+                  <FormButton
+                    text
+                    size="sm"
+                    full-width
+                    @click="accountStore.refreshAccounts()"
+                  >
+                    Refresh accounts
+                  </FormButton>
+                </div>
               </div>
             </div>
           </CommonDialog>
@@ -58,6 +73,7 @@
     </CommonDialog>
   </div>
 </template>
+
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { XMarkIcon } from '@heroicons/vue/20/solid'
@@ -144,7 +160,6 @@ const user = computed(() => {
   //     acc = currentSelectedAccount
   //   }
   // }
-
   return {
     name: activeAccount.value.accountInfo.userInfo.name,
     avatar: activeAccount.value.accountInfo.userInfo.avatar
