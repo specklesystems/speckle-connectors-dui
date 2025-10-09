@@ -23,11 +23,11 @@
 </template>
 
 <script setup lang="ts">
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useHostAppStore } from '~/store/hostApp'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const props = defineProps<{
   settings?: CardSetting[]
@@ -48,9 +48,12 @@ const updateSettings = (settings: CardSetting[]) => {
 }
 
 const saveSettings = async () => {
-  void trackEvent('DUI3 Action', {
-    name: 'Send Settings Updated'
-  })
+  trackSettingsChange(
+    'Model Card Settings Updated',
+    newSettings,
+    store.sendSettings || []
+  )
+
   await store.patchModel(props.modelCardId, {
     settings: newSettings,
     expired: true

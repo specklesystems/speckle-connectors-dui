@@ -5,7 +5,12 @@
     :title="title"
     :show-back-button="step !== 1"
     @back="step--"
-    @fully-closed="step = 1"
+    @fully-closed="
+      () => {
+        step = 1
+        settingsWereChanged = false
+      }
+    "
   >
     <div>
       <div v-if="step === 1">
@@ -56,11 +61,13 @@ import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { ReceiverModelCard } from '~/lib/models/card/receiver'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
 import type { CardSetting } from '~/lib/models/card/setting'
 
 const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const showReceiveDialog = defineModel<boolean>('open', { default: false })
 
@@ -86,6 +93,7 @@ const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment>()
 const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const receieveSettings = ref<CardSetting[] | undefined>(undefined)
+const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -136,6 +144,7 @@ const title = computed(() => {
 
 const handleUpdateSettings = (settings: CardSetting[]) => {
   receieveSettings.value = settings
+  settingsWereChanged.value = true
 }
 
 // accountId, serverUrl,  ModelListModelItemFragment, VersionListItemFragment
@@ -154,6 +163,18 @@ const selectVersionAndAddModel = async (
       m.modelId === selectedModel.value?.id &&
       m.typeDiscriminator === 'ReceiverModelCard'
   ) as ReceiverModelCard
+
+  // track settings only if user changed them on receive
+  // compare against existing model settings if it exists, otherwise compare against defaults
+  if (settingsWereChanged.value && receieveSettings.value) {
+    trackSettingsChange(
+      'Load Settings Changed',
+      receieveSettings.value,
+      existingModel?.settings || hostAppStore.receiveSettings || [],
+      selectedAccountId.value,
+      true
+    )
+  }
 
   if (existingModel) {
     emit('close')

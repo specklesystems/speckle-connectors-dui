@@ -5,7 +5,12 @@
     :title="title"
     :show-back-button="step !== 1"
     @back="step--"
-    @fully-closed="step = 1"
+    @fully-closed="
+      () => {
+        step = 1
+        settingsWereChanged = false
+      }
+    "
   >
     <div v-if="step === 1">
       <WizardProjectSelector
@@ -32,7 +37,12 @@
       <SendFiltersAndSettings
         v-model="filter"
         @update:filter="(f) => (filter = f)"
-        @update:settings="(s) => (settings = s)"
+        @update:settings="
+          (s) => {
+            settings = s
+            settingsWereChanged = true
+          }
+        "
       />
       <div class="mt-2">
         <FormButton full-width @click="addModel">Publish</FormButton>
@@ -54,10 +64,12 @@ import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 
 const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
 
@@ -72,6 +84,7 @@ const selectedProject = ref<ProjectListProjectItemFragment>()
 const selectedModel = ref<ModelListModelItemFragment>()
 const filter = ref<ISendFilter | undefined>(undefined)
 const settings = ref<CardSetting[] | undefined>(undefined)
+const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const updateSearchText = (text: string | undefined) => {
@@ -139,6 +152,18 @@ const addModel = async () => {
       m.modelId === selectedModel.value?.id &&
       m.typeDiscriminator.includes('SenderModelCard')
   ) as SenderModelCard
+
+  // track settings only if user changed them
+  // compare against existing model card settings
+  if (settingsWereChanged.value && settings.value) {
+    trackSettingsChange(
+      'Publish Settings Changed',
+      settings.value,
+      existingModel?.settings || hostAppStore.sendSettings || [],
+      selectedAccountId.value,
+      true
+    )
+  }
   if (existingModel) {
     emit('close')
     // Patch the existing model card with new send filter and non-expired state!
