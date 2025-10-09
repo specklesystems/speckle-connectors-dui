@@ -1,6 +1,8 @@
 <template>
   <CommonAlert
     v-if="
+      store.isDistributedBySpeckle &&
+      store.latestAvailableVersion &&
       !store.isConnectorUpToDate &&
       !hasDismissedAlert &&
       !store.isUpdateNotificationDisabled
