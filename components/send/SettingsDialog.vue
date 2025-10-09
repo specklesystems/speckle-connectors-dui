@@ -23,11 +23,11 @@
 </template>
 
 <script setup lang="ts">
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useHostAppStore } from '~/store/hostApp'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackSettingsChange } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const props = defineProps<{
   settings?: CardSetting[]

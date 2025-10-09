@@ -56,11 +56,13 @@ import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { ReceiverModelCard } from '~/lib/models/card/receiver'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent, trackSettingsChange } = useMixpanel()
+const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const showReceiveDialog = defineModel<boolean>('open', { default: false })
 

@@ -59,10 +59,12 @@ import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 
-const { trackEvent, trackSettingsChange } = useMixpanel()
+const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
 
