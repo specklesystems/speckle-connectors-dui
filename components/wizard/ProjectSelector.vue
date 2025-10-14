@@ -135,14 +135,14 @@
         <div
           v-if="
             canCreateProjectPermissionCheck &&
-            !canCreateProjectPermissionCheck.authorized
+            !canCreateProjectPermissionCheck.authorized &&
+            showUpgradeButton
           "
         >
           <CommonAlert color="info" hide-icon>
             <template #description>
               {{ canCreateProjectPermissionCheck.message }}
               <FormButton
-                v-if="showUpgradeButton"
                 full-width
                 class="mt-2"
                 color="primary"
