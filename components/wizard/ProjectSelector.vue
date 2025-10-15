@@ -330,12 +330,15 @@ const activeWorkspace = computed(() => {
     }
   }
 
-  const activeWorkspace = activeWorkspaceResult.value?.activeUser
+  const activeLimitedWorkspace = activeWorkspaceResult.value?.activeUser
     ?.activeWorkspace as WorkspaceListWorkspaceItemFragment
 
   // fallback to activeWorkspace query result
-  if (activeWorkspace) {
-    return activeWorkspace
+  if (activeLimitedWorkspace) {
+    const activeWorkspace = workspaces.value?.find(
+      (w) => w.id === activeLimitedWorkspace.id
+    )
+    if (activeWorkspace) return activeWorkspace
   }
 
   // if activeWorkspace is null will mean that it is personal projects - this fallback wont be the case soon
