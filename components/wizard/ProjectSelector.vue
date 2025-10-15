@@ -135,19 +135,19 @@
         <div
           v-if="
             canCreateProjectPermissionCheck &&
-            !canCreateProjectPermissionCheck.authorized
+            !canCreateProjectPermissionCheck.authorized &&
+            showUpgradePlanButton
           "
         >
           <CommonAlert color="info" hide-icon>
             <template #description>
               {{ canCreateProjectPermissionCheck.message }}
               <FormButton
-                v-if="showUpgradeButton"
                 full-width
                 class="mt-2"
                 color="primary"
                 size="sm"
-                @click="upgradeButtonAction()"
+                @click="upgradePlanButtonAction()"
               >
                 Upgrade now
               </FormButton>
@@ -497,7 +497,7 @@ const canCreateProjectPermissionCheck = computed(() => {
   return null
 })
 
-const upgradeButtonAction = () => {
+const upgradePlanButtonAction = () => {
   if (!canCreateProjectPermissionCheck.value) return
   if (canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat') {
     // open url to workspace/settings/users
@@ -515,7 +515,7 @@ const upgradeButtonAction = () => {
   }
 }
 
-const showUpgradeButton = computed(() => {
+const showUpgradePlanButton = computed(() => {
   if (!canCreateProjectPermissionCheck.value) return false
   if (
     canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat' ||
