@@ -127,15 +127,17 @@ export class SketchupBridge extends BaseBridge {
       objectId: result.data.project.model.version.referencedObject as string
     })
 
-    const updateProgress = (e: {
+    const updateProgress = (_: {
       stage: ProgressStage
       current: number
       total: number
     }) => {
-      const progress = e.current / e.total
+      // TODO: replace object loader with loader 2, for now progress is not return total and it end up with infinity
+      // const progress = e.current / e.total
+
       hostAppStore.handleModelProgressEvents({
         modelCardId: eventPayload.modelCardId,
-        progress: { status: 'Downloading', progress }
+        progress: { status: 'Downloading' }
       })
     }
 
