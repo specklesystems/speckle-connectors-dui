@@ -65,9 +65,9 @@ export function useMixpanel() {
       }
       const hashedEmail =
         '@' + md5(lastEmail.value.toLowerCase() as string).toUpperCase()
-      const hashedServer = md5(
-        new URL(lastServer.value).hostname.toLowerCase() as string
-      ).toUpperCase()
+      const serverUrl = new URL(lastServer.value)
+      const serverHostname = serverUrl.hostname.toLowerCase()
+      const hashedServer = md5(serverHostname).toUpperCase()
 
       // Get os info from userAgent text
       // taken from original mixpanel implementation
@@ -87,6 +87,8 @@ export function useMixpanel() {
         distinct_id: hashedEmail,
         // eslint-disable-next-line camelcase
         server_id: hashedServer,
+        // eslint-disable-next-line camelcase
+        server_domain: serverHostname,
         token: mixpanelTokenId as string,
         type: isAction ? 'action' : undefined,
         hostApp: hostApp.hostAppName,
