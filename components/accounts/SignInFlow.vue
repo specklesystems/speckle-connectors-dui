@@ -13,7 +13,8 @@
           @clear="showCustomServerInput = false"
         />
       </div>
-      <FormButton full-width @click="startAccountAddFlow()">Sign In</FormButton>
+      <FormButton v-if="canAddAccount" full-width @click="logIn()">Log in</FormButton>
+      <FormButton v-else full-width @click="startAccountAddFlow()">Sign in</FormButton>
       <FormButton
         text
         size="sm"
@@ -52,6 +53,8 @@ import { useAccountStore } from '~~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAuthManager } from '~/lib/authn/useAuthManager'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 const accountStore = useAccountStore()
 const hostApp = useHostAppStore()
@@ -62,6 +65,11 @@ const customServerUrl = ref<string | undefined>(undefined)
 const isAddingAccount = ref(false)
 const showHelp = ref(false)
 const showCustomServerInput = ref(false)
+
+const { $accountBinding } = useNuxtApp()
+const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
+  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+)
 
 const accountCheckerIntervalFn = useIntervalFn(
   async () => {
@@ -78,6 +86,18 @@ const accountCheckerIntervalFn = useIntervalFn(
   1000,
   { immediate: false }
 )
+
+const { generateChallenge } = useAuthManager()
+
+const logIn = () => {
+  const challenge = generateChallenge()
+  const config = useRuntimeConfig()
+  const serverUrl = customServerUrl.value
+    ? new URL(customServerUrl.value).origin
+    : 'https://app.speckle.systems'
+  const authUrl = `${serverUrl}/authn/verify/${config.public.speckleDuiAuthnAppId}/${challenge}`
+  window.location.href = authUrl
+}
 
 const startAccountAddFlow = () => {
   isAddingAccount.value = true
