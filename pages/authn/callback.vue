@@ -15,11 +15,13 @@ const router = useRouter()
 const { getChallenge } = useAuthManager()
 const { $accountBinding } = useNuxtApp()
 const hostApp = useHostAppStore()
-const origin = window.location.origin
 
 onMounted(async () => {
   try {
+    const origin = window.location.origin
+    console.log(origin)
     const accessCode = route.query.access_code as string | undefined
+    console.log(route.query)
     if (accessCode) {
       const challenge = getChallenge()
       const body = {
