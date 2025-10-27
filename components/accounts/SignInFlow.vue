@@ -90,10 +90,10 @@ const accountCheckerIntervalFn = useIntervalFn(
 const { generateChallenge } = useAuthManager()
 
 const logIn = () => {
-  const challenge = generateChallenge()
   const serverUrl = customServerUrl.value
     ? new URL(customServerUrl.value).origin
     : 'https://app.speckle.systems'
+  const challenge = generateChallenge(serverUrl)
   const authUrl = `${serverUrl}/authn/verify/sdui/${challenge}`
   window.location.href = authUrl
 }
