@@ -12,15 +12,15 @@ import { useHostAppStore } from '~/store/hostApp'
 
 const route = useRoute()
 const router = useRouter()
-const { getChallenge } = useAuthManager()
+const { getChallenge, getChallengeUrl } = useAuthManager()
 const { $accountBinding } = useNuxtApp()
 const hostApp = useHostAppStore()
-const origin = window.location.origin
 
 onMounted(async () => {
   try {
+    const origin = getChallengeUrl()
     const accessCode = route.query.access_code as string | undefined
-    if (accessCode) {
+    if (accessCode && origin) {
       const challenge = getChallenge()
       const body = {
         appId: 'sdui',
