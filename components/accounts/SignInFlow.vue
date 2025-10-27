@@ -91,11 +91,10 @@ const { generateChallenge } = useAuthManager()
 
 const logIn = () => {
   const challenge = generateChallenge()
-  const config = useRuntimeConfig()
   const serverUrl = customServerUrl.value
     ? new URL(customServerUrl.value).origin
     : 'https://app.speckle.systems'
-  const authUrl = `${serverUrl}/authn/verify/${config.public.speckleDuiAuthnAppId}/${challenge}`
+  const authUrl = `${serverUrl}/authn/verify/sdui/${challenge}`
   window.location.href = authUrl
 }
 

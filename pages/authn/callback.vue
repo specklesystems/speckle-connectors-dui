@@ -15,24 +15,22 @@ const router = useRouter()
 const { getChallenge } = useAuthManager()
 const { $accountBinding } = useNuxtApp()
 const hostApp = useHostAppStore()
+const origin = window.location.origin
 
 onMounted(async () => {
   const accessCode = route.query.access_code as string | undefined
 
   if (accessCode) {
     const challenge = getChallenge()
-    const config = useRuntimeConfig()
     const body = {
-      appId: config.public.speckleDuiAuthnAppId,
-      appSecret: config.public.speckleDuiAuthnAppSecret,
+      appId: 'sdui',
+      appSecret: 'sdui',
       accessCode,
       challenge
     }
 
-    const serverUrl = 'https://app.speckle.systems'
-
     // Exchange the access code for a real token (optional)
-    const response = await fetch(new URL('/auth/token', serverUrl), {
+    const response = await fetch(new URL('/auth/token', origin), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -59,7 +57,7 @@ onMounted(async () => {
         'query { activeUser { id name email company avatar } serverInfo { name company adminContact description version } }'
     }
 
-    const userAndServerInfoResponse = await fetch(new URL('/graphql', serverUrl), {
+    const userAndServerInfoResponse = await fetch(new URL('/graphql', origin), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +69,8 @@ onMounted(async () => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const userAndServerInfo = await userAndServerInfoResponse.json()
     const accountId = md5(
-      userAndServerInfo.data.activeUser.email + serverUrl
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      userAndServerInfo.data.activeUser.email + origin
     ).toUpperCase()
 
     const account: Account = {
@@ -79,7 +78,9 @@ onMounted(async () => {
       token,
       refreshToken,
       isDefault: true,
-      serverInfo: { url: serverUrl, ...userAndServerInfo.data.serverInfo },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      serverInfo: { url: origin, ...userAndServerInfo.data.serverInfo },
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       userInfo: userAndServerInfo.data.activeUser
     }
 
