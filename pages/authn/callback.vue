@@ -18,75 +18,84 @@ const hostApp = useHostAppStore()
 const origin = window.location.origin
 
 onMounted(async () => {
-  const accessCode = route.query.access_code as string | undefined
+  try {
+    const accessCode = route.query.access_code as string | undefined
+    if (accessCode) {
+      const challenge = getChallenge()
+      const body = {
+        appId: 'sdui',
+        appSecret: 'sdui',
+        accessCode,
+        challenge
+      }
 
-  if (accessCode) {
-    const challenge = getChallenge()
-    const body = {
-      appId: 'sdui',
-      appSecret: 'sdui',
-      accessCode,
-      challenge
-    }
-
-    // Exchange the access code for a real token (optional)
-    const response = await fetch(new URL('/auth/token', origin), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    })
-    if (!response.ok) {
-      const errorText = await response.text()
-
-      hostApp.setNotification({
-        title: 'Log In',
-        type: ToastNotificationType.Danger,
-        description: `Token exchange failed with status ${response.status}: ${errorText}`
+      // Exchange the access code for a real token (optional)
+      const response = await fetch(new URL('/auth/token', origin), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
       })
-      // Stop processing and redirect immediately on failure
-      return router.replace('/')
-    }
+      if (!response.ok) {
+        const errorText = await response.text()
 
-    const { token, refreshToken } = (await response.json()) as {
-      token: string
-      refreshToken: string
-    }
+        hostApp.setNotification({
+          title: 'Log In',
+          type: ToastNotificationType.Danger,
+          description: `Token exchange failed with status ${response.status}: ${errorText}`
+        })
+        // Stop processing and redirect immediately on failure
+        return router.replace('/')
+      }
 
-    const graphqlQuery = {
-      query:
-        'query { activeUser { id name email company avatar } serverInfo { name company adminContact description version } }'
-    }
+      const { token, refreshToken } = (await response.json()) as {
+        token: string
+        refreshToken: string
+      }
 
-    const userAndServerInfoResponse = await fetch(new URL('/graphql', origin), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}` // Add the token as a Bearer token
-      },
-      body: JSON.stringify(graphqlQuery)
+      const graphqlQuery = {
+        query:
+          'query { activeUser { id name email company avatar } serverInfo { name company adminContact description version } }'
+      }
+
+      const userAndServerInfoResponse = await fetch(new URL('/graphql', origin), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}` // Add the token as a Bearer token
+        },
+        body: JSON.stringify(graphqlQuery)
+      })
+
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const userAndServerInfo = await userAndServerInfoResponse.json()
+      const accountId = md5(
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        userAndServerInfo.data.activeUser.email + origin
+      ).toUpperCase()
+
+      const account: Account = {
+        id: accountId,
+        token,
+        refreshToken,
+        isDefault: true,
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        serverInfo: { url: origin, ...userAndServerInfo.data.serverInfo },
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+        userInfo: userAndServerInfo.data.activeUser
+      }
+
+      await $accountBinding.addAccount(accountId, account)
+    } else {
+      throw new Error('No access code is found.')
+    }
+  } catch (error) {
+    hostApp.setNotification({
+      type: ToastNotificationType.Danger,
+      title: 'Failed to add your Speckle account.',
+      description: error as string
     })
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const userAndServerInfo = await userAndServerInfoResponse.json()
-    const accountId = md5(
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      userAndServerInfo.data.activeUser.email + origin
-    ).toUpperCase()
-
-    const account: Account = {
-      id: accountId,
-      token,
-      refreshToken,
-      isDefault: true,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      serverInfo: { url: origin, ...userAndServerInfo.data.serverInfo },
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      userInfo: userAndServerInfo.data.activeUser
-    }
-
-    await $accountBinding.addAccount(accountId, account)
+  } finally {
+    router.replace('/')
   }
-
-  router.replace('/')
 })
 </script>
