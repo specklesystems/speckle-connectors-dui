@@ -7,6 +7,7 @@ export const IAccountBindingKey = 'accountsBinding'
 
 export interface IAccountBinding extends IBinding<IAccountBindingEvents> {
   getAccounts: () => Promise<Account[]>
+  addAccount: (accountId: string, account: Account) => Promise<void>
   removeAccount: (accountId: string) => Promise<void>
 }
 
@@ -15,6 +16,7 @@ export type Account = {
   id: string
   isDefault: boolean
   token: string
+  refreshToken: string
   serverInfo: {
     name: string
     url: string
@@ -52,6 +54,10 @@ export class MockedAccountBinding implements IAccountBinding {
         }
       }
     ]) as Account[]
+  }
+
+  public async addAccount(accountId: string, account: Account) {
+    return await console.log('no way dude', accountId, account)
   }
 
   public async removeAccount(accountId: string) {

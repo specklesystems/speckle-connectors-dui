@@ -5,7 +5,7 @@
     >
       Welcome to Speckle
     </h1>
-    <div v-if="isDesktopServiceAvailable">
+    <div v-if="isDesktopServiceAvailable || canAddAccount">
       <AccountsSignInFlow />
     </div>
     <div v-else>
@@ -37,9 +37,15 @@
 <script setup lang="ts">
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
+
+const { $accountBinding } = useNuxtApp()
+const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
+  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+)
 
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
 
