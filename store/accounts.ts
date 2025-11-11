@@ -286,6 +286,9 @@ export const useAccountStore = defineStore('accountStore', () => {
   }
 
   const accountByServerUrl = (serverUrl: string) => {
+    if (activeAccount.value.accountInfo.serverInfo.url === serverUrl) {
+      return activeAccount.value
+    }
     const accountMatchWithServerUrl = accounts.value.find(
       (acc) => acc.accountInfo.serverInfo.url === serverUrl
     )
