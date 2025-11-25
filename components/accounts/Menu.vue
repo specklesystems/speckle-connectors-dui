@@ -47,6 +47,7 @@
                 v-if="!showLegacy"
                 text
                 full-width
+                size="sm"
                 class="text-xs"
                 @click="showLegacy = true"
               >

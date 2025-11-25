@@ -1,14 +1,26 @@
 <template>
   <div class="flex flex-col space-y-2">
-    <FormTextInput
-      v-model="customServerUrl"
-      name="name"
-      :show-label="false"
-      color="foundation"
-      autocomplete="off"
-      show-clear
-      @clear="showCustomServerInput = false"
-    />
+    <FormButton
+      text
+      size="sm"
+      full-width
+      @click="showCustomServerInput = !showCustomServerInput"
+    >
+      {{ showCustomServerInput ? 'Use default server' : 'Set custom server url' }}
+    </FormButton>
+    <div v-if="showCustomServerInput">
+      <FormTextInput
+        v-model="customServerUrl"
+        name="name"
+        :show-label="false"
+        placeholder="https://app.speckle.systems"
+        color="foundation"
+        autocomplete="off"
+        show-clear
+        @clear="showCustomServerInput = false"
+      />
+    </div>
+
     <FormButton v-if="canAddAccount" full-width @click="logIn()">Log in</FormButton>
   </div>
 </template>
