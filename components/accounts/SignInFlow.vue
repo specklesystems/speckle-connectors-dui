@@ -9,14 +9,6 @@
       show-clear
       @clear="showCustomServerInput = false"
     />
-    <!-- <FormButton
-      text
-      size="sm"
-      full-width
-      @click="showCustomServerInput = !showCustomServerInput"
-    >
-      {{ showCustomServerInput ? 'Use default server' : 'Set custom server url' }}
-    </FormButton> -->
     <FormButton v-if="canAddAccount" full-width @click="logIn()">Log in</FormButton>
   </div>
 </template>
