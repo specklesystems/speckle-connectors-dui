@@ -39,33 +39,20 @@
             title="Add a new account"
             fullscreen="none"
           >
-            <div>
-              <div v-if="isDesktopServiceAvailable">
-                <AccountsSignInFlow />
-              </div>
-              <div v-else class="space-y-3">
-                <div class="text-foreground-2 text-sm">
-                  The Speckle Desktop Service is required to add accounts. This
-                  background service handles authentication securely.
-                </div>
-                <FormButton
-                  full-width
-                  @click="$openUrl('https://releases.speckle.systems')"
-                >
-                  Download Desktop Service
-                </FormButton>
-                <div class="text-center">
-                  <div class="text-foreground-2 text-xs mb-2">Already installed?</div>
-                  <FormButton
-                    text
-                    size="sm"
-                    full-width
-                    @click="accountStore.refreshAccounts()"
-                  >
-                    Refresh accounts
-                  </FormButton>
-                </div>
-              </div>
+            <div class="flex flex-col space-y-2">
+              <AccountsSignInFlow v-if="!showLegacy" />
+              <AccountsLegacySignInFlow v-else @back-to-sign-in="showLegacy = false" />
+
+              <FormButton
+                v-if="!showLegacy"
+                text
+                full-width
+                size="sm"
+                class="text-xs"
+                @click="showLegacy = true"
+              >
+                Legacy Sign in
+              </FormButton>
             </div>
           </CommonDialog>
         </div>
@@ -84,7 +71,6 @@ import { useDesktopService } from '~/lib/core/composables/desktopService'
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
-const { $openUrl } = useNuxtApp()
 const { pingDesktopService } = useDesktopService()
 
 const props = withDefaults(
@@ -102,7 +88,7 @@ defineEmits<{
 }>()
 
 const showAddNewAccount = ref(false)
-// const showAccountsDialog = ref(false)
+const showLegacy = ref(false)
 
 const showAccountsDialog = defineModel<boolean>('open', {
   required: false,
@@ -119,6 +105,13 @@ watch(showAccountsDialog, (newVal) => {
   if (newVal) {
     void accountStore.refreshAccounts()
     void trackEvent('DUI3 Action', { name: 'Account menu open' })
+  }
+})
+
+watch(showAddNewAccount, (newVal) => {
+  if (newVal) {
+    // reset the current/legacy state on every add account sub-dialog
+    showLegacy.value = false
   }
 })
 
