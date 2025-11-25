@@ -6,7 +6,18 @@
       Welcome to Speckle
     </h1>
     <div v-if="isDesktopServiceAvailable || canAddAccount">
-      <AccountsSignInFlow />
+      <AccountsSignInFlow v-if="!showLegacy" />
+      <AccountsLegacySignInFlow v-else @back-to-sign-in="showLegacy = false" />
+      <FormButton
+        v-if="!showLegacy"
+        text
+        full-width
+        size="sm"
+        class="text-xs"
+        @click="showLegacy = true"
+      >
+        Legacy Sign in
+      </FormButton>
     </div>
     <div v-else>
       <div class="text-foreground-2 mt-2 mb-4">
@@ -46,6 +57,8 @@ const { $accountBinding } = useNuxtApp()
 const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
   ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
 )
+
+const showLegacy = ref(false)
 
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
 

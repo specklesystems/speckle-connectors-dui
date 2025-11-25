@@ -1,7 +1,15 @@
 <template>
-  <div class="p-2">
+  <div class="flex flex-col space-y-2">
     <div v-if="isDesktopServiceAvailable">
       <div v-show="!isAddingAccount" class="text-foreground-2 space-y-2">
+        <FormButton
+          text
+          size="sm"
+          full-width
+          @click="showCustomServerInput = !showCustomServerInput"
+        >
+          {{ showCustomServerInput ? 'Use default server' : 'Set custom server url' }}
+        </FormButton>
         <div v-if="showCustomServerInput">
           <FormTextInput
             v-model="customServerUrl"
@@ -14,15 +22,19 @@
             @clear="showCustomServerInput = false"
           />
         </div>
-        <FormButton
-          text
-          size="sm"
-          full-width
-          @click="showCustomServerInput = !showCustomServerInput"
-        >
-          {{ showCustomServerInput ? 'Use default server' : 'Set custom server url' }}
-        </FormButton>
-        <FormButton full-width @click="startAccountAddFlow()">Sign in</FormButton>
+        <div class="flex space-x-2">
+          <FormButton
+            color="outline"
+            class="px-1"
+            :icon-left="ArrowLeftIcon"
+            hide-text
+            @click="emit('backToSignIn')"
+          />
+
+          <FormButton full-width @click="startAccountAddFlow()">
+            Sign in (Legacy)
+          </FormButton>
+        </div>
       </div>
 
       <div v-show="isAddingAccount" class="text-foreground-2 mt-2 mb-4 space-y-2">
@@ -50,7 +62,13 @@
         handles authentication securely.
       </div>
       <div class="flex space-x-2">
-        <FormButton color="outline" @click="emit('backToSignIn')">Back</FormButton>
+        <FormButton
+          color="outline"
+          class="px-1"
+          :icon-left="ArrowLeftIcon"
+          hide-text
+          @click="emit('backToSignIn')"
+        />
         <FormButton full-width @click="$openUrl('https://releases.speckle.systems')">
           Download Desktop Service
         </FormButton>
@@ -66,6 +84,7 @@ import { ToastNotificationType } from '@speckle/ui-components'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
+import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 
 const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
