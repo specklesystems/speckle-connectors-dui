@@ -15,7 +15,6 @@
             v-model="customServerUrl"
             name="name"
             :show-label="false"
-            placeholder="https://app.speckle.systems"
             color="foundation"
             autocomplete="off"
             show-clear
@@ -58,8 +57,8 @@
     </div>
     <div v-else class="space-y-3">
       <div class="text-foreground-2 text-sm">
-        The Speckle Desktop Service is required to add accounts. This background service
-        handles authentication securely.
+        The Speckle Desktop Service is required to add accounts as legacy way. This
+        background service handles authentication securely.
       </div>
       <div class="flex space-x-2">
         <FormButton
@@ -99,7 +98,7 @@ const emit = defineEmits<{
 const showCustomServerInput = ref(false)
 const isAddingAccount = ref(false)
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
-const customServerUrl = ref<string | undefined>(undefined)
+const customServerUrl = ref<string | undefined>('https://app.speckle.systems')
 const showHelp = ref(false)
 
 const accountCheckerIntervalFn = useIntervalFn(
