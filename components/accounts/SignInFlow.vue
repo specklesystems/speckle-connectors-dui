@@ -21,7 +21,7 @@
       />
     </div>
 
-    <FormButton v-if="canAddAccount" full-width @click="logIn()">Log in</FormButton>
+    <FormButton v-if="canAddAccount" full-width @click="logIn()">Sign in</FormButton>
   </div>
 </template>
 
