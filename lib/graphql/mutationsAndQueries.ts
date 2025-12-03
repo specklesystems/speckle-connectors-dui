@@ -89,9 +89,6 @@ export const workspaceListFragment = graphql(`
     logo
     role
     readOnly
-    creationState {
-      completed
-    }
     permissions {
       canCreateProject {
         authorized
@@ -459,10 +456,12 @@ export const projectDetailsQuery = graphql(`
 `)
 
 export const automateFunctionsQuery = graphql(`
-  query AutomateFunctions {
-    automateFunctions {
-      items {
-        ...AutomateFunctionItem
+  query AutomateFunctions($workspaceId: String!) {
+    workspace(id: $workspaceId) {
+      automateFunctions {
+        items {
+          ...AutomateFunctionItem
+        }
       }
     }
   }
