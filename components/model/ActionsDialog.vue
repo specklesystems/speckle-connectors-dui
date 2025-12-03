@@ -32,6 +32,18 @@
           </button>
         </template>
       </ReportBase>
+      <IssuesDialog
+        v-if="issues && issues.length > 0"
+        :issues="issues"
+        :project-id="modelCard.projectId"
+      >
+        <template #activator="{ toggle }">
+          <button class="action action-normal" @click="toggle()">
+            <div class="truncate max-[275px]:text-xs">Issues</div>
+            <div><Cog6ToothIcon class="w-5 h-5" /></div>
+          </button>
+        </template>
+      </IssuesDialog>
       <button
         v-for="item in items"
         :key="item.name"
@@ -57,6 +69,10 @@ import {
 } from '@heroicons/vue/24/outline'
 import type { IModelCard } from '~/lib/models/card'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { issuesListQuery } from '~/lib/issues/graphql/queries'
+import { useAccountStore } from '~/store/accounts'
+import { storeToRefs } from 'pinia'
+import { useQuery } from '@vue/apollo-composable'
 
 const { trackEvent } = useMixpanel()
 
@@ -113,6 +129,22 @@ const items = [
     }
   }
 ]
+
+const accountStore = useAccountStore()
+const { activeAccount } = storeToRefs(accountStore)
+const accountId = computed(() => activeAccount.value.accountInfo.id)
+
+const { result: issuesResult } = useQuery(
+  issuesListQuery,
+  () => ({ projectId: props.modelCard.projectId }),
+  () => ({
+    clientId: accountId.value,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
+)
+
+const issues = computed(() => issuesResult?.value?.project.issues.items)
 </script>
 <style scoped lang="postcss">
 .action {
