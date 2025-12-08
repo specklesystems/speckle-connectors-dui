@@ -12,7 +12,7 @@ concurrency:
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
 
 jobs:
-  lint-and-build:
+  lint:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -36,7 +36,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.14.0"
+          node-version: '22.14.0'
           cache: yarn
 
       - name: Configure auth to npm registry for @speckle packages
@@ -64,3 +64,58 @@ jobs:
 
       - name: Run generate
         run: yarn generate
+
+  build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      id-token: write # for publishing to npm using OIDC
+
+    env:
+      NPM_REGISTRY_URL: ${{ vars.NPM_REGISTRY_URL }}
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Enable Corepack and Install Correct Yarn Version
+        run: |
+          corepack enable
+          corepack prepare "yarn@$(jq -r .packageManager package.json | cut -d'@' -f2)" --activate
+          yarn --version
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.14.0'
+          cache: yarn
+
+      - name: Configure auth to npm registry for @speckle packages
+        if: vars.TAILSCALE_CONNECT_FOR_NPM == 'true'
+        run: |
+          cat <<EOT >> .yarnrc.yml
+
+          npmScopes:
+            "speckle":
+              npmRegistryServer: "${NPM_REGISTRY_URL}"
+          EOT
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@a392da0a182bba0e9613b6243ebd69529b1878aa
+        if: vars.TAILSCALE_CONNECT_FOR_NPM == 'true'
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+          tags: tag:ci
+
+      - name: Install Dependencies
+        run: yarn install --immutable
+
+      - name: Netlify publish
+        uses: netlify/actions/cli@3185065f4ab2f6df6f2ef41ee013626e1c02a426
+        with:
+          args: build
+        env: {}
+          # NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+          # NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
