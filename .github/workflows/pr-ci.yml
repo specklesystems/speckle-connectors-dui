@@ -99,7 +99,6 @@ jobs:
           npmScopes:
             'speckle':
               npmRegistryServer: '${NPM_REGISTRY_URL}'
-
           EOT
       - name: Connect to Tailscale
         uses: tailscale/github-action@a392da0a182bba0e9613b6243ebd69529b1878aa
