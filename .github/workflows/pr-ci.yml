@@ -27,6 +27,12 @@ jobs:
           node-version: '22.14.0'
           cache: yarn
 
+      - name: Enable Corepack and Install Correct Yarn Version
+        run: |
+          corepack enable
+          corepack prepare "yarn@$(jq -r .packageManager package.json | cut -d'@' -f2)" --activate
+          yarn --version
+
       - name: Install Dependencies
         run: yarn --immutable
 
