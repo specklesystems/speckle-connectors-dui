@@ -5,9 +5,15 @@ on:
     branches:
       - main
 
+concurrency:
+  group: ${{ github.workflow }}-linting-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
 jobs:
   lint-and-build:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Checkout Code
@@ -17,25 +23,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.14.0'
-
-      - name: Enable Corepack and Install Correct Yarn Version
-        run: |
-          corepack enable
-          corepack prepare yarn@$(jq -r .packageManager package.json | cut -d'@' -f2) --activate
-          yarn --version
-
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: |
-            **/node_modules
-            .yarn/cache
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-yarn-
+          cache: yarn
 
       - name: Install Dependencies
-        run: yarn install --immutable
+        run: yarn --immutable
 
       - name: Run Linter
         run: yarn lint
