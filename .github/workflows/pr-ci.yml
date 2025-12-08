@@ -53,7 +53,7 @@ jobs:
           tags: tag:ci
 
       - name: Install Dependencies
-        run: yarn --immutable
+        run: yarn install --immutable
 
       - name: Run Linter
         run: yarn lint
