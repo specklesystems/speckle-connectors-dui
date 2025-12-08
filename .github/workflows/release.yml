@@ -26,7 +26,8 @@ jobs:
       TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
       TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
 
-  build:
+  publish:
+    needs: [lint]
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
