@@ -6,7 +6,7 @@ on:
       - main
 
 concurrency:
-  group: ${{ github.workflow }}-linting-${{ github.ref }}
+  group: ${{ github.workflow }}-pr-${{ github.ref }}
   cancel-in-progress: false
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below

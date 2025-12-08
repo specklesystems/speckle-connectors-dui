@@ -23,9 +23,6 @@ concurrency:
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
 
-
-
-
 jobs:
   lint:
     runs-on: blacksmith-4vcpu-ubuntu-2404
