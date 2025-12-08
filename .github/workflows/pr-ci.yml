@@ -96,7 +96,6 @@ jobs:
         if: vars.TAILSCALE_CONNECT_FOR_NPM == 'true'
         run: |
           cat <<EOT >> .yarnrc.yml
-
           npmScopes:
             'speckle':
               npmRegistryServer: '${NPM_REGISTRY_URL}'
