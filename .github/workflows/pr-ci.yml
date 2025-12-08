@@ -14,6 +14,8 @@ permissions: {} # purposefully empty by default at workflow level, explicitly ov
 jobs:
   lint-and-build:
     runs-on: blacksmith-4vcpu-ubuntu-2404
+    env:
+      NPM_REGISTRY_URL: ${{ vars.NPM_REGISTRY_URL }}
 
     steps:
       - name: Checkout Code
@@ -30,8 +32,25 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22.14.0'
+          node-version: "22.14.0"
           cache: yarn
+
+      - name: Configure auth to npm registry for @speckle packages
+        if: vars.TAILSCALE_CONNECT_FOR_NPM == 'true'
+        run: |
+          cat <<EOT >> .yarnrc.yml
+
+          npmScopes:
+            "speckle":
+              npmRegistryServer: "${NPM_REGISTRY_URL}"
+          EOT
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@a392da0a182bba0e9613b6243ebd69529b1878aa
+        if: vars.TAILSCALE_CONNECT_FOR_NPM == 'true'
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+          tags: tag:ci
 
       - name: Install Dependencies
         run: yarn --immutable
