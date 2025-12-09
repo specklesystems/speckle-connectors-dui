@@ -34,8 +34,8 @@
       </ReportBase>
       <IssuesDialog
         v-if="issues && issues.length > 0"
+        :model-card="modelCard"
         :issues="issues"
-        :project-id="modelCard.projectId"
       >
         <template #activator="{ toggle }">
           <button class="action action-normal" @click="toggle()">
