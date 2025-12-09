@@ -67,7 +67,7 @@
               </span>
               <span>
                 &nbsp;replied &middot;
-                {{ dayjs(issue.replies?.items?.[0].createdAt).from(dayjs()) }}
+                {{ dayjs(reply.createdAt).from(dayjs()) }}
               </span>
             </div>
           </div>
