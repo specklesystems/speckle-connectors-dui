@@ -80,29 +80,43 @@ const emit = defineEmits<{
 
 const app = useNuxtApp()
 
-const highlightModel = async () => {
-  if (props.issue.viewerState) {
-    if (props.modelCard.typeDiscriminator === 'SenderModelCard') {
-      const sender = props.modelCard as SenderModelCard
-      const selectedObjectApplicationIds =
-        (Object.values(
-          props.issue.viewerState.ui.filters.selectedObjectApplicationIds
-        ) as string[]) || []
-      const appIdsToHighlight = (sender.sendFilter?.selectedObjectIds || []).filter(
-        (id) => selectedObjectApplicationIds.includes(id)
-      )
-      if (appIdsToHighlight.length > 0) {
-        await app.$baseBinding.highlightObjects(appIdsToHighlight)
-      } else {
-        store.setNotification({
-          title: 'Objects not found to highlight on this model.',
-          type: ToastNotificationType.Info
-        })
-      }
+type IssueViewerState = {
+  ui: {
+    filters: {
+      selectedObjectApplicationIds?: Record<string, string>
     }
-  } else {
+  }
+}
+
+const highlightModel = async () => {
+  if (!props.issue.viewerState) {
     store.setNotification({
       title: 'Objects not found to highlight',
+      type: ToastNotificationType.Info
+    })
+    return
+  }
+
+  if (props.modelCard.typeDiscriminator !== 'SenderModelCard') return
+
+  const sender = props.modelCard as SenderModelCard
+
+  type SelectedObjectMap = Record<string, string>
+
+  const selectedObjectApplicationIds = Object.values(
+    ((props.issue.viewerState as IssueViewerState).ui.filters
+      .selectedObjectApplicationIds ?? {}) as SelectedObjectMap
+  )
+
+  const appIdsToHighlight = (sender.sendFilter?.selectedObjectIds ?? []).filter((id) =>
+    selectedObjectApplicationIds.includes(id)
+  )
+
+  if (appIdsToHighlight.length > 0) {
+    await app.$baseBinding.highlightObjects(appIdsToHighlight)
+  } else {
+    store.setNotification({
+      title: 'Objects not found to highlight on this model.',
       type: ToastNotificationType.Info
     })
   }
