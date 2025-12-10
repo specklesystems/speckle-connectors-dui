@@ -195,7 +195,7 @@
             >
               <div
                 v-tippy="
-                  `${latestCommentNotification.comment?.author.name} just left a
+                  `${latestCommentNotification.comment?.author?.name} just left a
                   comment.`
                 "
                 class="flex items-center space-x-1"
@@ -205,7 +205,7 @@
                   :users="[latestCommentNotification.comment?.author as AvatarUserWithId]"
                 />
                 <span class="line-clamp-1">
-                  {{ latestCommentNotification.comment?.author.name }} just left a
+                  {{ latestCommentNotification.comment?.author?.name }} just left a
                   comment on the issue.
                 </span>
               </div>
