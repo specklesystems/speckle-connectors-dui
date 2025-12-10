@@ -6487,7 +6487,6 @@ export enum WorkspaceFeatureFlagName {
   AccIntegration = 'accIntegration',
   Dashboards = 'dashboards',
   DashboardsExperimental = 'dashboardsExperimental',
-  Issues = 'issues',
   Markup = 'markup',
   Presentations = 'presentations'
 }

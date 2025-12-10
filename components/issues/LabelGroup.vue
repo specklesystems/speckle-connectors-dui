@@ -12,7 +12,18 @@
         />
       </template>
     </div>
-    <span class="text-body-3xs text-foreground-2 font-medium">
+
+    <!-- Single label -->
+    <span
+      v-if="labels.length === 1"
+      class="text-body-3xs font-medium flex items-center gap-1"
+      :style="{ color: labels[0].hexColor || undefined }"
+    >
+      {{ labels[0].name }}
+    </span>
+
+    <!-- Multiple labels -->
+    <span v-else class="text-body-3xs text-foreground-2 font-medium">
       {{ labels.length }} label{{ labels.length !== 1 ? 's' : '' }}
     </span>
   </div>
