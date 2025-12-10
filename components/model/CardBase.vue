@@ -357,7 +357,10 @@ const { result: issuesResult, refetch: refetchIssues } = useQuery(
 
 const issues = computed(() =>
   issuesResult?.value?.project.issues.items.filter(
-    (issue) => issue.status !== 'resolved'
+    (issue) =>
+      issue.status !== 'resolved' &&
+      issue.resourceIdString &&
+      (issue.resourceIdString as string).includes(props.modelCard.modelId)
   )
 )
 

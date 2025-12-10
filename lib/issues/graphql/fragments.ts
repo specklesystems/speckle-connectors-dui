@@ -8,6 +8,7 @@ export const issueFragment = graphql(`
     priority
     viewerState
     identifier
+    resourceIdString
     activities(input: { limit: 1, sortDirection: asc }) {
       totalCount
       items {
