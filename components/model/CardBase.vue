@@ -67,6 +67,22 @@
             size="sm"
             @click="deleteSettings"
           /> -->
+          <IssuesDialog
+            v-if="issues && issues.length > 0"
+            :model-card="modelCard"
+            :issues="issues"
+          >
+            <template #activator="{ toggle }">
+              <FormButton
+                v-tippy="'Issues'"
+                color="subtle"
+                :icon-left="MessageCircleMore"
+                hide-text
+                size="sm"
+                @click="toggle()"
+              />
+            </template>
+          </IssuesDialog>
           <FormButton
             v-if="store.hostAppName !== 'navisworks' && store.hostAppName !== 'etabs'"
             v-tippy="'Highlight'"
@@ -179,7 +195,7 @@
             >
               <div
                 v-tippy="
-                  `${latestCommentNotification.comment?.author.name} just left a
+                  `${latestCommentNotification.comment?.author?.name} just left a
                   comment.`
                 "
                 class="flex items-center space-x-1"
@@ -189,8 +205,8 @@
                   :users="[latestCommentNotification.comment?.author as AvatarUserWithId]"
                 />
                 <span class="line-clamp-1">
-                  {{ latestCommentNotification.comment?.author.name }} just left a
-                  comment.
+                  {{ latestCommentNotification.comment?.author?.name }} just left a
+                  comment on the issue.
                 </span>
               </div>
               <div>
@@ -236,6 +252,8 @@ import type { ProjectCommentsUpdatedMessage } from '~/lib/common/generated/gql/g
 import { useFunctionRunsStatusSummary } from '~/lib/automate/runStatus'
 import { CursorArrowRaysIcon, XCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import type { AvatarUserWithId } from '@speckle/ui-components'
+import { issuesListQuery } from '~/lib/issues/graphql/queries'
+import { MessageCircleMore } from 'lucide-vue-next'
 
 const app = useNuxtApp()
 const store = useHostAppStore()
@@ -326,6 +344,25 @@ const summary = computed(() => {
     runs: automationRuns.value
   })
 })
+
+const { result: issuesResult, refetch: refetchIssues } = useQuery(
+  issuesListQuery,
+  () => ({ projectId: props.modelCard.projectId }),
+  () => ({
+    clientId,
+    debounce: 500,
+    fetchPolicy: 'network-only'
+  })
+)
+
+const issues = computed(() =>
+  issuesResult?.value?.project.issues.items.filter(
+    (issue) =>
+      issue.status !== 'resolved' &&
+      issue.resourceIdString &&
+      (issue.resourceIdString as string).includes(props.modelCard.modelId)
+  )
+)
 
 provide<IModelCard>('cardBase', props.modelCard)
 
@@ -486,6 +523,7 @@ onCommentResult((res) => {
   latestCommentNotification.value = res.data
     ?.projectCommentsUpdated as ProjectCommentsUpdatedMessage
   startCommentClearTimeout()
+  refetchIssues()
 })
 
 const viewComment = () => {
