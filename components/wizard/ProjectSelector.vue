@@ -159,7 +159,14 @@
 
         <CommonLoadingBar v-if="loading || isCreatingProject" loading />
       </div>
-      <div v-if="!urlParseError" class="grid grid-cols-1 gap-2 relative z-0">
+      <p v-if="projectsError" class="text-sm text-danger">
+        {{
+          projectsError.networkError
+            ? 'Network error. Please check your connection.'
+            : projectsError.message || 'Failed to load projects.'
+        }}
+      </p>
+      <div v-else-if="!urlParseError" class="grid grid-cols-1 gap-2 relative z-0">
         <WizardListProjectCard
           v-for="project in projects"
           :key="project.id"
@@ -417,7 +424,8 @@ const {
   result: projectsResult,
   loading,
   fetchMore,
-  refetch
+  refetch,
+  error: projectsError
 } = useQuery(
   projectsListQuery,
   () => ({

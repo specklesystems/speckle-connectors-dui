@@ -1727,6 +1727,10 @@ export type GetUngroupedViewGroupInput = {
   resourceIdString: Scalars['String']['input'];
 };
 
+export type HasHandlerType = {
+  handlerType: ModelIngestionHandlerType;
+};
+
 export type HasModelIngestionStatus = {
   status: ModelIngestionStatus;
 };
@@ -1740,6 +1744,11 @@ export type HistoricalUser = {
   __typename?: 'HistoricalUser';
   id: Scalars['ID']['output'];
   user?: Maybe<LimitedUser>;
+};
+
+export type IngestionHistoryInput = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type InvitableCollaboratorsFilter = {
@@ -2230,7 +2239,7 @@ export type Model = {
   /** The model's home view, if any */
   homeView?: Maybe<SavedView>;
   id: Scalars['ID']['output'];
-  ingestionHistory: Array<ModelIngestion>;
+  ingestionHistory: ModelIngestionHistory;
   latestIngestion?: Maybe<ModelIngestion>;
   /** Full name including the names of parent models delimited by forward slashes */
   name: Scalars['String']['output'];
@@ -2252,6 +2261,11 @@ export type Model = {
 export type ModelCommentThreadsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: Scalars['Int']['input'];
+};
+
+
+export type ModelIngestionHistoryArgs = {
+  input?: InputMaybe<IngestionHistoryInput>;
 };
 
 
@@ -2288,9 +2302,11 @@ export type ModelIngestion = {
   authorUser?: Maybe<LimitedUser>;
   cancellationRequested: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
+  handler: ModelIngestionHandler;
   id: Scalars['ID']['output'];
   modelId: Scalars['String']['output'];
   projectId: Scalars['String']['output'];
+  sourceData?: Maybe<SourceData>;
   statusData: ModelIngestionStatusData;
   updatedAt: Scalars['DateTime']['output'];
   userId?: Maybe<Scalars['String']['output']>;
@@ -2306,6 +2322,11 @@ export type ModelIngestionCancelledStatus = HasModelIngestionStatus & {
   __typename?: 'ModelIngestionCancelledStatus';
   cancellationMessage: Scalars['String']['output'];
   status: ModelIngestionStatus;
+};
+
+export type ModelIngestionClientHandler = HasHandlerType & {
+  __typename?: 'ModelIngestionClientHandler';
+  handlerType: ModelIngestionHandlerType;
 };
 
 export type ModelIngestionCreateInput = {
@@ -2328,6 +2349,26 @@ export type ModelIngestionFailedStatus = HasModelIngestionStatus & {
   errorReason: Scalars['String']['output'];
   errorStacktrace?: Maybe<Scalars['String']['output']>;
   status: ModelIngestionStatus;
+};
+
+export type ModelIngestionFileUploadHander = HasHandlerType & {
+  __typename?: 'ModelIngestionFileUploadHander';
+  blobId: Scalars['String']['output'];
+  handlerType: ModelIngestionHandlerType;
+};
+
+export type ModelIngestionHandler = ModelIngestionClientHandler | ModelIngestionFileUploadHander;
+
+export enum ModelIngestionHandlerType {
+  ClientSide = 'clientSide',
+  FileUpload = 'fileUpload'
+}
+
+export type ModelIngestionHistory = {
+  __typename?: 'ModelIngestionHistory';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<ModelIngestion>;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type ModelIngestionProcessingStatus = HasModelIngestionStatus & HasProgressMessage & {
@@ -2381,6 +2422,7 @@ export type ModelIngestionSuccessInput = {
   ingestionId: Scalars['ID']['input'];
   projectId: Scalars['ID']['input'];
   rootObjectId: Scalars['ID']['input'];
+  versionMessage?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ModelIngestionSuccessStatus = HasModelIngestionStatus & {
@@ -3092,6 +3134,7 @@ export type Project = {
   /** @deprecated Use specific auth policies instead */
   hasAccessToFeature: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
+  ingestion?: Maybe<ModelIngestion>;
   invitableCollaborators: WorkspaceCollaboratorCollection;
   /** Collaborators who have been invited, but not yet accepted. */
   invitedTeam?: Maybe<Array<PendingStreamCollaborator>>;
@@ -3233,6 +3276,11 @@ export type ProjectEmbedTokensArgs = {
 
 export type ProjectHasAccessToFeatureArgs = {
   featureName: WorkspaceFeatureName;
+};
+
+
+export type ProjectIngestionArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -3743,11 +3791,20 @@ export enum ProjectIssuesUpdatedMessageType {
 export type ProjectModelIngestionMutations = {
   __typename?: 'ProjectModelIngestionMutations';
   completeWithVersion: ModelIngestion;
+  /**
+   * This will create an ingestion in a processing state.
+   * Use this mutation if you want to create a client side ingestion sessions,
+   * where the session creator is responsible for processing and completing the session.
+   */
   create: ModelIngestion;
   failWithCancel: ModelIngestion;
   failWithError: ModelIngestion;
   requestCancellation: ModelIngestion;
   requeue: ModelIngestion;
+  /**
+   * This mutation will move an existing queued ingestion into the processing state.
+   * Use this if you are given a reference to a pre created ingestion session and you want to start processing it.
+   */
   startProcessing: ModelIngestion;
   updateProgress: ModelIngestion;
 };
@@ -4464,12 +4521,6 @@ export type SavedView = {
   resourceIdString: Scalars['String']['output'];
   /** Same as resourceIdString, but split into an array of resource IDs. */
   resourceIds: Array<Scalars['String']['output']>;
-  /**
-   * Encoded screenshot of the view. Can be a very large value, its preferred you
-   * use the thumbnailUrl or previewUrl fields to load the image from a separate endpoint
-   * @deprecated Use thumbnailUrl or previewUrl instead
-   */
-  screenshot: Scalars['String']['output'];
   thumbnailUrl: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
   /** Viewer state, the actual view configuration */
@@ -4930,6 +4981,14 @@ export enum SortOrder {
   Asc = 'asc',
   Desc = 'desc'
 }
+
+export type SourceData = {
+  __typename?: 'SourceData';
+  fileName?: Maybe<Scalars['String']['output']>;
+  fileSizeBytes?: Maybe<Scalars['BigInt']['output']>;
+  sourceApplicationSlug?: Maybe<Scalars['String']['output']>;
+  sourceApplicationVersion?: Maybe<Scalars['String']['output']>;
+};
 
 export type SourceDataInput = {
   fileName?: InputMaybe<Scalars['String']['input']>;
