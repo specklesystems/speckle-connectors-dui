@@ -31,7 +31,7 @@
                 <WorkspaceAvatar
                   :size="'xs'"
                   :name="selectedWorkspace.name || ''"
-                  :logo="selectedWorkspace.logo"
+                  :logo="selectedWorkspace.logoUrl"
                 />
                 <div class="min-w-0 truncate flex-grow text-left">
                   <span>{{ selectedWorkspace.name }}</span>

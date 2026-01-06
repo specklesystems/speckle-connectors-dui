@@ -87,6 +87,7 @@ export const workspaceListFragment = graphql(`
     createdAt
     updatedAt
     logo
+    logoUrl
     role
     readOnly
     permissions {

@@ -14,7 +14,7 @@
       <WorkspaceAvatar
         :size="'sm'"
         :name="workspace.name || ''"
-        :logo="workspace.logo"
+        :logo="workspace.logoUrl"
       />
       <div class="min-w-0 grow">
         <div class="truncate overflow-hidden min-w-0 flex items-center space-x-2">
