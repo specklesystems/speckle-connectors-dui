@@ -56,14 +56,10 @@ onMounted(() => {
     }
   })
 
-  console.log(
-    hostAppStore.isDistributedBySpeckle,
-    'hostAppStore.isDistributedBySpeckle'
-  )
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  if (hostAppStore.isDistributedBySpeckle) {
-    const { $intercom } = useNuxtApp() // needed her for initialisation
+  const { $intercom } = useNuxtApp() // needed her for initialisation
+  if (!hostAppStore.isDistributedBySpeckle) {
+    $intercom.shutdown()
   }
 
   logToSeq('Information', 'DUI3 initialized')
