@@ -32,8 +32,10 @@ export const useIntercom = () => {
       isInitialized.value ||
       !activeAccount.value ||
       !hostAppStore.isDistributedBySpeckle
-    )
+    ) {
+      console.log('Intercom not initialized')
       return
+    }
 
     isInitialized.value = true
     Intercom({
@@ -48,6 +50,7 @@ export const useIntercom = () => {
 
   const showIntercom = () => {
     if (!isInitialized.value) return
+    console.log('Intercom shown')
     show()
   }
 
