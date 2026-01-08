@@ -56,6 +56,11 @@ onMounted(() => {
     }
   })
 
+  console.log(
+    hostAppStore.isDistributedBySpeckle,
+    'hostAppStore.isDistributedBySpeckle'
+  )
+
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   if (hostAppStore.isDistributedBySpeckle) {
     const { $intercom } = useNuxtApp() // needed her for initialisation
