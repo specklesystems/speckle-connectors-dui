@@ -57,7 +57,9 @@ onMounted(() => {
   })
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { $intercom } = useNuxtApp() // needed her for initialisation
+  if (hostAppStore.isDistributedBySpeckle) {
+    const { $intercom } = useNuxtApp() // needed her for initialisation
+  }
 
   logToSeq('Information', 'DUI3 initialized')
 })
