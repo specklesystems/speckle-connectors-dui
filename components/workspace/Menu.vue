@@ -33,13 +33,7 @@ defineEmits<{
   (e: 'workspace:selected', result: WorkspaceListWorkspaceItemFragment): void
 }>()
 
-const workspacesWithPersonalProjects = computed(() => [
-  ...props.workspaces,
-  {
-    id: 'personalProject',
-    name: 'Personal Projects'
-  } as WorkspaceListWorkspaceItemFragment
-])
+const workspacesWithPersonalProjects = computed(() => [...props.workspaces])
 
 const toggleDialog = () => {
   showWorkspaceSelectorDialog.value = !showWorkspaceSelectorDialog.value
