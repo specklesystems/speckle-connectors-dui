@@ -8,6 +8,7 @@ import Intercom, {
 } from '@intercom/messenger-js-sdk'
 import { useAccountStore } from '~/store/accounts'
 import { storeToRefs } from 'pinia'
+import { useHostAppStore } from '~/store/hostApp'
 
 const disabledRoutes: string[] = []
 
@@ -16,7 +17,7 @@ export const useIntercom = () => {
 
   const accountStore = useAccountStore()
   const { activeAccount } = storeToRefs(accountStore)
-
+  const hostAppStore = useHostAppStore()
   const isInitialized = ref(false)
 
   const isRouteBlacklisted = computed(() => {
@@ -26,7 +27,12 @@ export const useIntercom = () => {
   const shouldEnableIntercom = computed(() => !isRouteBlacklisted.value)
 
   const bootIntercom = () => {
-    if (!shouldEnableIntercom.value || isInitialized.value || !activeAccount.value)
+    if (
+      !shouldEnableIntercom.value ||
+      isInitialized.value ||
+      !activeAccount.value ||
+      !hostAppStore.isDistributedBySpeckle
+    )
       return
 
     isInitialized.value = true
