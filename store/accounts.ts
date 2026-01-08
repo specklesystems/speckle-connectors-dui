@@ -166,11 +166,19 @@ export const useAccountStore = defineStore('accountStore', () => {
         }
 
         if (res.networkError) {
-          hostAppStore.setNotification({
-            type: ToastNotificationType.Danger,
-            title: 'Network Error',
-            description: res.networkError.message
-          })
+          if (!navigator.onLine) { // no internet connection
+            hostAppStore.setNotification({
+              type: ToastNotificationType.Danger,
+              title: 'No Internet Connection',
+              description: 'Please check your network connection and try again.'
+            })
+          } else { // other network errors
+            hostAppStore.setNotification({
+              type: ToastNotificationType.Danger,
+              title: 'Network Error',
+              description: res.networkError.message
+            })
+          }
         }
       })
 

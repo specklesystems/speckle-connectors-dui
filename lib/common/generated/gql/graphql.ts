@@ -1301,6 +1301,7 @@ export type Dashboard = {
   id: Scalars['String']['output'];
   name: Scalars['String']['output'];
   permissions: DashboardPermissionChecks;
+  projects: Array<LimitedProject>;
   shareLink?: Maybe<DashboardShareLink>;
   /** If null, this is a new dashboard and should be initialized by the client */
   state?: Maybe<Scalars['String']['output']>;
@@ -1317,6 +1318,7 @@ export type DashboardCollection = {
 
 export type DashboardCreateInput = {
   name: Scalars['String']['input'];
+  projectId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type DashboardMutations = {
@@ -1386,6 +1388,8 @@ export type DashboardPermissionChecks = {
   canDuplicate: PermissionCheckResult;
   canEdit: PermissionCheckResult;
   canRead: PermissionCheckResult;
+  canUpdateProjects: PermissionCheckResult;
+  canUseExperimentalFeatures: PermissionCheckResult;
 };
 
 export type DashboardProjectLink = {
@@ -2038,6 +2042,12 @@ export type LegacyCommentViewerData = {
   selection?: Maybe<Scalars['JSONObject']['output']>;
 };
 
+export type LimitedProject = {
+  __typename?: 'LimitedProject';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+};
+
 /**
  * Limited user type, for showing public info about a user
  * to another user
@@ -2154,8 +2164,13 @@ export type LimitedWorkspace = {
   discoverabilityAutoJoinEnabled: Scalars['Boolean']['output'];
   /** Workspace id */
   id: Scalars['ID']['output'];
-  /** Optional base64 encoded workspace logo image */
+  /**
+   * Optional base64 encoded workspace logo image
+   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2025.
+   */
   logo?: Maybe<Scalars['String']['output']>;
+  /** URL for pulling the workspace logo image */
+  logoUrl?: Maybe<Scalars['String']['output']>;
   /** Workspace name */
   name: Scalars['String']['output'];
   /** Workspace permissions */
@@ -2312,6 +2327,21 @@ export type ModelIngestion = {
   userId?: Maybe<Scalars['String']['output']>;
 };
 
+export type ModelIngestionAccHandler = HasHandlerType & {
+  __typename?: 'ModelIngestionAccHandler';
+  automationId: Scalars['String']['output'];
+  automationRunId: Scalars['String']['output'];
+  handlerType: ModelIngestionHandlerType;
+};
+
+export type ModelIngestionAutomateFileUpload = HasHandlerType & {
+  __typename?: 'ModelIngestionAutomateFileUpload';
+  automationId: Scalars['String']['output'];
+  automationRunId: Scalars['String']['output'];
+  blobId: Scalars['String']['output'];
+  handlerType: ModelIngestionHandlerType;
+};
+
 export type ModelIngestionCancelledInput = {
   cancellationMessage: Scalars['String']['input'];
   ingestionId: Scalars['ID']['input'];
@@ -2351,15 +2381,17 @@ export type ModelIngestionFailedStatus = HasModelIngestionStatus & {
   status: ModelIngestionStatus;
 };
 
-export type ModelIngestionFileUploadHander = HasHandlerType & {
-  __typename?: 'ModelIngestionFileUploadHander';
+export type ModelIngestionFileUploadHandler = HasHandlerType & {
+  __typename?: 'ModelIngestionFileUploadHandler';
   blobId: Scalars['String']['output'];
   handlerType: ModelIngestionHandlerType;
 };
 
-export type ModelIngestionHandler = ModelIngestionClientHandler | ModelIngestionFileUploadHander;
+export type ModelIngestionHandler = ModelIngestionAccHandler | ModelIngestionAutomateFileUpload | ModelIngestionClientHandler | ModelIngestionFileUploadHandler;
 
 export enum ModelIngestionHandlerType {
+  Acc = 'acc',
+  AutomateFileUpload = 'automateFileUpload',
   ClientSide = 'clientSide',
   FileUpload = 'fileUpload'
 }
@@ -3007,6 +3039,8 @@ export type OnboardingCompletionInput = {
 };
 
 export enum PaidWorkspacePlans {
+  Business = 'business',
+  Legacy = 'legacy',
   Pro = 'pro',
   ProUnlimited = 'proUnlimited',
   Team = 'team',
@@ -6016,6 +6050,8 @@ export type UserProjectsFilter = {
   search?: InputMaybe<Scalars['String']['input']>;
   /** Only include projects in the specified workspace */
   workspaceId?: InputMaybe<Scalars['ID']['input']>;
+  /** Only include projects in the specified workspace (by slug) */
+  workspaceSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UserProjectsUpdatedMessage = {
@@ -6372,8 +6408,13 @@ export type Workspace = {
   isExclusive: Scalars['Boolean']['output'];
   /** List all issue labels for this workspace */
   issueLabels: IssueLabelCollection;
-  /** Logo image as base64-encoded string */
+  /**
+   * Logo image as base64-encoded string
+   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2025.
+   */
   logo?: Maybe<Scalars['String']['output']>;
+  /** URL for pulling the workspace logo image */
+  logoUrl?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   permissions: WorkspacePermissionChecks;
   plan?: Maybe<WorkspacePlan>;
@@ -6838,6 +6879,8 @@ export type WorkspaceMutationsUpdateSeatTypeArgs = {
 
 export type WorkspacePaidPlanPrices = {
   __typename?: 'WorkspacePaidPlanPrices';
+  business: WorkspacePlanPrice;
+  legacy: WorkspacePlanPrice;
   pro: WorkspacePlanPrice;
   proUnlimited: WorkspacePlanPrice;
   team: WorkspacePlanPrice;
@@ -6853,6 +6896,7 @@ export enum WorkspacePaymentMethod {
 export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
   canAccessDashboards: PermissionCheckResult;
+  canAccessSso: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
   canDelete: PermissionCheckResult;
@@ -6864,6 +6908,7 @@ export type WorkspacePermissionChecks = {
   canMakeWorkspaceExclusive: PermissionCheckResult;
   canManageInvites: PermissionCheckResult;
   canManageJoinRequests: PermissionCheckResult;
+  canManageSso: PermissionCheckResult;
   canMoveProjectToWorkspace: PermissionCheckResult;
   canReadAutomateSettings: PermissionCheckResult;
   canReadBillingSettings: PermissionCheckResult;
@@ -6874,6 +6919,9 @@ export type WorkspacePermissionChecks = {
   canReadProjectsSettings: PermissionCheckResult;
   canReadSecuritySettings: PermissionCheckResult;
   canReadWorkspaceIssueLabels: PermissionCheckResult;
+  canRemoveUser: PermissionCheckResult;
+  canUseAdminSupportTools: PermissionCheckResult;
+  canUseExperimentalDashboardFeatures: PermissionCheckResult;
 };
 
 
@@ -6911,8 +6959,12 @@ export type WorkspacePlanUsage = {
 
 export enum WorkspacePlans {
   Academia = 'academia',
+  Business = 'business',
+  DevEnterprise = 'devEnterprise',
+  DevFree = 'devFree',
   Enterprise = 'enterprise',
   Free = 'free',
+  Legacy = 'legacy',
   Pro = 'pro',
   ProUnlimited = 'proUnlimited',
   ProUnlimitedInvoiced = 'proUnlimitedInvoiced',
