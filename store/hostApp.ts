@@ -731,8 +731,10 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (hostAppName.value?.toLowerCase() === 'revit' &&
         hostAppVersion.value?.includes('2022')) ||
       !isDistributedBySpeckle.value
-    )
+    ) {
+      window.Intercom('shutdown') // could not shut down in other ways like $intercom.shutdown()
       return
+    }
 
     // guards against intercom being sometimes slower to init
     setTimeout(() => {
