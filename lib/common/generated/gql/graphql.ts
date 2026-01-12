@@ -6920,6 +6920,7 @@ export type WorkspacePermissionChecks = {
   canReadSecuritySettings: PermissionCheckResult;
   canReadWorkspaceIssueLabels: PermissionCheckResult;
   canRemoveUser: PermissionCheckResult;
+  canUseAdminSupportTools: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
 };
 

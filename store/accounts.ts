@@ -165,14 +165,13 @@ export const useAccountStore = defineStore('accountStore', () => {
           // hostAppStore.setNotification(notification)
         }
 
-        // if (res.networkError) {
-        //   const notification: ToastNotification = {
-        //     type: ToastNotificationType.Danger,
-        //     title: 'Network Error',
-        //     description: res.networkError.message
-        //   }
-        //   hostAppStore.setNotification(notification)
-        // }
+        if (res.networkError && !navigator.onLine) {
+          hostAppStore.setNotification({
+            type: ToastNotificationType.Danger,
+            title: 'No Internet Connection',
+            description: 'Please check your network connection and try again.'
+          })
+        }
       })
 
       const link = splitLink(
