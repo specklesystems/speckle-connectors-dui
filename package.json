@@ -19,6 +19,7 @@
     "lint:css": "stylelint \"**/*.{css,vue}\"",
     "lint": "yarn lint:js && yarn lint:tsc && yarn lint:prettier && yarn lint:css",
     "lint:ci": "yarn lint:tsc && yarn lint:css",
+    "prettier:fix": "prettier --config .prettierrc --ignore-path .prettierignore --write .",
     "gqlgen": "graphql-codegen",
     "gqlgen:watch": "graphql-codegen --watch"
   },
