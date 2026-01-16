@@ -16,7 +16,6 @@ export const useIntercom = () => {
 
   const accountStore = useAccountStore()
   const { activeAccount } = storeToRefs(accountStore)
-
   const isInitialized = ref(false)
 
   const isRouteBlacklisted = computed(() => {

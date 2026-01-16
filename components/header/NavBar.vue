@@ -106,8 +106,9 @@ const { $intercom } = useNuxtApp()
 
 const openFeedbackDialog = () => {
   if (
-    hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
-    hostAppStore.hostAppVersion?.includes('2022')
+    (hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
+      hostAppStore.hostAppVersion?.includes('2022')) ||
+    !hostAppStore.isDistributedBySpeckle
   ) {
     showFeedbackDialog.value = true
   } else {
