@@ -341,11 +341,7 @@ const activeWorkspace = computed(() => {
     if (activeWorkspace) return activeWorkspace
   }
 
-  // if activeWorkspace is null will mean that it is personal projects - this fallback wont be the case soon
-  return {
-    id: 'personalProject',
-    name: 'Personal Projects'
-  } as WorkspaceListWorkspaceItemFragment
+  return workspaces.value?.[0] // fallback to first workspace if none is active
 })
 
 const selectedWorkspace = ref<WorkspaceListWorkspaceItemFragment | undefined>(

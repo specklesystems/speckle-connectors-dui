@@ -68,12 +68,15 @@ export function useUpdateConnector() {
       hostApp.setLatestAvailableVersion(sortedVersions[0])
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
+        console.log('1')
         // When user has network issue in between, actually it is not so likely because regardless user need network to be able to render netlify page
         throw new Error('Network error')
       } else if (err instanceof UpdateError) {
+        console.log('2')
         // We set the flag to use it in relavant places, hide some documentation related buttons etc..
         hostApp.setIsDistributedBySpeckle(false)
       } else {
+        console.log('3')
         // Rest of the possibilites that we trigger toast
         throw new Error('Unknown error occurred')
       }

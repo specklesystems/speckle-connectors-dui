@@ -49,8 +49,25 @@
           >
             <span class="">Update</span>
           </FormButton> -->
-        <div class="text-[8px] text-foreground-disabled max-[150px]:hidden">
+
+        <div
+          class="text-[8px] text-foreground-disabled max-[150px]:hidden"
+          :class="{ 'mr-2': !hostAppStore.isDistributedBySpeckle }"
+        >
           {{ hostAppStore.connectorVersion }}
+        </div>
+        <div
+          v-if="!hostAppStore.isDistributedBySpeckle && hostAppStore.hostAppName"
+          v-tippy="
+            `${hostAppStore.hostAppName
+              .charAt(0)
+              .toUpperCase()}${hostAppStore.hostAppName.slice(
+              1
+            )} connector is not distributed by Speckle.`
+          "
+          class="text-xs text-foreground-disabled max-[150px]:hidden mr-1"
+        >
+          <CommonBadge color="secondary">Partner</CommonBadge>
         </div>
         <HeaderButton
           v-if="hostAppStore.isDistributedBySpeckle"
@@ -65,7 +82,11 @@
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
         </HeaderButton>
-        <HeaderButton v-tippy="'Send us feedback'" @click="openFeedbackDialog()">
+        <HeaderButton
+          v-if="hostAppStore.isDistributedBySpeckle"
+          v-tippy="'Send us feedback'"
+          @click="openFeedbackDialog()"
+        >
           <ChatBubbleLeftIcon
             class="w-4 text-foreground-disabled group-hover:text-foreground-2"
           />
@@ -106,8 +127,9 @@ const { $intercom } = useNuxtApp()
 
 const openFeedbackDialog = () => {
   if (
-    hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
-    hostAppStore.hostAppVersion?.includes('2022')
+    (hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
+      hostAppStore.hostAppVersion?.includes('2022')) ||
+    !hostAppStore.isDistributedBySpeckle
   ) {
     showFeedbackDialog.value = true
   } else {
