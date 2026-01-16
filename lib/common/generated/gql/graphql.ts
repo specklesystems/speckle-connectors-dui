@@ -288,14 +288,19 @@ export type AdminInviteList = {
 
 export type AdminMutations = {
   __typename?: 'AdminMutations';
+  /** @deprecated Use grantWorkspaceFeature instead */
   giveAccessToWorkspaceFeature: Scalars['Boolean']['output'];
+  grantWorkspaceFeature: Scalars['Boolean']['output'];
+  /** @deprecated Use revokeWorkspaceFeature instead */
   removeAccessToWorkspaceFeature: Scalars['Boolean']['output'];
+  revokeWorkspaceFeature: Scalars['Boolean']['output'];
   /**
    * A server administrator can update the verification status of an user's email.
    * The server administrator is recommended to confirm ownership of the email address
    * with the user before performing this action.
    */
   updateEmailVerification: Scalars['Boolean']['output'];
+  updateWorkspaceLimits: Scalars['Boolean']['output'];
   updateWorkspacePlan: Scalars['Boolean']['output'];
 };
 
@@ -305,13 +310,28 @@ export type AdminMutationsGiveAccessToWorkspaceFeatureArgs = {
 };
 
 
+export type AdminMutationsGrantWorkspaceFeatureArgs = {
+  input: WorkspaceFeatureGrantUpdateInput;
+};
+
+
 export type AdminMutationsRemoveAccessToWorkspaceFeatureArgs = {
   input: AdminAccessToWorkspaceFeatureInput;
 };
 
 
+export type AdminMutationsRevokeWorkspaceFeatureArgs = {
+  input: WorkspaceFeatureGrantUpdateInput;
+};
+
+
 export type AdminMutationsUpdateEmailVerificationArgs = {
   input: AdminUpdateEmailVerificationInput;
+};
+
+
+export type AdminMutationsUpdateWorkspaceLimitsArgs = {
+  input: WorkspaceLimitsUpdateInput;
 };
 
 
@@ -3098,7 +3118,8 @@ export type PendingWorkspaceCollaborator = {
   email?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   inviteId: Scalars['String']['output'];
-  invitedBy: LimitedUser;
+  /** Nullable if inviter gets deleted */
+  invitedBy?: Maybe<LimitedUser>;
   /** Target workspace role */
   role: Scalars['String']['output'];
   /** E-mail address or name of the invited user */
@@ -6591,16 +6612,30 @@ export enum WorkspaceFeatureFlagName {
   Presentations = 'presentations'
 }
 
+/** Either the ID or slug must be set */
+export type WorkspaceFeatureGrantUpdateInput = {
+  featureName: WorkspaceFeatureName;
+  workspaceId?: InputMaybe<Scalars['ID']['input']>;
+  workspaceSlug?: InputMaybe<Scalars['String']['input']>;
+};
+
 export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
+  Automate = 'automate',
+  /** @deprecated Use projectDashboards instead */
   Dashboards = 'dashboards',
   DashboardsExperimental = 'dashboardsExperimental',
   DomainBasedSecurityPolicies = 'domainBasedSecurityPolicies',
+  DomainDiscoverability = 'domainDiscoverability',
+  EmbedPrivateProjects = 'embedPrivateProjects',
   ExclusiveMembership = 'exclusiveMembership',
   HideSpeckleBranding = 'hideSpeckleBranding',
+  Issues = 'issues',
   Markup = 'markup',
   OidcSso = 'oidcSso',
+  PortfolioDashboards = 'portfolioDashboards',
   Presentations = 'presentations',
+  ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
 }
@@ -6781,6 +6816,30 @@ export enum WorkspaceJoinRequestStatus {
   Pending = 'pending'
 }
 
+export type WorkspaceLimits = {
+  __typename?: 'WorkspaceLimits';
+  commentsHistoryInDays?: Maybe<Scalars['Int']['output']>;
+  dashboardCount?: Maybe<Scalars['Int']['output']>;
+  modelCount?: Maybe<Scalars['Int']['output']>;
+  projectCount?: Maybe<Scalars['Int']['output']>;
+  versionsHistoryInDays?: Maybe<Scalars['Int']['output']>;
+};
+
+export type WorkspaceLimitsInput = {
+  commentsHistoryInDays?: InputMaybe<Scalars['Int']['input']>;
+  dashboardCount?: InputMaybe<Scalars['Int']['input']>;
+  modelCount?: InputMaybe<Scalars['Int']['input']>;
+  projectCount?: InputMaybe<Scalars['Int']['input']>;
+  versionsHistoryInDays?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Either the ID or slug must be set */
+export type WorkspaceLimitsUpdateInput = {
+  limits?: InputMaybe<WorkspaceLimitsInput>;
+  workspaceId?: InputMaybe<Scalars['ID']['input']>;
+  workspaceSlug?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type WorkspaceMutations = {
   __typename?: 'WorkspaceMutations';
   addDomain: Workspace;
@@ -6932,6 +6991,7 @@ export type WorkspacePermissionChecksCanMoveProjectToWorkspaceArgs = {
 export type WorkspacePlan = {
   __typename?: 'WorkspacePlan';
   createdAt: Scalars['DateTime']['output'];
+  limits: WorkspaceLimits;
   name: WorkspacePlans;
   paymentMethod: WorkspacePaymentMethod;
   status: WorkspacePlanStatuses;

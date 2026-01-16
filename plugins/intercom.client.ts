@@ -7,6 +7,7 @@ import Intercom, {
   trackEvent
 } from '@intercom/messenger-js-sdk'
 import { useAccountStore } from '~/store/accounts'
+import { useHostAppStore } from '~/store/hostApp'
 import { storeToRefs } from 'pinia'
 
 const disabledRoutes: string[] = []
@@ -15,7 +16,9 @@ export const useIntercom = () => {
   const route = useRoute()
 
   const accountStore = useAccountStore()
+  const hostAppStore = useHostAppStore()
   const { activeAccount } = storeToRefs(accountStore)
+  const { isDistributedBySpeckle } = storeToRefs(hostAppStore)
 
   const isInitialized = ref(false)
 
@@ -77,6 +80,13 @@ export const useIntercom = () => {
       shutdownIntercom()
     } else {
       bootIntercom()
+    }
+  })
+
+  // we listen to changes in the host app distribution status that fetched on updateConnector composable after the intercom is initialized, we cant simply rely on activeAccount watcher
+  watch(isDistributedBySpeckle, (newValue) => {
+    if (!newValue) {
+      shutdownIntercom()
     }
   })
 
