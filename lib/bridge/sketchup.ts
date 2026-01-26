@@ -19,6 +19,8 @@ import type {
   ReceiveViaBrowserArgs,
   CreateVersionArgs
 } from '~/lib/bridge/server'
+import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import type { ISenderModelCard } from '../models/card/send'
 
 declare let sketchup: {
   exec: (data: Record<string, unknown>) => void
@@ -309,28 +311,45 @@ export class SketchupBridge extends BaseBridge {
   }
 
   public async createVersion(args: CreateVersionArgs) {
-    const accountStore = useAccountStore()
+    // const accountStore = useAccountStore()
     const hostAppStore = useHostAppStore()
-    const { accounts } = storeToRefs(accountStore)
-    const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
+    const { completeIngestionWithVersion } = useModelIngestion()
+    // const { accounts } = storeToRefs(accountStore)
+    // const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
 
-    const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
-      useMutation(createVersionMutation)
+    // const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
+    //   useMutation(createVersionMutation)
+    // )
+
+    const modelCard = hostAppStore.models.find(
+      (model) => model.modelCardId === args.modelCardId
+    )
+
+    const ingestionId = hostAppStore.ingestionStatus[args.modelCardId]
+    if (!ingestionId) {
+      // TODO: fail ingestion
+      return
+    }
+
+    const res = await completeIngestionWithVersion(
+      modelCard as ISenderModelCard,
+      ingestionId,
+      args.referencedObjectId
     )
 
     // sketchup versions are provided as 2 digit. i.e. 22, 23, 24
     // we are safe with this string concatanation for 77 years
-    const hostAppName = `SketchUp 20${hostAppStore.hostAppVersion}`
+    // const hostAppName = `SketchUp 20${hostAppStore.hostAppVersion}`
 
-    const result = await createVersion.mutate({
-      input: {
-        modelId: args.modelId,
-        objectId: args.referencedObjectId,
-        sourceApplication: hostAppName,
-        projectId: args.projectId
-      }
-    })
-    return result?.data?.versionMutations?.create?.id
+    // const result = await createVersion.mutate({
+    //   input: {
+    //     modelId: args.modelId,
+    //     objectId: args.referencedObjectId,
+    //     sourceApplication: hostAppName,
+    //     projectId: args.projectId
+    //   }
+    // })
+    return res?.statusData.versionId
   }
 
   public async create(): Promise<boolean> {

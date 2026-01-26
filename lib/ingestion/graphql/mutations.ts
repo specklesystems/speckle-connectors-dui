@@ -30,6 +30,11 @@ export const completeModelIngestionWithVersion = graphql(`
       modelIngestionMutations {
         completeWithVersion(input: $input) {
           id
+          statusData {
+            ... on ModelIngestionSuccessStatus {
+              versionId
+            }
+          }
         }
       }
     }

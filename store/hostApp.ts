@@ -28,6 +28,7 @@ import {
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
+import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -43,6 +44,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
+  const { updateIngestion } = useModelIngestion()
 
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
@@ -64,6 +66,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
+
+  // kvp for modelCardId - ingestionId
+  const ingestionStatus = ref<Record<string, string>>({})
 
   const dismissNotification = () => {
     currentNotification.value = null
@@ -479,7 +484,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   app.$receiveBinding?.on('setModelReceiveResult', setModelReceiveResult)
 
   // GENERIC STUFF
-  const handleModelProgressEvents = (args: {
+  const handleModelProgressEvents = async (args: {
     modelCardId: string
     progress?: ModelCardProgress
   }) => {
@@ -487,6 +492,18 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (m) => m.modelCardId === args.modelCardId
     ) as IModelCard
     model.progress = args.progress
+
+    if (model.typeDiscriminator.includes('SenderModelCard')) {
+      const ingestionId = ingestionStatus.value[args.modelCardId]
+      if (ingestionId) {
+        await updateIngestion(
+          model,
+          ingestionId,
+          args.progress?.status || 'Progressing',
+          args.progress?.progress || 0
+        )
+      }
+    }
   }
 
   const setModelError = (args: {
@@ -788,6 +805,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     getSendSettings,
     setModelSendResult,
     setModelReceiveResult,
-    handleModelProgressEvents
+    handleModelProgressEvents,
+    ingestionStatus
   }
 })

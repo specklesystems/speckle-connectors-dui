@@ -135,8 +135,11 @@ import {
   canCreateVersionQuery,
   setVersionMessageMutation
 } from '~/lib/graphql/mutationsAndQueries'
+import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 const store = useHostAppStore()
 const accountStore = useAccountStore()
+
+const { startIngestion } = useModelIngestion()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -170,12 +173,21 @@ const canCreateVersion = computed(() => {
   return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
 
-const sendOrCancel = () => {
+const sendOrCancel = async () => {
   if (!props.canEdit) {
     return
   }
-  if (props.modelCard.progress) store.sendModelCancel(props.modelCard.modelCardId)
-  else store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  if (props.modelCard.progress) {
+    store.sendModelCancel(props.modelCard.modelCardId)
+    // TODO: cancel ingestion
+  } else {
+    const sourceData = {
+      sourceApplicationSlug: store.hostAppName || 'unknown',
+      sourceApplicationVersion: store.hostAppVersion?.toString() || 'unknown'
+    }
+    await startIngestion(props.modelCard, 'Starting to publish', sourceData)
+    store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  }
   hasSetVersionMessage.value = false
 }
 
