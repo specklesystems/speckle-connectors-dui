@@ -39,9 +39,17 @@
         <FormButton size="sm" color="outline" @click.stop="saveFilter()">
           Save
         </FormButton>
-        <FormButton size="sm" @click.stop="saveFilterAndSend()">
-          Save & Publish
-        </FormButton>
+        <div
+          v-tippy="canCreateVersion?.authorized ? undefined : canCreateVersion?.message"
+        >
+          <FormButton
+            size="sm"
+            :disabled="!canCreateVersion?.authorized"
+            @click.stop="saveFilterAndSend()"
+          >
+            Save & Publish
+          </FormButton>
+        </div>
       </div>
     </CommonDialog>
 
@@ -281,12 +289,19 @@ const expiredNotification = computed(() => {
   notification.cta = {
     name: ctaType,
     action: async () => {
+      if (!canCreateVersion.value?.authorized) {
+        return
+      }
       hasSetVersionMessage.value = false
       if (props.modelCard.progress) {
         await store.sendModelCancel(props.modelCard.modelCardId)
       }
       store.sendModel(props.modelCard.modelCardId, ctaType)
-    }
+    },
+    disabled: !canCreateVersion.value?.authorized,
+    tooltipText: canCreateVersion.value?.authorized
+      ? undefined
+      : canCreateVersion.value?.message
   }
   return notification
 })
