@@ -5,10 +5,12 @@
   >
     <div v-if="modelData" class="relative px-1 py-1">
       <div class="relative flex items-center space-x-2 min-w-0">
-        <div class="text-foreground-2 mt-[2px] flex items-center -space-x-2 relative">
+        <div
+          v-tippy="buttonTooltip"
+          class="text-foreground-2 mt-[2px] flex items-center -space-x-2 relative"
+        >
           <!-- CTA button -->
           <FormButton
-            v-tippy="buttonTooltip"
             color="outline"
             :icon-left="
               modelCard.progress
@@ -19,7 +21,7 @@
             "
             hide-text
             class=""
-            :disabled="!canEdit || isSettingsMissing"
+            :disabled="!canEdit || isSettingsMissing || ctaDisabled"
             @click.stop="$emit('manual-publish-or-load')"
           ></FormButton>
         </div>
@@ -260,11 +262,18 @@ const store = useHostAppStore()
 const accStore = useAccountStore()
 const { trackEvent } = useMixpanel()
 
-const props = defineProps<{
-  modelCard: IModelCard
-  project: ProjectModelGroup
-  canEdit: boolean
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelCard: IModelCard
+    project: ProjectModelGroup
+    canEdit: boolean
+    ctaDisabled?: boolean
+    ctaDisabledMessage?: string
+  }>(),
+  {
+    ctaDisabled: false
+  }
+)
 
 defineEmits<{
   (e: 'manual-publish-or-load'): void
@@ -275,6 +284,7 @@ const isSender = computed(() => {
 })
 
 const buttonTooltip = computed(() => {
+  if (props.ctaDisabled) return props.ctaDisabledMessage
   return props.modelCard.progress
     ? 'Cancel'
     : isSender.value

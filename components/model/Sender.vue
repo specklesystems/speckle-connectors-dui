@@ -4,6 +4,10 @@
     :model-card="modelCard"
     :project="project"
     :can-edit="canEdit"
+    :cta-disabled="!canCreateVersion?.authorized"
+    :cta-disabled-message="
+      canCreateVersion?.authorized ? undefined : canCreateVersion?.message
+    "
     @manual-publish-or-load="sendOrCancel"
   >
     <div class="flex max-[275px]:w-full overflow-hidden my-2">
@@ -117,10 +121,14 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import { provideApolloClient, useMutation, useQuery } from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
-import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
-const hostAppStore = useHostAppStore()
+import {
+  canCreateVersionQuery,
+  setVersionMessageMutation
+} from '~/lib/graphql/mutationsAndQueries'
+const store = useHostAppStore()
+const accountStore = useAccountStore()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -132,10 +140,26 @@ const props = defineProps<{
   canEdit: boolean
 }>()
 
-const store = useHostAppStore()
+const account = accountStore.accounts.find(
+  (acc) => acc.accountInfo.id === props.project.accountId
+) as DUIAccount
+
 const openFilterDialog = ref(false)
 app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
+})
+
+const { result: canCreateVersionResult } = useQuery(
+  canCreateVersionQuery,
+  () => ({ projectId: props.modelCard.projectId, modelId: props.modelCard.modelId }),
+  () => ({
+    clientId: account.accountInfo.id,
+    fetchPolicy: 'network-only'
+  })
+)
+
+const canCreateVersion = computed(() => {
+  return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
 
 const sendOrCancel = () => {
@@ -173,11 +197,6 @@ const isUpdatingVersionMessage = ref(false)
 const hasSetVersionMessage = ref(false)
 const versionMessage = ref<string>()
 
-const accountStore = useAccountStore()
-const account = accountStore.accounts.find(
-  (acc) => acc.accountInfo.id === props.project.accountId
-) as DUIAccount
-
 const setVersionMessage = async (message: string) => {
   if (!props.modelCard.latestCreatedVersionId) {
     return
@@ -203,14 +222,14 @@ const setVersionMessage = async (message: string) => {
   if (res?.data?.versionMutations.update.id) {
     // seemed to noisy, and autoclose does not work for some reason.
     // nicer ux to just close the dialog
-    // hostAppStore.setNotification({
+    // store.setNotification({
     //   type: ToastNotificationType.Info,
     //   title: 'Version message saved',
     //   autoClose: true
     // })
     hasSetVersionMessage.value = true
   } else {
-    hostAppStore.setNotification({
+    store.setNotification({
       type: ToastNotificationType.Danger,
       title: 'Request failed',
       description: 'Failed to update version message.',
