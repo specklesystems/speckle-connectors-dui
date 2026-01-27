@@ -135,11 +135,8 @@ import {
   canCreateVersionQuery,
   setVersionMessageMutation
 } from '~/lib/graphql/mutationsAndQueries'
-import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 const store = useHostAppStore()
 const accountStore = useAccountStore()
-
-const { startIngestion } = useModelIngestion()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -173,16 +170,7 @@ const canCreateVersion = computed(() => {
   return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
 
-const sendViaIngestion = async (actionSource: string) => {
-  const sourceData = {
-    sourceApplicationSlug: store.hostAppName || 'unknown',
-    sourceApplicationVersion: store.hostAppVersion?.toString() || 'unknown'
-  }
-  await startIngestion(props.modelCard, 'Starting to publish', sourceData)
-  store.sendModel(props.modelCard.modelCardId, actionSource)
-}
-
-const sendOrCancel = async () => {
+const sendOrCancel = () => {
   if (!props.canEdit) {
     return
   }
@@ -190,7 +178,7 @@ const sendOrCancel = async () => {
     store.sendModelCancel(props.modelCard.modelCardId)
     // TODO: cancel ingestion
   } else {
-    await sendViaIngestion('ModelCardButton')
+    store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
   }
   hasSetVersionMessage.value = false
 }
@@ -266,7 +254,7 @@ const setVersionMessage = async (message: string) => {
 
 const saveFilterAndSend = async () => {
   await saveFilter()
-  await sendViaIngestion('Filter')
+  store.sendModel(props.modelCard.modelCardId, 'Filter')
   hasSetVersionMessage.value = false
 }
 
@@ -312,7 +300,7 @@ const expiredNotification = computed(() => {
       if (props.modelCard.progress) {
         await store.sendModelCancel(props.modelCard.modelCardId)
       }
-      await sendViaIngestion(ctaType)
+      store.sendModel(props.modelCard.modelCardId, ctaType)
     },
     disabled: !canCreateVersion.value?.authorized,
     tooltipText: canCreateVersion.value?.authorized

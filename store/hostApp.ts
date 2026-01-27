@@ -44,7 +44,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
-  const { updateIngestion } = useModelIngestion()
+  const { startIngestion, updateIngestion } = useModelIngestion()
 
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
@@ -140,6 +140,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const addModel = async (model: IModelCard) => {
     await app.$baseBinding.addModel(model)
     documentModelStore.value.models.push(model)
+    console.log(documentModelStore)
   }
 
   /**
@@ -356,6 +357,15 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.progress = { status: 'Starting to send...' }
     model.expired = false
     model.report = undefined
+
+    // TODO: we need to handle it conditionally for the sake of old connectors
+    // model ingestion
+    const sourceData = {
+      sourceApplicationSlug: hostAppName.value || 'unknown',
+      sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+    }
+    void startIngestion(model, 'Starting to publish', sourceData)
+
     // You should stop asking why if you saw anything related autocad..
     // It solves the press "escape" issue.
     // Because probably we don't give enough time to acad complete it's previos task and it stucks.
