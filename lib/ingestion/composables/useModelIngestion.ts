@@ -4,7 +4,9 @@ import { useHostAppStore } from '~/store/hostApp'
 import {
   completeModelIngestionWithVersion,
   createModelIngestion,
-  updateModelIngestionProgress
+  updateModelIngestionProgress,
+  failModelIngestionWithError,
+  failModelIngestionWithCancel
 } from '../graphql/mutations'
 import type { SourceDataInput } from '~~/lib/common/generated/gql/graphql'
 import type { ISenderModelCard } from '~/lib/models/card/send'
@@ -83,7 +85,75 @@ export const useModelIngestion = () => {
     return res?.data?.projectMutations.modelIngestionMutations.updateProgress
   }
 
-  // TODO: cancel ingestion
+  const failIngestion = async (
+    senderModelCard: ISenderModelCard,
+    ingestionId: string,
+    errorReason: string,
+    errorStacktrace?: string
+  ) => {
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
+    const { mutate } = provideApolloClient(client)(() =>
+      useMutation(failModelIngestionWithError)
+    )
+
+    const res = await mutate({
+      input: {
+        projectId: senderModelCard.projectId,
+        ingestionId,
+        errorReason,
+        errorStacktrace
+      }
+    })
+
+    if (res?.errors?.length) {
+      throw new Error(res.errors[0].message)
+    }
+
+    const { ingestionStatus } = storeToRefs(store)
+
+    // clean the failed ingestion
+    ingestionStatus.value = Object.fromEntries(
+      Object.entries(ingestionStatus.value).filter(
+        ([key]) => key !== senderModelCard.modelCardId
+      )
+    )
+
+    return res?.data?.projectMutations.modelIngestionMutations.failWithError
+  }
+
+  const cancelIngestion = async (
+    senderModelCard: ISenderModelCard,
+    ingestionId: string,
+    cancellationMessage: string = 'Cancelled by user'
+  ) => {
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
+    const { mutate } = provideApolloClient(client)(() =>
+      useMutation(failModelIngestionWithCancel)
+    )
+
+    const res = await mutate({
+      input: {
+        projectId: senderModelCard.projectId,
+        ingestionId,
+        cancellationMessage
+      }
+    })
+
+    if (res?.errors?.length) {
+      throw new Error(res.errors[0].message)
+    }
+
+    const { ingestionStatus } = storeToRefs(store)
+
+    // clean the cancelled ingestion
+    ingestionStatus.value = Object.fromEntries(
+      Object.entries(ingestionStatus.value).filter(
+        ([key]) => key !== senderModelCard.modelCardId
+      )
+    )
+
+    return res?.data?.projectMutations.modelIngestionMutations.failWithCancel
+  }
 
   const completeIngestionWithVersion = async (
     senderModelCard: ISenderModelCard,
@@ -122,6 +192,8 @@ export const useModelIngestion = () => {
   return {
     startIngestion,
     updateIngestion,
+    failIngestion,
+    cancelIngestion,
     completeIngestionWithVersion
   }
 }
