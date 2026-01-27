@@ -370,6 +370,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
       }
       await startIngestion(model, 'Starting to publish', sourceData)
+      model.progress = { status: 'Converting the objects...' }
     }
 
     // You should stop asking why if you saw anything related autocad..

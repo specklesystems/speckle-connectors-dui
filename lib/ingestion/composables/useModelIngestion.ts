@@ -50,7 +50,7 @@ export const useModelIngestion = () => {
 
     const ingestionId = res?.data?.projectMutations.modelIngestionMutations.create.id
     if (ingestionId) {
-      store.ingestionStatus[senderModelCard.modelCardId] = ingestionId
+      ingestionStatus.value[senderModelCard.modelCardId] = ingestionId
     }
 
     return res?.data?.projectMutations.modelIngestionMutations.create
