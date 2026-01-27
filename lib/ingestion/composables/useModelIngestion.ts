@@ -21,15 +21,16 @@ import { storeToRefs } from 'pinia'
  */
 export const useModelIngestion = () => {
   const store = useHostAppStore()
-  const { ingestionStatus } = storeToRefs(store)
-  const { getAccountClient } = useAccountStore()
+
+  const accountStore = useAccountStore()
 
   const startIngestion = async (
     senderModelCard: ISenderModelCard,
     progressMessage: string,
     sourceData: SourceDataInput
   ) => {
-    const client = getAccountClient(senderModelCard.accountId)
+    const { ingestionStatus } = storeToRefs(store)
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
     const { mutate } = provideApolloClient(client)(() =>
       useMutation(createModelIngestion)
     )
@@ -49,7 +50,7 @@ export const useModelIngestion = () => {
 
     const ingestionId = res?.data?.projectMutations.modelIngestionMutations.create.id
     if (ingestionId) {
-      ingestionStatus.value[senderModelCard.modelCardId] = ingestionId
+      store.ingestionStatus[senderModelCard.modelCardId] = ingestionId
     }
 
     return res?.data?.projectMutations.modelIngestionMutations.create
@@ -61,7 +62,7 @@ export const useModelIngestion = () => {
     progressMessage: string,
     progress?: number
   ) => {
-    const client = getAccountClient(senderModelCard.accountId)
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
     const { mutate } = provideApolloClient(client)(() =>
       useMutation(updateModelIngestionProgress)
     )
@@ -89,7 +90,7 @@ export const useModelIngestion = () => {
     ingestionId: string,
     rootObjectId: string
   ) => {
-    const client = getAccountClient(senderModelCard.accountId)
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
     const { mutate } = provideApolloClient(client)(() =>
       useMutation(completeModelIngestionWithVersion)
     )
@@ -105,6 +106,8 @@ export const useModelIngestion = () => {
     if (res?.errors?.length) {
       throw new Error(res.errors[0].message)
     }
+
+    const { ingestionStatus } = storeToRefs(store)
 
     // clean the completed ingestion
     ingestionStatus.value = Object.fromEntries(

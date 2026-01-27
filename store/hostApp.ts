@@ -100,6 +100,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     isDistributedBySpeckle.value = val
   }
 
+  const shouldHandleIngestion = computed(() => {
+    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'archicad', 'vectorworks']
+    return hostAppsThatUsesDUIForGraphql.includes(hostAppName.value as string)
+  })
+
   /**
    * Model Card Operations
    */
@@ -324,7 +329,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * Tells the host app to start sending a specific model card. This will reach inside the host application.
    * @param modelId
    */
-  const sendModel = (modelCardId: string, actionSource: string) => {
+  const sendModel = async (modelCardId: string, actionSource: string) => {
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
@@ -358,13 +363,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.expired = false
     model.report = undefined
 
-    // TODO: we need to handle it conditionally for the sake of old connectors
-    // model ingestion
-    const sourceData = {
-      sourceApplicationSlug: hostAppName.value || 'unknown',
-      sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+    // for the connectors that don't have SDK to handle graqhql
+    if (shouldHandleIngestion.value) {
+      const sourceData = {
+        sourceApplicationSlug: hostAppName.value || 'unknown',
+        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+      }
+      await startIngestion(model, 'Starting to publish', sourceData)
     }
-    void startIngestion(model, 'Starting to publish', sourceData)
 
     // You should stop asking why if you saw anything related autocad..
     // It solves the press "escape" issue.
@@ -503,7 +509,10 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     ) as IModelCard
     model.progress = args.progress
 
-    if (model.typeDiscriminator.includes('SenderModelCard')) {
+    if (
+      model.typeDiscriminator.includes('SenderModelCard') &&
+      shouldHandleIngestion.value // for the connectors that don't have SDK to handle graqhql
+    ) {
       const ingestionId = ingestionStatus.value[args.modelCardId]
       if (ingestionId) {
         await updateIngestion(
@@ -777,6 +786,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     hostAppName,
     hostAppVersion,
     connectorVersion,
+    ingestionStatus,
     isConnectorUpToDate,
     latestAvailableVersion,
     documentInfo,
@@ -815,7 +825,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     getSendSettings,
     setModelSendResult,
     setModelReceiveResult,
-    handleModelProgressEvents,
-    ingestionStatus
+    handleModelProgressEvents
   }
 })
