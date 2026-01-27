@@ -44,8 +44,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
-  const { startIngestion, updateIngestion } = useModelIngestion()
-
+  const { startIngestion, updateIngestion, failIngestion, cancelIngestion } =
+    useModelIngestion()
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
 
@@ -399,6 +399,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.error = undefined
     void trackEvent('DUI3 Action', { name: 'Send Cancel' }, model.accountId)
     model.latestCreatedVersionId = undefined
+
+    // Cancel the ingestion if applicable
+    if (shouldHandleIngestion.value) {
+      const ingestionId = ingestionStatus.value[modelCardId]
+      if (ingestionId) {
+        await cancelIngestion(model, ingestionId, 'Cancelled by user')
+      }
+    }
   }
 
   app.$sendBinding?.on('setModelsExpired', (modelCardIds) => {
@@ -526,7 +534,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     }
   }
 
-  const setModelError = (args: {
+  const setModelError = async (args: {
     modelCardId: string
     error: string | { errorMessage: string; dismissible?: boolean }
   }) => {
@@ -540,6 +548,19 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       model.error = args.error as {
         errorMessage: string
         dismissible: boolean
+      }
+    }
+
+    // Fail the ingestion if applicable
+    if (
+      model.typeDiscriminator.includes('SenderModelCard') &&
+      shouldHandleIngestion.value
+    ) {
+      const ingestionId = ingestionStatus.value[args.modelCardId]
+      if (ingestionId) {
+        const errorMessage =
+          typeof args.error === 'string' ? args.error : args.error.errorMessage
+        await failIngestion(model as ISenderModelCard, ingestionId, errorMessage)
       }
     }
   }

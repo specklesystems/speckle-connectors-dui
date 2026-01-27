@@ -5,8 +5,7 @@ import { send, type Base } from '@speckle/objectsender'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import {
   versionDetailsQuery,
-  markReceivedVersionMutation,
-  createVersionMutation
+  markReceivedVersionMutation
 } from '~/lib/graphql/mutationsAndQueries'
 import { storeToRefs } from 'pinia'
 import type { DUIAccount } from '~/store/accounts'
@@ -16,6 +15,8 @@ import type { Emitter } from 'nanoevents'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
+import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import type { ISenderModelCard } from '../models/card/send'
 
 export type SendBatchViaBrowserArgs = {
   modelCardId: string
@@ -466,24 +467,35 @@ export class ArchicadBridge {
   }
 
   private async createVersion(args: CreateVersionArgs) {
-    const accountStore = useAccountStore()
-    const { accounts } = storeToRefs(accountStore)
-    const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
+    const hostAppStore = useHostAppStore()
+    const { completeIngestionWithVersion } = useModelIngestion()
 
-    const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
-      useMutation(createVersionMutation)
+    const modelCard = hostAppStore.models.find(
+      (model) => model.modelCardId === args.modelCardId
     )
 
-    const hostAppStore = useHostAppStore()
+    const ingestionId = hostAppStore.ingestionStatus[args.modelCardId]
+    if (!ingestionId) {
+      throw new Error(`Ingestion failed: Ingestion ID not found to create version.`)
+    }
 
-    const result = await createVersion.mutate({
-      input: {
-        modelId: args.modelId,
-        objectId: args.referencedObjectId,
-        sourceApplication: hostAppStore.hostAppName,
-        projectId: args.projectId
-      }
-    })
-    return result?.data?.versionMutations?.create?.id
+    const res = await completeIngestionWithVersion(
+      modelCard as ISenderModelCard,
+      ingestionId,
+      args.referencedObjectId
+    )
+
+    if (res?.statusData.__typename === 'ModelIngestionSuccessStatus') {
+      return res?.statusData.versionId
+    }
+
+    if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
+      throw new Error(
+        `Ingestion failed: ${res?.statusData.errorReason || 'Unknown error'}.`
+      )
+    }
+    throw new Error(
+      `Ingestion status does not match with the expected types as success or failure.`
+    )
   }
 }
