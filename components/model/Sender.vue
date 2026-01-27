@@ -173,6 +173,15 @@ const canCreateVersion = computed(() => {
   return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
 
+const sendViaIngestion = async (actionSource: string) => {
+  const sourceData = {
+    sourceApplicationSlug: store.hostAppName || 'unknown',
+    sourceApplicationVersion: store.hostAppVersion?.toString() || 'unknown'
+  }
+  await startIngestion(props.modelCard, 'Starting to publish', sourceData)
+  store.sendModel(props.modelCard.modelCardId, actionSource)
+}
+
 const sendOrCancel = async () => {
   if (!props.canEdit) {
     return
@@ -181,12 +190,7 @@ const sendOrCancel = async () => {
     store.sendModelCancel(props.modelCard.modelCardId)
     // TODO: cancel ingestion
   } else {
-    const sourceData = {
-      sourceApplicationSlug: store.hostAppName || 'unknown',
-      sourceApplicationVersion: store.hostAppVersion?.toString() || 'unknown'
-    }
-    await startIngestion(props.modelCard, 'Starting to publish', sourceData)
-    store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+    await sendViaIngestion('ModelCardButton')
   }
   hasSetVersionMessage.value = false
 }
@@ -262,7 +266,7 @@ const setVersionMessage = async (message: string) => {
 
 const saveFilterAndSend = async () => {
   await saveFilter()
-  store.sendModel(props.modelCard.modelCardId, 'Filter')
+  await sendViaIngestion('Filter')
   hasSetVersionMessage.value = false
 }
 
@@ -308,7 +312,7 @@ const expiredNotification = computed(() => {
       if (props.modelCard.progress) {
         await store.sendModelCancel(props.modelCard.modelCardId)
       }
-      store.sendModel(props.modelCard.modelCardId, ctaType)
+      await sendViaIngestion(ctaType)
     },
     disabled: !canCreateVersion.value?.authorized,
     tooltipText: canCreateVersion.value?.authorized
