@@ -31,8 +31,28 @@ export const completeModelIngestionWithVersion = graphql(`
         completeWithVersion(input: $input) {
           id
           statusData {
+            __typename
+            ... on ModelIngestionProcessingStatus {
+              status
+              progressMessage
+              progress
+            }
             ... on ModelIngestionSuccessStatus {
+              status
               versionId
+            }
+            ... on ModelIngestionFailedStatus {
+              errorStacktrace
+              errorReason
+              status
+            }
+            ... on ModelIngestionCancelledStatus {
+              cancellationMessage
+              status
+            }
+            ... on ModelIngestionQueuedStatus {
+              progressMessage
+              status
             }
           }
         }
