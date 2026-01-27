@@ -60,3 +60,42 @@ export const completeModelIngestionWithVersion = graphql(`
     }
   }
 `)
+
+export const failModelIngestionWithError = graphql(`
+  mutation FailModelIngestionWithError($input: ModelIngestionFailedInput!) {
+    projectMutations {
+      modelIngestionMutations {
+        failWithError(input: $input) {
+          id
+          statusData {
+            __typename
+            ... on ModelIngestionFailedStatus {
+              status
+              errorReason
+              errorStacktrace
+            }
+          }
+        }
+      }
+    }
+  }
+`)
+
+export const failModelIngestionWithCancel = graphql(`
+  mutation FailModelIngestionWithCancel($input: ModelIngestionCancelledInput!) {
+    projectMutations {
+      modelIngestionMutations {
+        failWithCancel(input: $input) {
+          id
+          statusData {
+            __typename
+            ... on ModelIngestionCancelledStatus {
+              status
+              cancellationMessage
+            }
+          }
+        }
+      }
+    }
+  }
+`)
