@@ -67,14 +67,6 @@ export const failModelIngestionWithError = graphql(`
       modelIngestionMutations {
         failWithError(input: $input) {
           id
-          statusData {
-            __typename
-            ... on ModelIngestionFailedStatus {
-              status
-              errorReason
-              errorStacktrace
-            }
-          }
         }
       }
     }
@@ -87,13 +79,6 @@ export const failModelIngestionWithCancel = graphql(`
       modelIngestionMutations {
         failWithCancel(input: $input) {
           id
-          statusData {
-            __typename
-            ... on ModelIngestionCancelledStatus {
-              status
-              cancellationMessage
-            }
-          }
         }
       }
     }
