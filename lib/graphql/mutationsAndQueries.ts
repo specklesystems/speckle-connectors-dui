@@ -246,6 +246,23 @@ export const canCreateModelInProjectQuery = graphql(`
   }
 `)
 
+export const canCreateVersionQuery = graphql(`
+  query CanCreateVersion($projectId: String!, $modelId: String!) {
+    project(id: $projectId) {
+      model(id: $modelId) {
+        permissions {
+          canCreateVersion {
+            authorized
+            code
+            message
+            errorMessage
+          }
+        }
+      }
+    }
+  }
+`)
+
 export const activeWorkspaceQuery = graphql(`
   query ActiveWorkspace {
     activeUser {

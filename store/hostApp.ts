@@ -28,6 +28,7 @@ import {
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
+import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -43,7 +44,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
-
+  const { startIngestion, updateIngestion, failIngestion, cancelIngestion } =
+    useModelIngestion()
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
 
@@ -64,6 +66,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
+
+  // kvp for modelCardId - ingestionId
+  const ingestionStatus = ref<Record<string, string>>({})
 
   const dismissNotification = () => {
     currentNotification.value = null
@@ -94,6 +99,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const setIsDistributedBySpeckle = (val: boolean) => {
     isDistributedBySpeckle.value = val
   }
+
+  const shouldHandleIngestion = computed(() => {
+    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'archicad', 'vectorworks']
+    return hostAppsThatUsesDUIForGraphql.includes(hostAppName.value as string)
+  })
 
   /**
    * Model Card Operations
@@ -135,6 +145,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const addModel = async (model: IModelCard) => {
     await app.$baseBinding.addModel(model)
     documentModelStore.value.models.push(model)
+    console.log(documentModelStore)
   }
 
   /**
@@ -318,7 +329,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * Tells the host app to start sending a specific model card. This will reach inside the host application.
    * @param modelId
    */
-  const sendModel = (modelCardId: string, actionSource: string) => {
+  const sendModel = async (modelCardId: string, actionSource: string) => {
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
@@ -351,6 +362,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.progress = { status: 'Starting to send...' }
     model.expired = false
     model.report = undefined
+
+    // for the connectors that don't have SDK to handle graqhql
+    if (shouldHandleIngestion.value) {
+      const sourceData = {
+        sourceApplicationSlug: hostAppName.value || 'unknown',
+        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+      }
+      await startIngestion(model, 'Starting to publish', sourceData)
+      model.progress = { status: 'Converting the objects...' }
+    }
+
     // You should stop asking why if you saw anything related autocad..
     // It solves the press "escape" issue.
     // Because probably we don't give enough time to acad complete it's previos task and it stucks.
@@ -377,6 +399,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.error = undefined
     void trackEvent('DUI3 Action', { name: 'Send Cancel' }, model.accountId)
     model.latestCreatedVersionId = undefined
+
+    // Cancel the ingestion if applicable
+    if (shouldHandleIngestion.value) {
+      const ingestionId = ingestionStatus.value[modelCardId]
+      if (ingestionId) {
+        await cancelIngestion(model, ingestionId, 'Cancelled by user')
+      }
+    }
   }
 
   app.$sendBinding?.on('setModelsExpired', (modelCardIds) => {
@@ -479,7 +509,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   app.$receiveBinding?.on('setModelReceiveResult', setModelReceiveResult)
 
   // GENERIC STUFF
-  const handleModelProgressEvents = (args: {
+  const handleModelProgressEvents = async (args: {
     modelCardId: string
     progress?: ModelCardProgress
   }) => {
@@ -487,9 +517,24 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (m) => m.modelCardId === args.modelCardId
     ) as IModelCard
     model.progress = args.progress
+
+    if (
+      model.typeDiscriminator.includes('SenderModelCard') &&
+      shouldHandleIngestion.value // for the connectors that don't have SDK to handle graqhql
+    ) {
+      const ingestionId = ingestionStatus.value[args.modelCardId]
+      if (ingestionId) {
+        await updateIngestion(
+          model,
+          ingestionId,
+          args.progress?.status || 'Progressing',
+          args.progress?.progress || 0
+        )
+      }
+    }
   }
 
-  const setModelError = (args: {
+  const setModelError = async (args: {
     modelCardId: string
     error: string | { errorMessage: string; dismissible?: boolean }
   }) => {
@@ -503,6 +548,19 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       model.error = args.error as {
         errorMessage: string
         dismissible: boolean
+      }
+    }
+
+    // Fail the ingestion if applicable
+    if (
+      model.typeDiscriminator.includes('SenderModelCard') &&
+      shouldHandleIngestion.value
+    ) {
+      const ingestionId = ingestionStatus.value[args.modelCardId]
+      if (ingestionId) {
+        const errorMessage =
+          typeof args.error === 'string' ? args.error : args.error.errorMessage
+        await failIngestion(model as ISenderModelCard, ingestionId, errorMessage)
       }
     }
   }
@@ -750,6 +808,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     hostAppName,
     hostAppVersion,
     connectorVersion,
+    ingestionStatus,
     isConnectorUpToDate,
     latestAvailableVersion,
     documentInfo,
