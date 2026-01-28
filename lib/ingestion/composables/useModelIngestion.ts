@@ -117,8 +117,6 @@ export const useModelIngestion = () => {
         ([key]) => key !== senderModelCard.modelCardId
       )
     )
-
-    return res?.data?.projectMutations.modelIngestionMutations.failWithError
   }
 
   const cancelIngestion = async (
@@ -151,8 +149,6 @@ export const useModelIngestion = () => {
         ([key]) => key !== senderModelCard.modelCardId
       )
     )
-
-    return res?.data?.projectMutations.modelIngestionMutations.failWithCancel
   }
 
   const completeIngestionWithVersion = async (
