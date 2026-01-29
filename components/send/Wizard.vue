@@ -79,6 +79,7 @@ import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { useQuery } from '@vue/apollo-composable'
 import { canCreateVersionQuery } from '~/lib/graphql/mutationsAndQueries'
+import { useIntervalFn } from '@vueuse/core'
 
 const { trackEvent } = useMixpanel()
 const { trackSettingsChange } = useSettingsTracking()
@@ -152,7 +153,7 @@ watch(step, (newVal, oldVal) => {
 const hostAppStore = useHostAppStore()
 
 // check canCreateVersion permission when model is selected
-const { result: canCreateVersionResult } = useQuery(
+const { result: canCreateVersionResult, refetch: refetchCanCreateVersion } = useQuery(
   canCreateVersionQuery,
   () => ({
     projectId: selectedProject.value?.id as string,
@@ -168,6 +169,13 @@ const { result: canCreateVersionResult } = useQuery(
 const canCreateVersion = computed(() => {
   return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
+
+useIntervalFn(() => {
+  // poll on step 3 (where the "Publish" button is visible)
+  if (step.value === 3) {
+    refetchCanCreateVersion()
+  }
+}, 1000)
 
 // accountId, serverUrl, projectId, modelId, sendFilter, settings
 const addModel = async () => {

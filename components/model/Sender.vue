@@ -135,6 +135,8 @@ import {
   canCreateVersionQuery,
   setVersionMessageMutation
 } from '~/lib/graphql/mutationsAndQueries'
+import { useIntervalFn } from '@vueuse/core'
+
 const store = useHostAppStore()
 const accountStore = useAccountStore()
 
@@ -157,7 +159,7 @@ app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
 })
 
-const { result: canCreateVersionResult } = useQuery(
+const { result: canCreateVersionResult, refetch: refetchCanCreateVersion } = useQuery(
   canCreateVersionQuery,
   () => ({ projectId: props.modelCard.projectId, modelId: props.modelCard.modelId }),
   () => ({
@@ -169,6 +171,12 @@ const { result: canCreateVersionResult } = useQuery(
 const canCreateVersion = computed(() => {
   return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
 })
+
+// poll canCreateVersion every 1s to reflect workspace limit changes.
+// No subscription available on a workspace level, so polling probably easiest approach?
+useIntervalFn(() => {
+  refetchCanCreateVersion()
+}, 1000)
 
 const sendOrCancel = () => {
   if (!props.canEdit) {
