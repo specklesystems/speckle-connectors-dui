@@ -39,9 +39,7 @@
         <FormButton size="sm" color="outline" @click.stop="saveFilter()">
           Save
         </FormButton>
-        <div
-          v-tippy="canCreateVersion?.authorized ? undefined : canCreateVersion?.message"
-        >
+        <div v-tippy="canCreateVersion?.authorized ? '' : canCreateVersion?.message">
           <FormButton
             size="sm"
             :disabled="!canCreateVersion?.authorized"
