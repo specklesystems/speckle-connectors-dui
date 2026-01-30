@@ -91,9 +91,17 @@ export const useAccountStore = defineStore('accountStore', () => {
           }
         })
 
-        // TODO: to understand this account can query for model ingestion, try catch if errors that the server is self-hoster
+        try {
+          await acc.client.query({
+            query: accountTestQuery,
+            context: {
+              url: acc.accountInfo.serverInfo.url
+            }
+          })
+        } catch (error) {
+          console.log('model ingestion is not enabled', error)
+        }
 
-        // TODO: isModelIngestionEnabled -> set it into hostAppStore to use conditionally Record<ACCOUNT_ID, boolean>, if (record[acc.accountInfo.id]) model ingestion else create version
         acc.isValid = true
       } catch {
         // TODO: properly dispose and kill this client. It's unclear how to do it.

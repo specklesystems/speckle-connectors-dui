@@ -27,12 +27,10 @@ import {
   type Version
 } from '~/lib/core/composables/updateConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
-import {
-  canCreateVersionQuery,
-  createVersionMutation
-} from '~/lib/graphql/mutationsAndQueries'
+import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
 import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
+import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -154,7 +152,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const addModel = async (model: IModelCard) => {
     await app.$baseBinding.addModel(model)
     documentModelStore.value.models.push(model)
-    console.log(documentModelStore)
   }
 
   /**
@@ -358,31 +355,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    */
 
   /**
-   * Checks if user can create a version for the given model.
-   * Used to validate before starting a publish operation.
-   */
-  const checkCanCreateVersion = async (model: ISenderModelCard) => {
-    const client = accountsStore.getAccountClient(model.accountId)
-
-    try {
-      const result = await client.query({
-        query: canCreateVersionQuery,
-        variables: {
-          projectId: model.projectId,
-          modelId: model.modelId
-        },
-        fetchPolicy: 'network-only'
-      })
-
-      return result.data.project.model.permissions.canCreateVersion
-    } catch (error) {
-      // If we can't check, allow the attempt - server will reject if not allowed
-      console.error('Failed to check canCreateVersion:', error)
-      return { authorized: true, message: null }
-    }
-  }
-
-  /**
    * Tells the host app to start sending a specific model card. This will reach inside the host application.
    * @param modelId
    */
@@ -390,18 +362,52 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
+    const { canCreateModelIngestion, canCreateVersion } = useCheckGraphql()
+    const canCreateIngestion = await canCreateModelIngestion(
+      model.projectId,
+      model.modelId,
+      model.accountId
+    )
 
-    // Check if user can create version before starting publish.
-    // We do this check on action rather than polling to avoid going ott on the server.
-    const canCreate = await checkCanCreateVersion(model)
-    if (!canCreate.authorized) {
-      setNotification({
-        type: ToastNotificationType.Warning,
-        title: 'Cannot publish',
-        description: canCreate.message || 'Workspace limits have been reached'
-      })
-      return
+    // for the connectors that don't have SDK to handle graqhql
+    if (shouldHandleIngestion.value && canCreateIngestion.queryAvailable) {
+      const sourceData = {
+        sourceApplicationSlug: hostAppName.value || 'unknown',
+        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+      }
+      if (canCreateIngestion.authorized) {
+        await startIngestion(model, 'Starting to publish', sourceData)
+        model.progress = { status: 'Converting the objects...' }
+      } else {
+        setNotification({
+          type: ToastNotificationType.Warning,
+          title: 'Cannot publish',
+          description: canCreateIngestion.message
+        })
+        return
+      }
+    } else {
+      // for the self hosters that does not have available graphql for ingestions
+      const canCreate = await canCreateVersion(
+        model.projectId,
+        model.modelId,
+        model.accountId
+      )
+      if (!canCreate.authorized) {
+        setNotification({
+          type: ToastNotificationType.Warning,
+          title: 'Cannot publish',
+          description: canCreate.message || 'Workspace limits have been reached'
+        })
+        return
+      }
     }
+
+    model.latestCreatedVersionId = undefined
+    model.error = undefined
+    model.progress = { status: 'Starting to send...' }
+    model.expired = false
+    model.report = undefined
 
     if (model.expired) {
       // user sends via "Update" button
@@ -426,32 +432,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         },
         model.accountId
       )
-    }
-    model.latestCreatedVersionId = undefined
-    model.error = undefined
-    model.progress = { status: 'Starting to send...' }
-    model.expired = false
-    model.report = undefined
-
-    // for the connectors that don't have SDK to handle graqhql
-    if (shouldHandleIngestion.value) {
-      const sourceData = {
-        sourceApplicationSlug: hostAppName.value || 'unknown',
-        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
-      }
-      try {
-        await startIngestion(model, 'Starting to publish', sourceData)
-        model.progress = { status: 'Converting the objects...' }
-      } catch (error) {
-        // trying the new ingestion flow first. If it blows up (e.g., old server that doesn't know what ingestion is),
-        // we just catch it and move on.missing ingestionId will naturally trigger the fallback legacy flow later.
-        // try/catch: new server: 1 Request (success). "old" server: 1 request (fail) + 1 Request (fallback)
-        // checking First (introspection): new Server: 1 request (check) + 1 request (success)(doubles latency). "old" server: 1 request (check) + 1 request (fallback)
-        console.warn(
-          'Ingestion failed to start (likely old server). Falling back to legacy flow.',
-          error
-        )
-      }
     }
 
     // You should stop asking why if you saw anything related autocad..
