@@ -42,7 +42,8 @@ export const useModelIngestion = () => {
         projectId: senderModelCard.projectId,
         modelId: senderModelCard.modelId,
         progressMessage,
-        sourceData
+        sourceData,
+        maxIdleTimeoutSeconds: 7200 // 2h
       }
     })
 
