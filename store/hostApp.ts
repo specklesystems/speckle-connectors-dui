@@ -48,8 +48,13 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
-  const { startIngestion, updateIngestion, failIngestion, cancelIngestion } =
-    useModelIngestion()
+  const {
+    startIngestion,
+    updateIngestion,
+    failIngestion,
+    cancelIngestion,
+    completeIngestionWithVersion
+  } = useModelIngestion()
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
 
@@ -296,20 +301,43 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const account = accountStore.accounts.find(
       (acc) => acc.accountInfo.id === args.accountId
     )
-    try {
-      const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
-        useMutation(createVersionMutation)
-      )
-      await createVersion.mutate({
-        input: {
-          modelId: args.modelId,
-          objectId: args.referencedObjectId,
-          sourceApplication: args.sourceApplication,
-          projectId: args.projectId
-        }
-      })
-    } catch (err) {
-      console.error(`triggerCreateVersion is failed: ${err}`)
+
+    // Check if we have an ingestion ID for this model.
+    // If so, we are in the "New Business Model" flow and should use completeIngestionWithVersion.
+    const modelCard = documentModelStore.value.models.find(
+      (m) => m.modelId === args.modelId && m.projectId === args.projectId
+    ) as ISenderModelCard
+    const ingestionId = modelCard
+      ? ingestionStatus.value[modelCard.modelCardId]
+      : undefined
+
+    if (ingestionId && modelCard) {
+      try {
+        await completeIngestionWithVersion(
+          modelCard,
+          ingestionId,
+          args.referencedObjectId
+        )
+      } catch (err) {
+        console.error(`completeIngestionWithVersion failed: ${err}`)
+      }
+    } else {
+      // Fallback to legacy flow (Old Server)
+      try {
+        const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
+          useMutation(createVersionMutation)
+        )
+        await createVersion.mutate({
+          input: {
+            modelId: args.modelId,
+            objectId: args.referencedObjectId,
+            sourceApplication: args.sourceApplication,
+            projectId: args.projectId
+          }
+        })
+      } catch (err) {
+        console.error(`triggerCreateVersion is failed: ${err}`)
+      }
     }
   })
 
@@ -411,8 +439,19 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         sourceApplicationSlug: hostAppName.value || 'unknown',
         sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
       }
-      await startIngestion(model, 'Starting to publish', sourceData)
-      model.progress = { status: 'Converting the objects...' }
+      try {
+        await startIngestion(model, 'Starting to publish', sourceData)
+        model.progress = { status: 'Converting the objects...' }
+      } catch (error) {
+        // trying the new ingestion flow first. If it blows up (e.g., old server that doesn't know what ingestion is),
+        // we just catch it and move on.missing ingestionId will naturally trigger the fallback legacy flow later.
+        // try/catch: new server: 1 Request (success). "old" server: 1 request (fail) + 1 Request (fallback)
+        // checking First (introspection): new Server: 1 request (check) + 1 request (success)(doubles latency). "old" server: 1 request (check) + 1 request (fallback)
+        console.warn(
+          'Ingestion failed to start (likely old server). Falling back to legacy flow.',
+          error
+        )
+      }
     }
 
     // You should stop asking why if you saw anything related autocad..
