@@ -45,15 +45,7 @@
         "
       />
       <div class="mt-2">
-        <div v-tippy="canCreateVersion?.authorized ? '' : canCreateVersion?.message">
-          <FormButton
-            full-width
-            :disabled="!canCreateVersion?.authorized"
-            @click="addModel"
-          >
-            Publish
-          </FormButton>
-        </div>
+        <FormButton full-width @click="addModel">Publish</FormButton>
       </div>
     </div>
     <div v-if="urlParseError" class="p-2 text-danger">
@@ -75,9 +67,6 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
-import { useQuery } from '@vue/apollo-composable'
-import { canCreateVersionQuery } from '~/lib/graphql/mutationsAndQueries'
-import { useIntervalFn } from '@vueuse/core'
 
 const { trackEvent } = useMixpanel()
 const { trackSettingsChange } = useSettingsTracking()
@@ -149,31 +138,6 @@ watch(step, (newVal, oldVal) => {
 })
 
 const hostAppStore = useHostAppStore()
-
-// check canCreateVersion permission when model is selected
-const { result: canCreateVersionResult, refetch: refetchCanCreateVersion } = useQuery(
-  canCreateVersionQuery,
-  () => ({
-    projectId: selectedProject.value?.id as string,
-    modelId: selectedModel.value?.id as string
-  }),
-  () => ({
-    enabled: !!selectedProject.value?.id && !!selectedModel.value?.id,
-    clientId: selectedAccountId.value,
-    fetchPolicy: 'network-only'
-  })
-)
-
-const canCreateVersion = computed(() => {
-  return canCreateVersionResult.value?.project.model.permissions.canCreateVersion
-})
-
-useIntervalFn(() => {
-  // poll on step 3 (where the Publish button is visible)
-  if (step.value === 3) {
-    refetchCanCreateVersion()
-  }
-}, 1000)
 
 // accountId, serverUrl, projectId, modelId, sendFilter, settings
 const addModel = async () => {

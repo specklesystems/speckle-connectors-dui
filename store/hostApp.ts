@@ -14,6 +14,7 @@ import type {
   SendFilterSelect
 } from '~/lib/models/card/send'
 import type { ToastNotification } from '@speckle/ui-components'
+import { ToastNotificationType } from '@speckle/ui-components'
 import type { Nullable } from '@speckle/shared'
 import type { HostAppError } from '~/lib/bridge/errorHandler'
 import type { ConversionResult } from '~/lib/conversions/conversionResult'
@@ -26,7 +27,10 @@ import {
   type Version
 } from '~/lib/core/composables/updateConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
-import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
+import {
+  canCreateVersionQuery,
+  createVersionMutation
+} from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
 import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 
@@ -326,6 +330,31 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    */
 
   /**
+   * Checks if user can create a version for the given model.
+   * Used to validate before starting a publish operation.
+   */
+  const checkCanCreateVersion = async (model: ISenderModelCard) => {
+    const client = accountsStore.getAccountClient(model.accountId)
+
+    try {
+      const result = await client.query({
+        query: canCreateVersionQuery,
+        variables: {
+          projectId: model.projectId,
+          modelId: model.modelId
+        },
+        fetchPolicy: 'network-only'
+      })
+
+      return result.data.project.model.permissions.canCreateVersion
+    } catch (error) {
+      // If we can't check, allow the attempt - server will reject if not allowed
+      console.error('Failed to check canCreateVersion:', error)
+      return { authorized: true, message: null }
+    }
+  }
+
+  /**
    * Tells the host app to start sending a specific model card. This will reach inside the host application.
    * @param modelId
    */
@@ -333,6 +362,19 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
+
+    // Check if user can create version before starting publish.
+    // We do this check on action rather than polling to avoid going ott on the server.
+    const canCreate = await checkCanCreateVersion(model)
+    if (!canCreate.authorized) {
+      setNotification({
+        type: ToastNotificationType.Warning,
+        title: 'Cannot publish',
+        description: canCreate.message || 'Workspace limits have been reached'
+      })
+      return
+    }
+
     if (model.expired) {
       // user sends via "Update" button
       void trackEvent(
