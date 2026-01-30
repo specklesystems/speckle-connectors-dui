@@ -27,16 +27,17 @@
           >
             {{ notification.secondaryCta.name }}
           </FormButton>
-          <FormButton
-            v-if="notification.cta"
-            v-tippy="notification.cta.tooltipText"
-            size="sm"
-            color="primary"
-            full-width
-            @click.stop="notification.cta?.action"
-          >
-            {{ notification.cta.name }}
-          </FormButton>
+          <div v-if="notification.cta" v-tippy="notification.cta.tooltipText">
+            <FormButton
+              :disabled="notification.cta.disabled"
+              size="sm"
+              color="primary"
+              full-width
+              @click.stop="notification.cta?.action"
+            >
+              {{ notification.cta.name }}
+            </FormButton>
+          </div>
         </div>
       </div>
       <div

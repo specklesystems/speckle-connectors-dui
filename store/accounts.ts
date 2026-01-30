@@ -91,6 +91,17 @@ export const useAccountStore = defineStore('accountStore', () => {
           }
         })
 
+        try {
+          await acc.client.query({
+            query: accountTestQuery,
+            context: {
+              url: acc.accountInfo.serverInfo.url
+            }
+          })
+        } catch (error) {
+          console.log('model ingestion is not enabled', error)
+        }
+
         acc.isValid = true
       } catch {
         // TODO: properly dispose and kill this client. It's unclear how to do it.
@@ -294,6 +305,14 @@ export const useAccountStore = defineStore('accountStore', () => {
     if (accountMatchWithServerUrl) return accountMatchWithServerUrl
   }
 
+  const getAccountClient = (accountId: string) => {
+    return (
+      accounts.value.find(
+        (account) => account.accountInfo.id === accountId
+      ) as DUIAccount
+    ).client
+  }
+
   const provideClients = () => {
     provideApolloClients(apolloClients)
   }
@@ -320,6 +339,7 @@ export const useAccountStore = defineStore('accountStore', () => {
   return {
     isLoading,
     accounts,
+    getAccountClient,
     defaultAccount,
     activeAccount,
     userSelectedAccount,

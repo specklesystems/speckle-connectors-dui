@@ -117,10 +117,17 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import {
+  provideApolloClient,
+  useMutation,
+  useSubscription
+} from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
-const hostAppStore = useHostAppStore()
+import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
+
+const store = useHostAppStore()
+const accountStore = useAccountStore()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -132,18 +139,40 @@ const props = defineProps<{
   canEdit: boolean
 }>()
 
-const store = useHostAppStore()
+const account = accountStore.accounts.find(
+  (acc) => acc.accountInfo.id === props.project.accountId
+) as DUIAccount
+const clientId = account.accountInfo.id
+
 const openFilterDialog = ref(false)
 app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
+})
+
+const { onResult: onWorkspacePlanUsageUpdated } = useSubscription(
+  workspacePlanUsageUpdatedSubscription,
+  () => ({
+    input: {
+      workspaceId: props.modelCard.workspaceId as string
+    }
+  }),
+  () => ({ clientId })
+)
+
+onWorkspacePlanUsageUpdated(() => {
+  // TODO: refetch canCreateVersion and disable CTAs, and potentialls on other CTAs like `Save & Publish` etc. basically same as first approach
 })
 
 const sendOrCancel = () => {
   if (!props.canEdit) {
     return
   }
-  if (props.modelCard.progress) store.sendModelCancel(props.modelCard.modelCardId)
-  else store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  if (props.modelCard.progress) {
+    store.sendModelCancel(props.modelCard.modelCardId)
+    // TODO: cancel ingestion
+  } else {
+    store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+  }
   hasSetVersionMessage.value = false
 }
 
@@ -173,11 +202,6 @@ const isUpdatingVersionMessage = ref(false)
 const hasSetVersionMessage = ref(false)
 const versionMessage = ref<string>()
 
-const accountStore = useAccountStore()
-const account = accountStore.accounts.find(
-  (acc) => acc.accountInfo.id === props.project.accountId
-) as DUIAccount
-
 const setVersionMessage = async (message: string) => {
   if (!props.modelCard.latestCreatedVersionId) {
     return
@@ -203,14 +227,14 @@ const setVersionMessage = async (message: string) => {
   if (res?.data?.versionMutations.update.id) {
     // seemed to noisy, and autoclose does not work for some reason.
     // nicer ux to just close the dialog
-    // hostAppStore.setNotification({
+    // store.setNotification({
     //   type: ToastNotificationType.Info,
     //   title: 'Version message saved',
     //   autoClose: true
     // })
     hasSetVersionMessage.value = true
   } else {
-    hostAppStore.setNotification({
+    store.setNotification({
       type: ToastNotificationType.Danger,
       title: 'Request failed',
       description: 'Failed to update version message.',
