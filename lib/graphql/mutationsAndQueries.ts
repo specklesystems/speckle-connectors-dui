@@ -623,7 +623,7 @@ export const projectUpdatedSubscription = graphql(`
 `)
 
 export const modelViewingSubscription = graphql(`
-  subscription Subscription($target: ViewerUpdateTrackingTarget!) {
+  subscription ModelViewingSubscription($target: ViewerUpdateTrackingTarget!) {
     viewerUserActivityBroadcasted(target: $target) {
       userName
       userId

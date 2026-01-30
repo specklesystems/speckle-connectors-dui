@@ -117,9 +117,14 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import {
+  provideApolloClient,
+  useMutation,
+  useSubscription
+} from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
+import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 
 const store = useHostAppStore()
 const accountStore = useAccountStore()
@@ -137,10 +142,25 @@ const props = defineProps<{
 const account = accountStore.accounts.find(
   (acc) => acc.accountInfo.id === props.project.accountId
 ) as DUIAccount
+const clientId = account.accountInfo.id
 
 const openFilterDialog = ref(false)
 app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
+})
+
+const { onResult: onWorkspacePlanUsageUpdated } = useSubscription(
+  workspacePlanUsageUpdatedSubscription,
+  () => ({
+    input: {
+      workspaceId: props.modelCard.workspaceId as string
+    }
+  }),
+  () => ({ clientId })
+)
+
+onWorkspacePlanUsageUpdated(() => {
+  // TODO: refetch canCreateVersion and disable CTAs, and potentialls on other CTAs like `Save & Publish` etc. basically same as first approach
 })
 
 const sendOrCancel = () => {
