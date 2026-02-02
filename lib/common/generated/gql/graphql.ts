@@ -3105,6 +3105,8 @@ export type PendingStreamCollaborator = {
   id: Scalars['String']['output'];
   inviteId: Scalars['String']['output'];
   invitedBy: LimitedUser;
+  /** The project this invite is for */
+  project?: Maybe<LimitedProject>;
   projectId: Scalars['String']['output'];
   projectName: Scalars['String']['output'];
   role: Scalars['String']['output'];
@@ -6664,6 +6666,7 @@ export enum WorkspaceFeatureName {
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
+  ModelValidation = 'modelValidation',
   OidcSso = 'oidcSso',
   PortfolioDashboards = 'portfolioDashboards',
   Presentation = 'presentation',
@@ -7001,6 +7004,7 @@ export type WorkspacePermissionChecks = {
   canAcceptInvite: PermissionCheckResult;
   canAcceptJoinRequest: PermissionCheckResult;
   canAccessDashboards: PermissionCheckResult;
+  canAccessModelValidation: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
