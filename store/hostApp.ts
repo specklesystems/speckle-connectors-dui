@@ -304,19 +304,28 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const modelCard = documentModelStore.value.models.find(
       (m) => m.modelId === args.modelId && m.projectId === args.projectId
     ) as ISenderModelCard
-    const ingestionId = modelCard
-      ? ingestionStatus.value[modelCard.modelCardId]
-      : undefined
 
-    if (ingestionId && modelCard) {
-      try {
-        await completeIngestionWithVersion(
-          modelCard,
-          ingestionId,
-          args.referencedObjectId
-        )
-      } catch (err) {
-        console.error(`completeIngestionWithVersion failed: ${err}`)
+    const { canCreateModelIngestion } = useCheckGraphql()
+    const canCreateIngestion = await canCreateModelIngestion(
+      args.projectId,
+      args.modelId,
+      args.accountId
+    )
+
+    if (canCreateIngestion.queryAvailable) {
+      const ingestionId = modelCard
+        ? ingestionStatus.value[modelCard.modelCardId]
+        : undefined
+      if (ingestionId && modelCard) {
+        try {
+          await completeIngestionWithVersion(
+            modelCard,
+            ingestionId,
+            args.referencedObjectId
+          )
+        } catch (err) {
+          console.error(`completeIngestionWithVersion failed: ${err}`)
+        }
       }
     } else {
       // Fallback to legacy flow (Old Server)
