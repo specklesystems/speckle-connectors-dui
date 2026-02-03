@@ -192,15 +192,17 @@ onWorkspacePlanUsageUpdated(() => {
 })
 
 const sendOrCancel = () => {
+  // check for progress first to allow cancelling even if permissions changed
+  if (props.modelCard.progress) {
+    store.sendModelCancel(props.modelCard.modelCardId)
+    return
+  }
+
   if (!props.canEdit || !canCreateVersionPerm.value) {
     return
   }
-  if (props.modelCard.progress) {
-    store.sendModelCancel(props.modelCard.modelCardId)
-    // TODO: cancel ingestion
-  } else {
-    store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
-  }
+
+  store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
   hasSetVersionMessage.value = false
 }
 
@@ -274,7 +276,6 @@ const setVersionMessage = async (message: string) => {
 }
 
 const saveFilterAndSend = async () => {
-  if (!canCreateVersionPerm.value) return
   await saveFilter()
   store.sendModel(props.modelCard.modelCardId, 'Filter')
   hasSetVersionMessage.value = false
