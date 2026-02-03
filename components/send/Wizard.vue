@@ -42,8 +42,16 @@
           }
         "
       />
-      <div v-tippy="!canPublish ? publishLimitMessage : ''" class="mt-2">
-        <FormButton full-width :disabled="!canPublish" @click="addModel">
+      <div
+        v-tippy="!canPublish && !isLoadingPermissions ? publishLimitMessage : ''"
+        class="mt-2"
+      >
+        <FormButton
+          full-width
+          :disabled="!canPublish || isLoadingPermissions"
+          :loading="isLoadingPermissions"
+          @click="addModel"
+        >
           Publish
         </FormButton>
       </div>
@@ -92,8 +100,9 @@ const settingsWereChanged = ref(false)
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
 const { canCreateModelIngestion, canCreateVersion } = useCheckGraphql()
 
-const canPublish = ref(true)
+const canPublish = ref(false)
 const publishLimitMessage = ref<string | undefined>(undefined)
+const isLoadingPermissions = ref(false)
 
 const updateSearchText = (text: string | undefined) => {
   urlParseError.value = undefined
@@ -116,23 +125,29 @@ watch(showSendDialog, (newVal) => {
 const checkPermissions = async () => {
   if (!selectedProject.value || !selectedModel.value) return
 
-  const res = await canCreateModelIngestion(
-    selectedProject.value.id,
-    selectedModel.value.id,
-    selectedAccountId.value
-  )
-  if (res.queryAvailable) {
-    canPublish.value = res.authorized
-    publishLimitMessage.value = res.message || undefined
-  } else {
-    // check legacy canCreateVersion in else block
-    const legacyRes = await canCreateVersion(
+  isLoadingPermissions.value = true
+
+  try {
+    const res = await canCreateModelIngestion(
       selectedProject.value.id,
       selectedModel.value.id,
       selectedAccountId.value
     )
-    canPublish.value = legacyRes.authorized
-    publishLimitMessage.value = legacyRes.message || undefined
+    if (res.queryAvailable) {
+      canPublish.value = res.authorized
+      publishLimitMessage.value = res.message || undefined
+    } else {
+      // check legacy canCreateVersion in else block
+      const legacyRes = await canCreateVersion(
+        selectedProject.value.id,
+        selectedModel.value.id,
+        selectedAccountId.value
+      )
+      canPublish.value = legacyRes.authorized
+      publishLimitMessage.value = legacyRes.message || undefined
+    }
+  } finally {
+    isLoadingPermissions.value = false
   }
 }
 
