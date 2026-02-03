@@ -486,6 +486,11 @@ export class ArchicadBridge {
     if (canCreateIngestion.queryAvailable) {
       const ingestionId = hostAppStore.activeIngestions[args.modelCardId]
       if (!ingestionId) {
+        hostAppStore.setNotification({
+          type: ToastNotificationType.Danger,
+          title: 'Ingestion Failed',
+          description: 'Ingestion ID not found to create version.'
+        })
         throw new Error(`Ingestion failed: Ingestion ID not found to create version.`)
       }
 
@@ -500,10 +505,20 @@ export class ArchicadBridge {
       }
 
       if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
-        throw new Error(
-          `Ingestion failed: ${res?.statusData.errorReason || 'Unknown error'}.`
-        )
+        const errorReason = res?.statusData.errorReason || 'Unknown error'
+        hostAppStore.setNotification({
+          type: ToastNotificationType.Danger,
+          title: 'Ingestion Failed',
+          description: errorReason
+        })
+        throw new Error(`Ingestion failed: ${errorReason}.`)
       }
+
+      hostAppStore.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: 'Ingestion status does not match expected types.'
+      })
       throw new Error(
         `Ingestion status does not match with the expected types as success or failure.`
       )

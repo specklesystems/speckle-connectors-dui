@@ -329,8 +329,7 @@ export class SketchupBridge extends BaseBridge {
     )
 
     if (!modelCard) {
-      // TODO: Throw
-      return
+      throw new Error('Model card not found') // ctor
     }
 
     const { canCreateModelIngestion } = useCheckGraphql()
