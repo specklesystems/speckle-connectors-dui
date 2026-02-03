@@ -91,17 +91,6 @@ export const useAccountStore = defineStore('accountStore', () => {
           }
         })
 
-        try {
-          await acc.client.query({
-            query: accountTestQuery,
-            context: {
-              url: acc.accountInfo.serverInfo.url
-            }
-          })
-        } catch (error) {
-          console.log('model ingestion is not enabled', error)
-        }
-
         acc.isValid = true
       } catch {
         // TODO: properly dispose and kill this client. It's unclear how to do it.

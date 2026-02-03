@@ -316,6 +316,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       const ingestionId = modelCard
         ? activeIngestions.value[modelCard.modelCardId]
         : undefined
+
       if (ingestionId && modelCard) {
         try {
           await completeIngestionWithVersion(
@@ -326,6 +327,12 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         } catch (err) {
           console.error(`completeIngestionWithVersion failed: ${err}`)
         }
+      } else {
+        setNotification({
+          type: ToastNotificationType.Danger,
+          title: 'Publish Error',
+          description: 'Could not complete publish: Ingestion ID missing.'
+        })
       }
     } else {
       // Fallback to legacy flow (Old Server)
