@@ -905,6 +905,11 @@ export type BulkUsersRetrievalInput = {
   limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type CanUpgradePlanInput = {
+  targetInterval: BillingInterval;
+  targetPlan: WorkspacePlans;
+};
+
 export type Comment = {
   __typename?: 'Comment';
   archived: Scalars['Boolean']['output'];
@@ -1772,6 +1777,11 @@ export type IngestionHistoryInput = {
 export type InvitableCollaboratorsFilter = {
   search?: InputMaybe<Scalars['String']['input']>;
 };
+
+export enum InviteUseType {
+  Accept = 'accept',
+  Decline = 'decline'
+}
 
 export type Invoice = {
   __typename?: 'Invoice';
@@ -4098,7 +4108,6 @@ export enum ProjectPendingVersionsUpdatedMessageType {
 
 export type ProjectPermissionChecks = {
   __typename?: 'ProjectPermissionChecks';
-  canAcceptInvite: PermissionCheckResult;
   canAccessIssuesFeature: PermissionCheckResult;
   canBroadcastActivity: PermissionCheckResult;
   canCreateAutomation: PermissionCheckResult;
@@ -4127,11 +4136,17 @@ export type ProjectPermissionChecks = {
   canRevokeEmbedTokens: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
+  canUseInvite: PermissionCheckResult;
 };
 
 
 export type ProjectPermissionChecksCanMoveToWorkspaceArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type ProjectPermissionChecksCanUseInviteArgs = {
+  type?: InputMaybe<InviteUseType>;
 };
 
 export type ProjectRole = {
@@ -7001,7 +7016,6 @@ export enum WorkspacePaymentMethod {
 
 export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
-  canAcceptInvite: PermissionCheckResult;
   canAcceptJoinRequest: PermissionCheckResult;
   canAccessDashboards: PermissionCheckResult;
   canAccessModelValidation: PermissionCheckResult;
@@ -7035,10 +7049,10 @@ export type WorkspacePermissionChecks = {
   canRemoveUser: PermissionCheckResult;
   canResendInvite: PermissionCheckResult;
   canSendJoinRequest: PermissionCheckResult;
-  canUpdatePlanInterval: PermissionCheckResult;
   canUpgradePlan: PermissionCheckResult;
   canUseAdminSupportTools: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
+  canUseInvite: PermissionCheckResult;
 };
 
 
@@ -7053,13 +7067,13 @@ export type WorkspacePermissionChecksCanMoveProjectToWorkspaceArgs = {
 };
 
 
-export type WorkspacePermissionChecksCanUpdatePlanIntervalArgs = {
-  targetInterval: BillingInterval;
+export type WorkspacePermissionChecksCanUpgradePlanArgs = {
+  input: CanUpgradePlanInput;
 };
 
 
-export type WorkspacePermissionChecksCanUpgradePlanArgs = {
-  targetPlan: WorkspacePlans;
+export type WorkspacePermissionChecksCanUseInviteArgs = {
+  type?: InputMaybe<InviteUseType>;
 };
 
 export type WorkspacePlan = {
@@ -7100,7 +7114,6 @@ export enum WorkspacePlanStatuses {
 export type WorkspacePlanUsage = {
   __typename?: 'WorkspacePlanUsage';
   dashboardCount: Scalars['Int']['output'];
-  modelCount: Scalars['Int']['output'];
   projectCount: Scalars['Int']['output'];
   sync: WorkspaceSyncUsage;
   users: WorkspaceUserCount;
