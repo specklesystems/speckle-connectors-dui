@@ -191,10 +191,6 @@ onWorkspacePlanUsageUpdated(() => {
   void checkPermissions()
 })
 
-onMounted(() => {
-  void checkPermissions()
-})
-
 const sendOrCancel = () => {
   if (!props.canEdit || !canCreateVersionPerm.value) {
     return
@@ -397,5 +393,9 @@ const latestVersionNotification = computed(() => {
     action: () => cardBase.value?.viewModel()
   }
   return notification
+})
+
+onMounted(() => {
+  void checkPermissions()
 })
 </script>
