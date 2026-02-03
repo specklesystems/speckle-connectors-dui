@@ -15,6 +15,7 @@ export type ModelCardNotification = {
     name: string
     tooltipText?: string
     action: () => void
+    disabled?: boolean
   }
   /**
    * If set, will display a view report button next to cta

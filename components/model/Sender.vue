@@ -4,6 +4,8 @@
     :model-card="modelCard"
     :project="project"
     :can-edit="canEdit"
+    :cta-disabled="ctaDisabled"
+    :cta-disabled-message="ctaDisabledMessage"
     @manual-publish-or-load="sendOrCancel"
   >
     <div class="flex max-[275px]:w-full overflow-hidden my-2">
@@ -17,7 +19,6 @@
         full-width
         @click.stop="openFilterDialog = true"
       >
-        <!-- Sending&nbsp; -->
         <span class="font-bold">{{ modelCard.sendFilter?.name }}:&nbsp;</span>
         <span class="truncate">{{ modelCard.sendFilter?.summary }}</span>
       </FormButton>
@@ -31,13 +32,18 @@
       <FilterListSelect :filter="modelCard.sendFilter" @update:filter="updateFilter" />
 
       <div class="mt-4 flex justify-end items-center space-x-2">
-        <!-- TODO: Ux wise, users might want to just save the selection and publish it later. -->
         <FormButton size="sm" color="outline" @click.stop="saveFilter()">
           Save
         </FormButton>
-        <FormButton size="sm" @click.stop="saveFilterAndSend()">
-          Save & Publish
-        </FormButton>
+        <div v-tippy="!canCreateVersionPerm ? canCreateVersionMessage : ''">
+          <FormButton
+            size="sm"
+            :disabled="!canCreateVersionPerm"
+            @click.stop="saveFilterAndSend()"
+          >
+            Save & Publish
+          </FormButton>
+        </div>
       </div>
     </CommonDialog>
 
@@ -108,7 +114,7 @@
   </ModelCardBase>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import ModelCardBase from '~/components/model/CardBase.vue'
 import { Square3Stack3DIcon } from '@heroicons/vue/20/solid'
 import type { ModelCardNotification } from '~/lib/models/card/notification'
@@ -117,13 +123,22 @@ import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import {
+  provideApolloClient,
+  useMutation,
+  useSubscription
+} from '@vue/apollo-composable'
 import { useAccountStore, type DUIAccount } from '~/store/accounts'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
-const hostAppStore = useHostAppStore()
+import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
+import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
+
+const store = useHostAppStore()
+const accountStore = useAccountStore()
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
+const { canCreateModelIngestion } = useCheckGraphql()
 
 const cardBase = ref<InstanceType<typeof ModelCardBase>>()
 const props = defineProps<{
@@ -132,18 +147,62 @@ const props = defineProps<{
   canEdit: boolean
 }>()
 
-const store = useHostAppStore()
+const account = accountStore.accounts.find(
+  (acc) => acc.accountInfo.id === props.project.accountId
+) as DUIAccount
+const clientId = account.accountInfo.id
+
 const openFilterDialog = ref(false)
 app.$baseBinding?.on('documentChanged', () => {
   openFilterDialog.value = false
 })
 
+const canCreateVersionPerm = ref(true)
+const canCreateVersionMessage = ref<string | null>(null)
+
+const checkPermissions = async () => {
+  const res = await canCreateModelIngestion(
+    props.modelCard.projectId,
+    props.modelCard.modelId,
+    props.modelCard.accountId
+  )
+  if (res.queryAvailable) {
+    canCreateVersionPerm.value = res.authorized
+    canCreateVersionMessage.value = res.message || null
+  }
+}
+
+const ctaDisabled = computed(
+  () => !canCreateVersionPerm.value || !!props.modelCard.progress
+)
+const ctaDisabledMessage = computed(() => canCreateVersionMessage.value || undefined)
+
+const { onResult: onWorkspacePlanUsageUpdated } = useSubscription(
+  workspacePlanUsageUpdatedSubscription,
+  () => ({
+    input: {
+      workspaceId: props.modelCard.workspaceId as string
+    }
+  }),
+  () => ({ clientId })
+)
+
+onWorkspacePlanUsageUpdated(() => {
+  void checkPermissions()
+})
+
 const sendOrCancel = () => {
-  if (!props.canEdit) {
+  // check for progress first to allow cancelling even if permissions changed
+  if (props.modelCard.progress) {
+    store.sendModelCancel(props.modelCard.modelCardId)
     return
   }
-  if (props.modelCard.progress) store.sendModelCancel(props.modelCard.modelCardId)
-  else store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
+
+  if (!props.canEdit || !canCreateVersionPerm.value) {
+    return
+  }
+
+  store.sendModel(props.modelCard.modelCardId, 'ModelCardButton')
   hasSetVersionMessage.value = false
 }
 
@@ -173,11 +232,6 @@ const isUpdatingVersionMessage = ref(false)
 const hasSetVersionMessage = ref(false)
 const versionMessage = ref<string>()
 
-const accountStore = useAccountStore()
-const account = accountStore.accounts.find(
-  (acc) => acc.accountInfo.id === props.project.accountId
-) as DUIAccount
-
 const setVersionMessage = async (message: string) => {
   if (!props.modelCard.latestCreatedVersionId) {
     return
@@ -203,14 +257,14 @@ const setVersionMessage = async (message: string) => {
   if (res?.data?.versionMutations.update.id) {
     // seemed to noisy, and autoclose does not work for some reason.
     // nicer ux to just close the dialog
-    // hostAppStore.setNotification({
+    // store.setNotification({
     //   type: ToastNotificationType.Info,
     //   title: 'Version message saved',
     //   autoClose: true
     // })
     hasSetVersionMessage.value = true
   } else {
-    hostAppStore.setNotification({
+    store.setNotification({
       type: ToastNotificationType.Danger,
       title: 'Request failed',
       description: 'Failed to update version message.',
@@ -261,6 +315,10 @@ const expiredNotification = computed(() => {
   const ctaType = props.modelCard.progress ? 'Restart' : 'Update'
   notification.cta = {
     name: ctaType,
+    disabled: !canCreateVersionPerm.value,
+    tooltipText: !canCreateVersionPerm.value
+      ? canCreateVersionMessage.value || 'Publish limit reached'
+      : undefined,
     action: async () => {
       hasSetVersionMessage.value = false
       if (props.modelCard.progress) {
@@ -336,5 +394,9 @@ const latestVersionNotification = computed(() => {
     action: () => cardBase.value?.viewModel()
   }
   return notification
+})
+
+onMounted(() => {
+  void checkPermissions()
 })
 </script>

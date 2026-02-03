@@ -21,7 +21,6 @@
         @search-text-update="updateSearchText"
       />
     </div>
-    <!-- Model selector wizard -->
     <div v-if="step === 2 && selectedProject && selectedAccountId">
       <WizardModelSelector
         :project="selectedProject"
@@ -32,7 +31,6 @@
         @next="selectModel"
       />
     </div>
-    <!-- Version selector wizard -->
     <div v-if="step === 3">
       <SendFiltersAndSettings
         v-model="filter"
@@ -44,8 +42,10 @@
           }
         "
       />
-      <div class="mt-2">
-        <FormButton full-width @click="addModel">Publish</FormButton>
+      <div v-tippy="!canPublish ? publishLimitMessage : ''" class="mt-2">
+        <FormButton full-width :disabled="!canPublish" @click="addModel">
+          Publish
+        </FormButton>
       </div>
     </div>
     <div v-if="urlParseError" class="p-2 text-danger">
@@ -55,6 +55,7 @@
 </template>
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import { useSubscription } from '@vue/apollo-composable'
 import type {
   ModelListModelItemFragment,
   ProjectListProjectItemFragment
@@ -67,6 +68,8 @@ import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
+import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
+import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 
 const { trackEvent } = useMixpanel()
 const { trackSettingsChange } = useSettingsTracking()
@@ -87,6 +90,11 @@ const settings = ref<CardSetting[] | undefined>(undefined)
 const settingsWereChanged = ref(false)
 
 const { tryParseUrl, urlParsedData, urlParseError } = useAddByUrl()
+const { canCreateModelIngestion, canCreateVersion } = useCheckGraphql()
+
+const canPublish = ref(true)
+const publishLimitMessage = ref<string | undefined>(undefined)
+
 const updateSearchText = (text: string | undefined) => {
   urlParseError.value = undefined
   if (!text) return
@@ -103,6 +111,62 @@ watch(showSendDialog, (newVal) => {
   if (newVal) {
     urlParseError.value = undefined
   }
+})
+
+const checkPermissions = async () => {
+  if (!selectedProject.value || !selectedModel.value) return
+
+  const res = await canCreateModelIngestion(
+    selectedProject.value.id,
+    selectedModel.value.id,
+    selectedAccountId.value
+  )
+  if (res.queryAvailable) {
+    canPublish.value = res.authorized
+    publishLimitMessage.value = res.message || undefined
+  } else {
+    // check legacy canCreateVersion in else block
+    const legacyRes = await canCreateVersion(
+      selectedProject.value.id,
+      selectedModel.value.id,
+      selectedAccountId.value
+    )
+    canPublish.value = legacyRes.authorized
+    publishLimitMessage.value = legacyRes.message || undefined
+  }
+}
+
+watch(step, async (newVal, oldVal) => {
+  if (newVal > oldVal) {
+    if (newVal === 3) {
+      await checkPermissions()
+    }
+    return // exit fast on forward
+  }
+  if (newVal === 1) {
+    selectedProject.value = undefined
+    selectedModel.value = undefined
+  }
+  if (newVal === 2) selectedModel.value = undefined
+})
+
+const workspaceId = computed(() => selectedProject.value?.workspace?.id)
+
+const { onResult: onUsageUpdate } = useSubscription(
+  workspacePlanUsageUpdatedSubscription,
+  () => ({
+    input: {
+      workspaceId: workspaceId.value || ''
+    }
+  }),
+  () => ({
+    enabled: !!workspaceId.value && step.value === 3,
+    clientId: selectedAccountId.value
+  })
+)
+
+onUsageUpdate(() => {
+  void checkPermissions()
 })
 
 const selectProject = (accountId: string, project: ProjectListProjectItemFragment) => {
@@ -124,18 +188,6 @@ const selectModel = (model: ModelListModelItemFragment) => {
   selectedModel.value = model
   void trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'model selected' })
 }
-
-// Clears data if going backwards in the wizard
-watch(step, (newVal, oldVal) => {
-  if (newVal > oldVal) {
-    return // exit fast on forward
-  }
-  if (newVal === 1) {
-    selectedProject.value = undefined
-    selectedModel.value = undefined
-  }
-  if (newVal === 2) selectedModel.value = undefined
-})
 
 const hostAppStore = useHostAppStore()
 

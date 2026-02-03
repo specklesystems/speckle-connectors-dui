@@ -19,6 +19,9 @@ import type {
   ReceiveViaBrowserArgs,
   CreateVersionArgs
 } from '~/lib/bridge/server'
+import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import type { ISenderModelCard } from '../models/card/send'
+import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 
 declare let sketchup: {
   exec: (data: Record<string, unknown>) => void
@@ -297,40 +300,89 @@ export class SketchupBridge extends BaseBridge {
       sourceApplication: 'sketchup',
       message: message || 'send from sketchup'
     }
-    const versionId = await this.createVersion(args)
-
     const hostAppStore = useHostAppStore()
-    // TODO: Alignment needed
-    hostAppStore.setModelSendResult({
-      modelCardId: args.modelCardId,
-      versionId: versionId as string,
-      sendConversionResults
-    })
+    try {
+      const versionId = await this.createVersion(args)
+      hostAppStore.setModelSendResult({
+        modelCardId: args.modelCardId,
+        versionId: versionId as string,
+        sendConversionResults
+      })
+    } catch (err) {
+      hostAppStore.setHostAppError({
+        message: (err as Error).message || 'Unknown error occurred',
+        error: (err as Error).toString(),
+        stackTrace: (err as Error).stack || ''
+      })
+    }
   }
 
   public async createVersion(args: CreateVersionArgs) {
-    const accountStore = useAccountStore()
     const hostAppStore = useHostAppStore()
+    const accountStore = useAccountStore()
     const { accounts } = storeToRefs(accountStore)
     const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
+    const { completeIngestionWithVersion } = useModelIngestion()
 
-    const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
-      useMutation(createVersionMutation)
+    const modelCard = hostAppStore.models.find(
+      (model) => model.modelCardId === args.modelCardId
     )
 
-    // sketchup versions are provided as 2 digit. i.e. 22, 23, 24
-    // we are safe with this string concatanation for 77 years
-    const hostAppName = `SketchUp 20${hostAppStore.hostAppVersion}`
+    if (!modelCard) {
+      throw new Error('Model card not found') // ctor
+    }
 
-    const result = await createVersion.mutate({
-      input: {
-        modelId: args.modelId,
-        objectId: args.referencedObjectId,
-        sourceApplication: hostAppName,
-        projectId: args.projectId
+    const { canCreateModelIngestion } = useCheckGraphql()
+    const canCreateIngestion = await canCreateModelIngestion(
+      modelCard.projectId,
+      modelCard.modelId,
+      modelCard.accountId
+    )
+
+    if (canCreateIngestion.queryAvailable) {
+      const ingestionId = hostAppStore.activeIngestions[args.modelCardId]
+      if (!ingestionId) {
+        throw new Error(`Ingestion failed: Ingestion ID not found to create version.`)
       }
-    })
-    return result?.data?.versionMutations?.create?.id
+
+      const res = await completeIngestionWithVersion(
+        modelCard as ISenderModelCard,
+        ingestionId,
+        args.referencedObjectId
+      )
+
+      if (res?.statusData.__typename === 'ModelIngestionSuccessStatus') {
+        return res?.statusData.versionId
+      }
+
+      if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
+        throw new Error(
+          `Ingestion failed: ${res?.statusData.errorReason || 'Unknown error'}.`
+        )
+      }
+      throw new Error(
+        `Ingestion status does not match with the expected types as success or failure.`
+      )
+    } else {
+      // for the self hosters that does not have available graphql for ingestions
+      const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
+        useMutation(createVersionMutation)
+      )
+
+      // sketchup versions are provided as 2 digit. i.e. 22, 23, 24
+      // we are safe with this string concatanation for 77 years
+      const hostAppName = `SketchUp 20${hostAppStore.hostAppVersion}`
+
+      const result = await createVersion.mutate({
+        input: {
+          modelId: args.modelId,
+          objectId: args.referencedObjectId,
+          sourceApplication: hostAppName,
+          projectId: args.projectId
+        }
+      })
+      return result?.data?.versionMutations?.create?.id
+    }
   }
 
   public async create(): Promise<boolean> {

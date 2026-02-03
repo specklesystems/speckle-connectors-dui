@@ -16,6 +16,9 @@ import type { Emitter } from 'nanoevents'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
+import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import type { ISenderModelCard } from '../models/card/send'
+import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 
 export type SendBatchViaBrowserArgs = {
   modelCardId: string
@@ -466,24 +469,75 @@ export class ArchicadBridge {
   }
 
   private async createVersion(args: CreateVersionArgs) {
-    const accountStore = useAccountStore()
-    const { accounts } = storeToRefs(accountStore)
-    const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
+    const hostAppStore = useHostAppStore()
+    const { completeIngestionWithVersion } = useModelIngestion()
+    const { canCreateModelIngestion } = useCheckGraphql()
 
-    const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
-      useMutation(createVersionMutation)
+    const modelCard = hostAppStore.models.find(
+      (model) => model.modelCardId === args.modelCardId
+    ) as ISenderModelCard
+
+    const canCreateIngestion = await canCreateModelIngestion(
+      modelCard.projectId,
+      modelCard.modelId,
+      modelCard.accountId
     )
 
-    const hostAppStore = useHostAppStore()
-
-    const result = await createVersion.mutate({
-      input: {
-        modelId: args.modelId,
-        objectId: args.referencedObjectId,
-        sourceApplication: hostAppStore.hostAppName,
-        projectId: args.projectId
+    if (canCreateIngestion.queryAvailable) {
+      const ingestionId = hostAppStore.activeIngestions[args.modelCardId]
+      if (!ingestionId) {
+        hostAppStore.setNotification({
+          type: ToastNotificationType.Danger,
+          title: 'Ingestion Failed',
+          description: 'Ingestion ID not found to create version.'
+        })
+        throw new Error(`Ingestion failed: Ingestion ID not found to create version.`)
       }
-    })
-    return result?.data?.versionMutations?.create?.id
+
+      const res = await completeIngestionWithVersion(
+        modelCard,
+        ingestionId,
+        args.referencedObjectId
+      )
+
+      if (res?.statusData.__typename === 'ModelIngestionSuccessStatus') {
+        return res?.statusData.versionId
+      }
+
+      if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
+        const errorReason = res?.statusData.errorReason || 'Unknown error'
+        hostAppStore.setNotification({
+          type: ToastNotificationType.Danger,
+          title: 'Ingestion Failed',
+          description: errorReason
+        })
+        throw new Error(`Ingestion failed: ${errorReason}.`)
+      }
+
+      hostAppStore.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: 'Ingestion status does not match expected types.'
+      })
+      throw new Error(
+        `Ingestion status does not match with the expected types as success or failure.`
+      )
+    } else {
+      const accountStore = useAccountStore()
+      const account = accountStore.getAccountClient(args.accountId)
+      const { mutate } = provideApolloClient(account)(() =>
+        useMutation(createVersionMutation)
+      )
+
+      const result = await mutate({
+        input: {
+          modelId: args.modelId,
+          objectId: args.referencedObjectId,
+          sourceApplication: args.sourceApplication || 'Archicad',
+          projectId: args.projectId
+        }
+      })
+      return result?.data?.versionMutations?.create?.id
+    }
   }
 }
