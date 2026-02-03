@@ -75,7 +75,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
 
   // kvp for modelCardId - ingestionId
-  const ingestionStatus = ref<Record<string, string>>({})
+  const activeIngestions = ref<Record<string, string>>({})
 
   const dismissNotification = () => {
     currentNotification.value = null
@@ -314,7 +314,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     if (canCreateIngestion.queryAvailable) {
       const ingestionId = modelCard
-        ? ingestionStatus.value[modelCard.modelCardId]
+        ? activeIngestions.value[modelCard.modelCardId]
         : undefined
       if (ingestionId && modelCard) {
         try {
@@ -472,7 +472,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     // Cancel the ingestion if applicable
     if (shouldHandleIngestion.value) {
-      const ingestionId = ingestionStatus.value[modelCardId]
+      const ingestionId = activeIngestions.value[modelCardId]
       if (ingestionId) {
         await cancelIngestion(model, ingestionId, 'Cancelled by user')
       }
@@ -592,7 +592,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       model.typeDiscriminator.includes('SenderModelCard') &&
       shouldHandleIngestion.value // for the connectors that don't have SDK to handle graqhql
     ) {
-      const ingestionId = ingestionStatus.value[args.modelCardId]
+      const ingestionId = activeIngestions.value[args.modelCardId]
       if (ingestionId) {
         await updateIngestion(
           model,
@@ -626,7 +626,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       model.typeDiscriminator.includes('SenderModelCard') &&
       shouldHandleIngestion.value
     ) {
-      const ingestionId = ingestionStatus.value[args.modelCardId]
+      const ingestionId = activeIngestions.value[args.modelCardId]
       if (ingestionId) {
         const errorMessage =
           typeof args.error === 'string' ? args.error : args.error.errorMessage
@@ -878,7 +878,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     hostAppName,
     hostAppVersion,
     connectorVersion,
-    ingestionStatus,
+    activeIngestions,
     isConnectorUpToDate,
     latestAvailableVersion,
     documentInfo,

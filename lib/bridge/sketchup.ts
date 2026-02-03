@@ -341,7 +341,7 @@ export class SketchupBridge extends BaseBridge {
     )
 
     if (canCreateIngestion.queryAvailable) {
-      const ingestionId = hostAppStore.ingestionStatus[args.modelCardId]
+      const ingestionId = hostAppStore.activeIngestions[args.modelCardId]
       if (!ingestionId) {
         throw new Error(`Ingestion failed: Ingestion ID not found to create version.`)
       }

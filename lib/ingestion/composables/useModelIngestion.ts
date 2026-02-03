@@ -31,7 +31,7 @@ export const useModelIngestion = () => {
     progressMessage: string,
     sourceData: SourceDataInput
   ) => {
-    const { ingestionStatus } = storeToRefs(store)
+    const { activeIngestions } = storeToRefs(store)
     const client = accountStore.getAccountClient(senderModelCard.accountId)
     const { mutate } = provideApolloClient(client)(() =>
       useMutation(createModelIngestion)
@@ -53,7 +53,7 @@ export const useModelIngestion = () => {
 
     const ingestionId = res?.data?.projectMutations.modelIngestionMutations.create.id
     if (ingestionId) {
-      ingestionStatus.value[senderModelCard.modelCardId] = ingestionId
+      activeIngestions.value[senderModelCard.modelCardId] = ingestionId
     }
 
     return res?.data?.projectMutations.modelIngestionMutations.create
@@ -110,11 +110,11 @@ export const useModelIngestion = () => {
       throw new Error(res.errors[0].message)
     }
 
-    const { ingestionStatus } = storeToRefs(store)
+    const { activeIngestions } = storeToRefs(store)
 
     // clean the failed ingestion
-    ingestionStatus.value = Object.fromEntries(
-      Object.entries(ingestionStatus.value).filter(
+    activeIngestions.value = Object.fromEntries(
+      Object.entries(activeIngestions.value).filter(
         ([key]) => key !== senderModelCard.modelCardId
       )
     )
@@ -142,11 +142,11 @@ export const useModelIngestion = () => {
       throw new Error(res.errors[0].message)
     }
 
-    const { ingestionStatus } = storeToRefs(store)
+    const { activeIngestions } = storeToRefs(store)
 
     // clean the cancelled ingestion
-    ingestionStatus.value = Object.fromEntries(
-      Object.entries(ingestionStatus.value).filter(
+    activeIngestions.value = Object.fromEntries(
+      Object.entries(activeIngestions.value).filter(
         ([key]) => key !== senderModelCard.modelCardId
       )
     )
@@ -174,11 +174,11 @@ export const useModelIngestion = () => {
       throw new Error(res.errors[0].message)
     }
 
-    const { ingestionStatus } = storeToRefs(store)
+    const { activeIngestions } = storeToRefs(store)
 
     // clean the completed ingestion
-    ingestionStatus.value = Object.fromEntries(
-      Object.entries(ingestionStatus.value).filter(
+    activeIngestions.value = Object.fromEntries(
+      Object.entries(activeIngestions.value).filter(
         ([key]) => key !== senderModelCard.modelCardId
       )
     )
