@@ -11,6 +11,7 @@ import {
 import type { SourceDataInput } from '~~/lib/common/generated/gql/graphql'
 import type { ISenderModelCard } from '~/lib/models/card/send'
 import { storeToRefs } from 'pinia'
+import { ToastNotificationType } from '@speckle/ui-components'
 
 /**
  * New way of creating versions.
@@ -48,7 +49,13 @@ export const useModelIngestion = () => {
     })
 
     if (res?.errors?.length) {
-      throw new Error(res.errors[0].message)
+      const msg = res.errors[0].message
+      store.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: msg
+      })
+      throw new Error(msg)
     }
 
     const ingestionId = res?.data?.projectMutations.modelIngestionMutations.create.id
@@ -80,7 +87,13 @@ export const useModelIngestion = () => {
     })
 
     if (res?.errors?.length) {
-      throw new Error(res.errors[0].message)
+      const msg = res.errors[0].message
+      store.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: msg
+      })
+      throw new Error(msg)
     }
 
     return res?.data?.projectMutations.modelIngestionMutations.updateProgress
@@ -107,7 +120,13 @@ export const useModelIngestion = () => {
     })
 
     if (res?.errors?.length) {
-      throw new Error(res.errors[0].message)
+      const msg = res.errors[0].message
+      store.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: msg
+      })
+      throw new Error(msg)
     }
 
     const { activeIngestions } = storeToRefs(store)
@@ -139,7 +158,13 @@ export const useModelIngestion = () => {
     })
 
     if (res?.errors?.length) {
-      throw new Error(res.errors[0].message)
+      const msg = res.errors[0].message
+      store.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: msg
+      })
+      throw new Error(msg)
     }
 
     const { activeIngestions } = storeToRefs(store)
@@ -171,7 +196,13 @@ export const useModelIngestion = () => {
     })
 
     if (res?.errors?.length) {
-      throw new Error(res.errors[0].message)
+      const msg = res.errors[0].message
+      store.setNotification({
+        type: ToastNotificationType.Danger,
+        title: 'Ingestion Error',
+        description: msg
+      })
+      throw new Error(msg)
     }
 
     const { activeIngestions } = storeToRefs(store)
