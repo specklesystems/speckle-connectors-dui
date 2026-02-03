@@ -108,7 +108,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const shouldHandleIngestion = computed(() => {
-    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'archicad', 'vectorworks']
+    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'archicad', 'Vectorworks']
     return hostAppsThatUsesDUIForGraphql.includes(hostAppName.value as string)
   })
 
