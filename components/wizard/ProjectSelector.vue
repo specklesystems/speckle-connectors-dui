@@ -3,7 +3,6 @@
     <div class="space-y-2 relative">
       <div v-if="workspacesEnabled && workspaces" class="flex items-center space-x-2">
         <div class="flex-grow min-w-0">
-          <!-- NO WORKSPACE YET -->
           <div v-if="workspaces.length === 0">
             <FormButton
               full-width
@@ -131,28 +130,6 @@
               />
             </div>
           </div>
-        </div>
-        <div
-          v-if="
-            canCreateProjectPermissionCheck &&
-            !canCreateProjectPermissionCheck.authorized &&
-            showUpgradePlanButton
-          "
-        >
-          <CommonAlert color="info" hide-icon>
-            <template #description>
-              {{ canCreateProjectPermissionCheck.message }}
-              <FormButton
-                full-width
-                class="mt-2"
-                color="primary"
-                size="sm"
-                @click="upgradePlanButtonAction()"
-              >
-                Upgrade now
-              </FormButton>
-            </template>
-          </CommonAlert>
         </div>
 
         <WizardPersonalProjectsWarning v-if="isPersonalProjectsAsWorkspace" />
@@ -491,35 +468,6 @@ const canCreateProjectPermissionCheck = computed(() => {
       .canCreatePersonalProject
   }
   return null
-})
-
-const upgradePlanButtonAction = () => {
-  if (!canCreateProjectPermissionCheck.value) return
-  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat') {
-    // open url to workspace/settings/users
-    $openUrl(
-      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/members`
-    )
-    return
-  }
-  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached') {
-    // open url to workspace/billing
-    $openUrl(
-      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/billing`
-    )
-    return
-  }
-}
-
-const showUpgradePlanButton = computed(() => {
-  if (!canCreateProjectPermissionCheck.value) return false
-  if (
-    canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat' ||
-    canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached'
-  ) {
-    return true
-  }
-  return false
 })
 
 const isCreatingProject = ref(false)

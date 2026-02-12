@@ -32,33 +32,6 @@
           </FormButton>
         </div>
       </div>
-      <div
-        v-if="
-          canCreateModelResult &&
-          !canCreateModelResult.project.permissions.canCreateModel.authorized
-        "
-      >
-        <CommonAlert title="Cannot create new models" color="info" hide-icon>
-          <template #description>
-            {{ canCreateModelResult.project.permissions.canCreateModel.message }}
-
-            <FormButton
-              v-if="workspaceSlug"
-              full-width
-              color="primary"
-              size="sm"
-              class="mt-2"
-              @click="
-                $openUrl(
-                  `${account.accountInfo.serverInfo.url}/settings/workspaces/${workspaceSlug}/billing`
-                )
-              "
-            >
-              Explore Plans
-            </FormButton>
-          </template>
-        </CommonAlert>
-      </div>
       <div class="relative grid grid-cols-1 gap-2">
         <CommonLoadingBar v-if="loading" loading />
 
