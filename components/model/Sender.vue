@@ -173,7 +173,7 @@ const checkPermissions = async () => {
 }
 
 const ctaDisabled = computed(
-  () => !props.modelCard.progress && !canCreateVersionPerm.value
+  () => !canCreateVersionPerm.value || !!props.modelCard.progress
 )
 const ctaDisabledMessage = computed(() => canCreateVersionMessage.value || undefined)
 
