@@ -5,6 +5,7 @@
       :icon-left="Bars3Icon"
       hide-text
       size="sm"
+      :disabled="!!props.modelCard.progress"
       @click.stop="openModelCardActionsDialog = true"
     />
     <CommonDialog
