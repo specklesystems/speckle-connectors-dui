@@ -246,25 +246,19 @@ export const useModelIngestion = () => {
     senderModelCard.progress = { status: 'Remote processing...' }
 
     const { onResult, onError, stop } = provideApolloClient(client)(() =>
-      useSubscription(
-        projectModelIngestionUpdatedSubscription,
-        () => ({
-          input: {
-            projectId: senderModelCard.projectId,
-            ingestionReference: { ingestionId }
-          }
-        })
-      )
+      useSubscription(projectModelIngestionUpdatedSubscription, () => ({
+        input: {
+          projectId: senderModelCard.projectId,
+          ingestionReference: { ingestionId }
+        }
+      }))
     )
 
     activeSubscriptions[senderModelCard.modelCardId] = stop
 
     onResult((result) => {
-      const data = result.data as
-        | ProjectModelIngestionUpdatedSubscription
-        | undefined
-      const statusData =
-        data?.projectModelIngestionUpdated?.modelIngestion?.statusData
+      const data = result.data as ProjectModelIngestionUpdatedSubscription | undefined
+      const statusData = data?.projectModelIngestionUpdated?.modelIngestion?.statusData
       if (!statusData) return
 
       switch (statusData.__typename) {
