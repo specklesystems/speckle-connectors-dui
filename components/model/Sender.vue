@@ -119,7 +119,7 @@
   </ModelCardBase>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import ModelCardBase from '~/components/model/CardBase.vue'
 import { Square3Stack3DIcon } from '@heroicons/vue/20/solid'
 import type { ModelCardNotification } from '~/lib/models/card/notification'
@@ -212,21 +212,16 @@ const sendOrCancel = () => {
 }
 
 const newFilter = ref<ISendFilter>()
-
 const updateFilter = (filter: ISendFilter) => {
   newFilter.value = filter
 }
 
 const isSaveDisabled = computed(() => {
-  const f = newFilter.value || props.modelCard.sendFilter
-  return (
-    f?.name === 'Selection' &&
-    (!f.selectedObjectIds || f.selectedObjectIds.length === 0)
-  )
+  return !store.validateSendFilter(newFilter.value || props.modelCard.sendFilter).valid
 })
 
 const saveFilter = async () => {
-  if (!newFilter.value) return
+  if (!newFilter.value) return // Safety check
   void trackEvent('DUI3 Action', {
     name: 'Publish Card Filter Change',
     filter: newFilter.value.typeDiscriminator

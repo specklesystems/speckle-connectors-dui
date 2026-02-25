@@ -42,10 +42,7 @@
           }
         "
       />
-      <div
-        v-tippy="!canPublish && !isLoadingPermissions ? publishLimitMessage : ''"
-        class="mt-2"
-      >
+      <div v-tippy="publishTooltipMessage" class="mt-2">
         <FormButton
           full-width
           :disabled="isPublishDisabled"
@@ -62,7 +59,6 @@
   </CommonDialog>
 </template>
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSubscription } from '@vue/apollo-composable'
 import type {
@@ -108,15 +104,19 @@ const isLoadingPermissions = ref(false)
 const hostAppStore = useHostAppStore()
 const selectionStore = useSelectionStore()
 
-const isSelectionEmpty = computed(() => {
+const publishValidation = computed(() => hostAppStore.validateSendFilter(filter.value))
+
+const isPublishDisabled = computed(() => {
   return (
-    filter.value?.name === 'Selection' &&
-    (!selectionStore.selectionInfo.selectedObjectIds ||
-      selectionStore.selectionInfo.selectedObjectIds.length === 0)
+    !canPublish.value || isLoadingPermissions.value || !publishValidation.value.valid
   )
 })
-const isPublishDisabled = computed(() => {
-  return !canPublish.value || isLoadingPermissions.value || isSelectionEmpty.value
+
+const publishTooltipMessage = computed(() => {
+  if (!publishValidation.value.valid) return publishValidation.value.reason
+  if (!canPublish.value && !isLoadingPermissions.value)
+    return publishLimitMessage.value || ''
+  return ''
 })
 
 const updateSearchText = (text: string | undefined) => {

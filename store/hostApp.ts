@@ -11,6 +11,7 @@ import type {
   ISendFilterSelectItem,
   ISenderModelCard,
   RevitViewsSendFilter,
+  RevitCategoriesSendFilter,
   SendFilterSelect
 } from '~/lib/models/card/send'
 import type { ToastNotification } from '@speckle/ui-components'
@@ -22,6 +23,7 @@ import { defineStore } from 'pinia'
 import type { CardSetting } from '~/lib/models/card/setting'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
+import { useSelectionStore } from '~/store/selection'
 import {
   useUpdateConnector,
   type Version
@@ -365,6 +367,45 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * Subscribe to notifications about send filters.
    */
   app.$sendBinding?.on('refreshSendFilters', () => void refreshSendFilters())
+
+  const validateSendFilter = (
+    filter?: ISendFilter
+  ): { valid: boolean; reason?: string } => {
+    if (!filter) return { valid: false, reason: 'No filter selected' }
+
+    if (filter.name === 'Selection' || filter.id === 'selection') {
+      const selectionStore = useSelectionStore()
+      if (
+        !selectionStore.selectionInfo.selectedObjectIds ||
+        selectionStore.selectionInfo.selectedObjectIds.length === 0
+      ) {
+        return { valid: false, reason: 'No objects selected to publish' }
+      }
+    }
+
+    if (filter.type === 'Select' || filter.id === 'navisworksSavedSets') {
+      const f = filter as SendFilterSelect
+      if (!f.selectedItems || f.selectedItems.length === 0) {
+        return { valid: false, reason: 'No items selected to publish' }
+      }
+    }
+
+    if (filter.id === 'revitCategories' || filter.id === 'archicadLayers') {
+      const f = filter as RevitCategoriesSendFilter
+      if (!f.selectedCategories || f.selectedCategories.length === 0) {
+        return { valid: false, reason: 'No categories selected to publish' }
+      }
+    }
+
+    if (filter.id === 'revitViews') {
+      const f = filter as RevitViewsSendFilter
+      if (!f.selectedView || f.selectedView.trim() === '') {
+        return { valid: false, reason: 'No view selected to publish' }
+      }
+    }
+
+    return { valid: true }
+  }
 
   /**
    * Send functionality
@@ -924,6 +965,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     getSendSettings,
     setModelSendResult,
     setModelReceiveResult,
-    handleModelProgressEvents
+    handleModelProgressEvents,
+    validateSendFilter
   }
 })
