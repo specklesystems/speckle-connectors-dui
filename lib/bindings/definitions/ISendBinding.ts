@@ -26,6 +26,7 @@ export interface ISendBindingEvents
     modelCardId: string
     versionId: string
     sendConversionResults: ConversionResult[]
+    ingestionId?: string
   }) => void
   setIdMap: (args: {
     modelCardId: string
