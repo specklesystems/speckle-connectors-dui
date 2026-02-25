@@ -32,13 +32,18 @@
       <FilterListSelect :filter="modelCard.sendFilter" @update:filter="updateFilter" />
 
       <div class="mt-4 flex justify-end items-center space-x-2">
-        <FormButton size="sm" color="outline" @click.stop="saveFilter()">
+        <FormButton
+          size="sm"
+          color="outline"
+          :disabled="isSaveDisabled"
+          @click.stop="saveFilter()"
+        >
           Save
         </FormButton>
         <div v-tippy="!canCreateVersionPerm ? canCreateVersionMessage : ''">
           <FormButton
             size="sm"
-            :disabled="!canCreateVersionPerm"
+            :disabled="!canCreateVersionPerm || isSaveDisabled"
             @click.stop="saveFilterAndSend()"
           >
             Save & Publish
@@ -206,22 +211,32 @@ const sendOrCancel = () => {
   hasSetVersionMessage.value = false
 }
 
-let newFilter: ISendFilter
+const newFilter = ref<ISendFilter>()
+
 const updateFilter = (filter: ISendFilter) => {
-  newFilter = filter
+  newFilter.value = filter
 }
 
+const isSaveDisabled = computed(() => {
+  const f = newFilter.value || props.modelCard.sendFilter
+  return (
+    f?.name === 'Selection' &&
+    (!f.selectedObjectIds || f.selectedObjectIds.length === 0)
+  )
+})
+
 const saveFilter = async () => {
+  if (!newFilter.value) return
   void trackEvent('DUI3 Action', {
     name: 'Publish Card Filter Change',
-    filter: newFilter.typeDiscriminator
+    filter: newFilter.value.typeDiscriminator
   })
 
   // do not reset idmap while creating a new one because it is managed by host app
-  newFilter.idMap = props.modelCard.sendFilter?.idMap
+  newFilter.value.idMap = props.modelCard.sendFilter?.idMap
 
   await store.patchModel(props.modelCard.modelCardId, {
-    sendFilter: newFilter,
+    sendFilter: newFilter.value,
     expired: true
   })
   openFilterDialog.value = false

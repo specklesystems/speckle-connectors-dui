@@ -48,7 +48,7 @@
       >
         <FormButton
           full-width
-          :disabled="!canPublish || isLoadingPermissions"
+          :disabled="isPublishDisabled"
           :loading="isLoadingPermissions"
           @click="addModel"
         >
@@ -62,6 +62,7 @@
   </CommonDialog>
 </template>
 <script setup lang="ts">
+import { computed, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useSubscription } from '@vue/apollo-composable'
 import type {
@@ -72,6 +73,7 @@ import type { ISendFilter } from '~/lib/models/card/send'
 import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
+import { useSelectionStore } from '~/store/selection'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
@@ -103,6 +105,19 @@ const { canCreateModelIngestion, canCreateVersion } = useCheckGraphql()
 const canPublish = ref(false)
 const publishLimitMessage = ref<string | undefined>(undefined)
 const isLoadingPermissions = ref(false)
+const hostAppStore = useHostAppStore()
+const selectionStore = useSelectionStore()
+
+const isSelectionEmpty = computed(() => {
+  return (
+    filter.value?.name === 'Selection' &&
+    (!selectionStore.selectionInfo.selectedObjectIds ||
+      selectionStore.selectionInfo.selectedObjectIds.length === 0)
+  )
+})
+const isPublishDisabled = computed(() => {
+  return !canPublish.value || isLoadingPermissions.value || isSelectionEmpty.value
+})
 
 const updateSearchText = (text: string | undefined) => {
   urlParseError.value = undefined
@@ -119,6 +134,7 @@ watch(urlParsedData, (newVal) => {
 watch(showSendDialog, (newVal) => {
   if (newVal) {
     urlParseError.value = undefined
+    void selectionStore.refreshSelectionFromHostApp()
   }
 })
 
@@ -203,8 +219,6 @@ const selectModel = (model: ModelListModelItemFragment) => {
   selectedModel.value = model
   void trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'model selected' })
 }
-
-const hostAppStore = useHostAppStore()
 
 // accountId, serverUrl, projectId, modelId, sendFilter, settings
 const addModel = async () => {
