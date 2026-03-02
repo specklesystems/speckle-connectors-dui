@@ -217,7 +217,8 @@ const updateFilter = (filter: ISendFilter) => {
 }
 
 const isSaveDisabled = computed(() => {
-  return !store.validateSendFilter(newFilter.value || props.modelCard.sendFilter).valid
+  const filterToCheck = newFilter.value || props.modelCard.sendFilter
+  return !store.validateSendFilter(filterToCheck).valid
 })
 
 const saveFilter = async () => {
