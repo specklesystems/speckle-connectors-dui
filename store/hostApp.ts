@@ -13,6 +13,8 @@ import type {
   RevitViewsSendFilter,
   SendFilterSelect
 } from '~/lib/models/card/send'
+import { useSelectionStore } from '~/store/selection'
+import { validateFilter } from '~/lib/validation'
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
 import type { Nullable } from '@speckle/shared'
@@ -367,6 +369,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * Subscribe to notifications about send filters.
    */
   app.$sendBinding?.on('refreshSendFilters', () => void refreshSendFilters())
+
+  const validateSendFilter = (filter?: ISendFilter) => {
+    const selectionStore = useSelectionStore()
+
+    return validateFilter(filter, {
+      selectionCount: selectionStore.selectionInfo.selectedObjectIds?.length ?? 0
+    })
+  }
 
   /**
    * Send functionality
@@ -938,6 +948,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     getSendSettings,
     setModelSendResult,
     setModelReceiveResult,
-    handleModelProgressEvents
+    handleModelProgressEvents,
+    validateSendFilter
   }
 })
