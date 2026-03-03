@@ -6,9 +6,18 @@
       </div>
       <IssuesBasicTiptap
         v-if="issue.description?.doc"
-        class="border rounded-xl border-outline-3"
+        class="border rounded-xl border-outline-3 w-full"
         :doc="issue.description?.doc"
       ></IssuesBasicTiptap>
+      <div v-if="hasObjectDeltas" class="w-full pt-1 pb-1">
+        <FormButton
+          class="w-full justify-center"
+          :disabled="isApplying"
+          @click="applyChanges"
+        >
+          {{ isApplying ? 'Applying...' : 'Apply changes' }}
+        </FormButton>
+      </div>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
         <IssuesStatusIcon :status="issue.status" show-label />
         <IssuesPriorityIcon :priority="issue.priority" show-label />
@@ -84,13 +93,85 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useQuery } from '@vue/apollo-composable'
+import { ResourceMetaType } from '~/lib/common/generated/gql/graphql'
+import { issueResourceMetaSearchQuery } from '~/lib/issues/graphql/queries'
 import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
+import type { IModelCard } from '~/lib/models/card'
 import dayjs from 'dayjs'
 import { Calendar } from 'lucide-vue-next'
 
 const props = defineProps<{
   issue: IssuesItemFragment
+  modelCard: IModelCard
 }>()
+
+const app = useNuxtApp()
+const isApplying = ref(false)
+
+// 1. Safely type variables to ensure they match the GraphQL ! requirements exactly
+const queryVariables = computed(() => ({
+  workspaceId: props.modelCard.workspaceId || '',
+  projectId: props.modelCard.projectId,
+  resourceType: ResourceMetaType.Issue,
+  resourceId: props.issue.id,
+  metaType: 'objectDeltas'
+}))
+
+// 2. Wrap options and add an 'enabled' check so we don't query with a blank workspaceId
+const queryOptions = computed(() => ({
+  fetchPolicy: 'cache-and-network' as const,
+  enabled: !!props.modelCard.workspaceId,
+  clientId: props.modelCard.accountId
+}))
+
+const { result: resourceMetaResult } = useQuery(
+  issueResourceMetaSearchQuery,
+  queryVariables,
+  queryOptions
+)
+
+// 3. Explicitly type the computed properties and use Array.isArray to satisfy ESLint
+const hasObjectDeltas = computed<boolean>(() => {
+  const metadata = resourceMetaResult.value?.resourceMetaSearch
+  return Array.isArray(metadata) && metadata.length > 0
+})
+
+const objectDeltasPayload = computed<unknown>(() => {
+  if (!hasObjectDeltas.value) return null
+  const metadata = resourceMetaResult.value?.resourceMetaSearch
+
+  if (Array.isArray(metadata) && metadata.length > 0) {
+    // Cast to unknown to satisfy ESLint's strict "no unsafe return of any" rule
+    return metadata[0]?.data as unknown
+  }
+
+  return null
+})
+
+const applyChanges = async () => {
+  if (!objectDeltasPayload.value) return
+
+  isApplying.value = true
+  try {
+    // Ensure we handle the payload properly whether the API returned an object or stringified JSON
+    const payload =
+      typeof objectDeltasPayload.value === 'string'
+        ? objectDeltasPayload.value
+        : JSON.stringify(objectDeltasPayload.value)
+
+    if (typeof app.$baseBinding.updateParameters === 'function') {
+      await app.$baseBinding.updateParameters(payload)
+    } else {
+      console.warn('Backend C# updateParameters binding is not yet implemented.')
+    }
+  } catch (error) {
+    console.error('Failed to apply changes:', error)
+  } finally {
+    isApplying.value = false
+  }
+}
 
 const formattedDate = computed((): string | null => {
   try {
