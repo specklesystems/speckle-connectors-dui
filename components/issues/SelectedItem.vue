@@ -110,7 +110,6 @@ const props = defineProps<{
 const app = useNuxtApp()
 const isApplying = ref(false)
 
-// 1. Safely type variables to ensure they match the GraphQL ! requirements exactly
 const queryVariables = computed(() => ({
   workspaceId: props.modelCard.workspaceId || '',
   projectId: props.modelCard.projectId,
@@ -119,7 +118,6 @@ const queryVariables = computed(() => ({
   metaType: 'objectDeltas'
 }))
 
-// 2. Wrap options and add an 'enabled' check so we don't query with a blank workspaceId
 const queryOptions = computed(() => ({
   fetchPolicy: 'cache-and-network' as const,
   enabled: !!props.modelCard.workspaceId,
@@ -132,7 +130,6 @@ const { result: resourceMetaResult } = useQuery(
   queryOptions
 )
 
-// 3. Explicitly type the computed properties and use Array.isArray to satisfy ESLint
 const hasObjectDeltas = computed<boolean>(() => {
   const metadata = resourceMetaResult.value?.resourceMetaSearch
   return Array.isArray(metadata) && metadata.length > 0
@@ -143,7 +140,6 @@ const objectDeltasPayload = computed<unknown>(() => {
   const metadata = resourceMetaResult.value?.resourceMetaSearch
 
   if (Array.isArray(metadata) && metadata.length > 0) {
-    // Cast to unknown to satisfy ESLint's strict "no unsafe return of any" rule
     return metadata[0]?.data as unknown
   }
 
@@ -155,7 +151,6 @@ const applyChanges = async () => {
 
   isApplying.value = true
   try {
-    // Ensure we handle the payload properly whether the API returned an object or stringified JSON
     const payload =
       typeof objectDeltasPayload.value === 'string'
         ? objectDeltasPayload.value
