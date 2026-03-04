@@ -111,7 +111,6 @@ const app = useNuxtApp()
 const isApplying = ref(false)
 
 const queryVariables = computed(() => ({
-  workspaceId: props.modelCard.workspaceId || '',
   projectId: props.modelCard.projectId,
   resourceType: ResourceMetaType.Issue,
   resourceId: props.issue.id,
@@ -120,7 +119,7 @@ const queryVariables = computed(() => ({
 
 const queryOptions = computed(() => ({
   fetchPolicy: 'cache-and-network' as const,
-  enabled: !!props.modelCard.workspaceId,
+  enabled: !!props.modelCard.projectId,
   clientId: props.modelCard.accountId
 }))
 
@@ -131,13 +130,13 @@ const { result: resourceMetaResult } = useQuery(
 )
 
 const hasObjectDeltas = computed<boolean>(() => {
-  const metadata = resourceMetaResult.value?.resourceMetaSearch
+  const metadata = resourceMetaResult.value?.projectResourceMetaSearch
   return Array.isArray(metadata) && metadata.length > 0
 })
 
 const objectDeltasPayload = computed<unknown>(() => {
   if (!hasObjectDeltas.value) return null
-  const metadata = resourceMetaResult.value?.resourceMetaSearch
+  const metadata = resourceMetaResult.value?.projectResourceMetaSearch
 
   if (Array.isArray(metadata) && metadata.length > 0) {
     return metadata[0]?.data as unknown
