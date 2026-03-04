@@ -16,12 +16,14 @@ export const issuesListQuery = graphql(`
 
 export const issueResourceMetaSearchQuery = graphql(`
   query IssueResourceMetaSearch(
+    $workspaceId: String!
     $resourceType: ResourceMetaType!
     $resourceId: String!
-    $projectId: String!
+    $projectId: String
     $metaType: String
   ) {
-    projectResourceMetaSearch(
+    resourceMetaSearch(
+      workspaceId: $workspaceId
       resourceType: $resourceType
       resourceId: $resourceId
       projectId: $projectId
