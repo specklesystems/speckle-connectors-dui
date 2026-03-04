@@ -118,7 +118,7 @@ const isResolved = computed(() => {
 })
 
 const queryVariables = computed(() => ({
-  workspaceId: props.modelCard.workspaceId,
+  workspaceId: props.modelCard.workspaceId!,
   projectId: props.modelCard.projectId,
   resourceType: ResourceMetaType.Issue,
   resourceId: props.issue.id,
