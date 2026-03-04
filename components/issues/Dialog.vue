@@ -28,7 +28,7 @@
             </div>
           </div>
           <hr />
-          <IssuesSelectedItem :issue="selectedIssue" />
+          <IssuesSelectedItem :issue="selectedIssue" :model-card="modelCard" />
         </div>
 
         <div v-if="!selectedIssue" class="flex flex-col space-y-2">

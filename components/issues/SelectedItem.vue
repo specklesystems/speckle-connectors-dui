@@ -6,9 +6,21 @@
       </div>
       <IssuesBasicTiptap
         v-if="issue.description?.doc"
-        class="border rounded-xl border-outline-3"
+        class="border rounded-xl border-outline-3 w-full"
         :doc="issue.description?.doc"
       ></IssuesBasicTiptap>
+
+      <div v-if="app.$parametersBinding && hasObjectDeltas" class="w-full pt-1 pb-1">
+        <FormButton
+          class="w-full justify-center"
+          :disabled="isApplying || isResolved"
+          @click="applyChanges"
+        >
+          {{
+            isApplying ? 'Applying...' : isResolved ? 'Issue resolved' : 'Apply changes'
+          }}
+        </FormButton>
+      </div>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
         <IssuesStatusIcon :status="issue.status" show-label />
         <IssuesPriorityIcon :priority="issue.priority" show-label />
@@ -84,13 +96,84 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { useQuery } from '@vue/apollo-composable'
+import { ResourceMetaType, IssueStatus } from '~/lib/common/generated/gql/graphql'
+import { issueResourceMetaSearchQuery } from '~/lib/issues/graphql/queries'
 import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
+import type { IModelCard } from '~/lib/models/card'
 import dayjs from 'dayjs'
 import { Calendar } from 'lucide-vue-next'
 
 const props = defineProps<{
   issue: IssuesItemFragment
+  modelCard: IModelCard
 }>()
+
+const app = useNuxtApp()
+const isApplying = ref(false)
+
+const isResolved = computed(() => {
+  return props.issue.status === IssueStatus.Resolved
+})
+
+const queryVariables = computed(() => ({
+  workspaceId: props.modelCard.workspaceId!,
+  projectId: props.modelCard.projectId,
+  resourceType: ResourceMetaType.Issue,
+  resourceId: props.issue.id,
+  metaType: 'objectDeltas'
+}))
+
+const queryOptions = computed(() => ({
+  fetchPolicy: 'cache-and-network' as const,
+  enabled: !!props.modelCard.workspaceId,
+  clientId: props.modelCard.accountId
+}))
+
+const { result: resourceMetaResult } = useQuery(
+  issueResourceMetaSearchQuery,
+  queryVariables,
+  queryOptions
+)
+
+const hasObjectDeltas = computed<boolean>(() => {
+  const metadata = resourceMetaResult.value?.resourceMetaSearch
+  return Array.isArray(metadata) && metadata.length > 0
+})
+
+const objectDeltasPayload = computed<unknown>(() => {
+  if (!hasObjectDeltas.value) return null
+  const metadata = resourceMetaResult.value?.resourceMetaSearch
+
+  if (Array.isArray(metadata) && metadata.length > 0) {
+    return metadata[0]?.data as unknown
+  }
+
+  return null
+})
+
+const applyChanges = async () => {
+  if (!objectDeltasPayload.value) return
+
+  isApplying.value = true
+  try {
+    const payload =
+      typeof objectDeltasPayload.value === 'string'
+        ? objectDeltasPayload.value
+        : JSON.stringify(objectDeltasPayload.value)
+
+    if (app.$parametersBinding) {
+      await app.$parametersBinding.update(payload)
+    } else {
+      console.warn('IParametersBinding not available in this host app')
+    }
+  } catch (error) {
+    console.error('Failed to apply changes:', error)
+  } finally {
+    isApplying.value = false
+  }
+}
 
 const formattedDate = computed((): string | null => {
   try {
