@@ -303,9 +303,10 @@ export type AdminMutations = {
    * normal role requirements.
    */
   removeWorkspaceDomain: Scalars['Boolean']['output'];
-  requestEmailVerification: Scalars['Boolean']['output'];
-  requestPasswordReset: Scalars['Boolean']['output'];
+  requestEmailVerification: SentEmailInfo;
+  requestPasswordReset: SentEmailInfo;
   revokeWorkspaceFeature: Scalars['Boolean']['output'];
+  sendDeliverabilityTestEmail: SentEmailInfo;
   /**
    * A server administrator can update the verification status of an user's email.
    * The server administrator is recommended to confirm ownership of the email address
@@ -344,6 +345,11 @@ export type AdminMutationsRequestPasswordResetArgs = {
 
 export type AdminMutationsRevokeWorkspaceFeatureArgs = {
   input: WorkspaceFeatureGrantUpdateInput;
+};
+
+
+export type AdminMutationsSendDeliverabilityTestEmailArgs = {
+  emailId: Scalars['ID']['input'];
 };
 
 
