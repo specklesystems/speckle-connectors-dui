@@ -9,7 +9,8 @@
         class="border rounded-xl border-outline-3 w-full"
         :doc="issue.description?.doc"
       ></IssuesBasicTiptap>
-      <div v-if="hasObjectDeltas" class="w-full pt-1 pb-1">
+
+      <div v-if="app.$parametersBinding && hasObjectDeltas" class="w-full pt-1 pb-1">
         <FormButton
           class="w-full justify-center"
           :disabled="isApplying"
@@ -156,10 +157,10 @@ const applyChanges = async () => {
         ? objectDeltasPayload.value
         : JSON.stringify(objectDeltasPayload.value)
 
-    if (typeof app.$baseBinding.updateParameters === 'function') {
-      await app.$baseBinding.updateParameters(payload)
+    if (app.$parametersBinding) {
+      await app.$parametersBinding.update(payload)
     } else {
-      console.warn('Backend C# updateParameters binding is not yet implemented.')
+      console.warn('IParametersBinding is not available in this host app')
     }
   } catch (error) {
     console.error('Failed to apply changes:', error)
