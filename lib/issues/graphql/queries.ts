@@ -13,3 +13,23 @@ export const issuesListQuery = graphql(`
     }
   }
 `)
+
+export const issueResourceMetaSearchQuery = graphql(`
+  query IssueResourceMetaSearch(
+    $workspaceId: String!
+    $resourceType: ResourceMetaType!
+    $resourceId: String!
+    $projectId: String
+    $metaType: String
+  ) {
+    resourceMetaSearch(
+      workspaceId: $workspaceId
+      resourceType: $resourceType
+      resourceId: $resourceId
+      projectId: $projectId
+      metaType: $metaType
+    ) {
+      data
+    }
+  }
+`)
