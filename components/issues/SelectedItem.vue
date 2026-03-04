@@ -13,10 +13,12 @@
       <div v-if="app.$parametersBinding && hasObjectDeltas" class="w-full pt-1 pb-1">
         <FormButton
           class="w-full justify-center"
-          :disabled="isApplying"
+          :disabled="isApplying || isResolved"
           @click="applyChanges"
         >
-          {{ isApplying ? 'Applying...' : 'Apply changes' }}
+          {{
+            isApplying ? 'Applying...' : isResolved ? 'Issue resolved' : 'Apply changes'
+          }}
         </FormButton>
       </div>
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -96,7 +98,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
-import { ResourceMetaType } from '~/lib/common/generated/gql/graphql'
+import { ResourceMetaType, IssueStatus } from '~/lib/common/generated/gql/graphql'
 import { issueResourceMetaSearchQuery } from '~/lib/issues/graphql/queries'
 import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
 import type { IModelCard } from '~/lib/models/card'
@@ -110,6 +112,10 @@ const props = defineProps<{
 
 const app = useNuxtApp()
 const isApplying = ref(false)
+
+const isResolved = computed(() => {
+  return props.issue.status === IssueStatus.Resolved
+})
 
 const queryVariables = computed(() => ({
   workspaceId: props.modelCard.workspaceId,
@@ -160,7 +166,7 @@ const applyChanges = async () => {
     if (app.$parametersBinding) {
       await app.$parametersBinding.update(payload)
     } else {
-      console.warn('IParametersBinding is not available in this host app')
+      console.warn('IParametersBinding not available in this host app')
     }
   } catch (error) {
     console.error('Failed to apply changes:', error)
