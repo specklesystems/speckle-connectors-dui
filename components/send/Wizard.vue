@@ -42,13 +42,10 @@
           }
         "
       />
-      <div
-        v-tippy="!canPublish && !isLoadingPermissions ? publishLimitMessage : ''"
-        class="mt-2"
-      >
+      <div v-tippy="publishTooltipMessage" class="mt-2">
         <FormButton
           full-width
-          :disabled="!canPublish || isLoadingPermissions"
+          :disabled="isPublishDisabled"
           :loading="isLoadingPermissions"
           @click="addModel"
         >
@@ -72,6 +69,7 @@ import type { ISendFilter } from '~/lib/models/card/send'
 import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
+import { useSelectionStore } from '~/store/selection'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
@@ -103,6 +101,23 @@ const { canCreateModelIngestion, canCreateVersion } = useCheckGraphql()
 const canPublish = ref(false)
 const publishLimitMessage = ref<string | undefined>(undefined)
 const isLoadingPermissions = ref(false)
+const hostAppStore = useHostAppStore()
+const selectionStore = useSelectionStore()
+
+const publishValidation = computed(() => hostAppStore.validateSendFilter(filter.value))
+
+const isPublishDisabled = computed(() => {
+  return (
+    !canPublish.value || isLoadingPermissions.value || !publishValidation.value.valid
+  )
+})
+
+const publishTooltipMessage = computed(() => {
+  if (!publishValidation.value.valid) return publishValidation.value.reason
+  if (!canPublish.value && !isLoadingPermissions.value)
+    return publishLimitMessage.value || ''
+  return ''
+})
 
 const updateSearchText = (text: string | undefined) => {
   urlParseError.value = undefined
@@ -119,6 +134,7 @@ watch(urlParsedData, (newVal) => {
 watch(showSendDialog, (newVal) => {
   if (newVal) {
     urlParseError.value = undefined
+    void selectionStore.refreshSelectionFromHostApp()
   }
 })
 
@@ -203,8 +219,6 @@ const selectModel = (model: ModelListModelItemFragment) => {
   selectedModel.value = model
   void trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'model selected' })
 }
-
-const hostAppStore = useHostAppStore()
 
 // accountId, serverUrl, projectId, modelId, sendFilter, settings
 const addModel = async () => {

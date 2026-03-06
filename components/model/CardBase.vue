@@ -21,7 +21,9 @@
             "
             hide-text
             class=""
-            :disabled="!canEdit || isSettingsMissing || ctaDisabled"
+            :disabled="
+              (!canEdit || isSettingsMissing || ctaDisabled) && !modelCard.progress
+            "
             @click.stop="$emit('manual-publish-or-load')"
           ></FormButton>
         </div>
@@ -284,12 +286,9 @@ const isSender = computed(() => {
 })
 
 const buttonTooltip = computed(() => {
+  if (props.modelCard.progress) return 'Cancel'
   if (props.ctaDisabled) return props.ctaDisabledMessage
-  return props.modelCard.progress
-    ? 'Cancel'
-    : isSender.value
-    ? 'Publish model'
-    : 'Load selected version'
+  return isSender.value ? 'Publish model' : 'Load selected version'
 })
 
 const projectAccount = computed(() =>

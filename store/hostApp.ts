@@ -13,6 +13,8 @@ import type {
   RevitViewsSendFilter,
   SendFilterSelect
 } from '~/lib/models/card/send'
+import { useSelectionStore } from '~/store/selection'
+import { validateFilter } from '~/lib/validation'
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
 import type { Nullable } from '@speckle/shared'
@@ -51,7 +53,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     updateIngestion,
     failIngestion,
     cancelIngestion,
-    completeIngestionWithVersion
+    completeIngestionWithVersion,
+    subscribeToIngestion,
+    unsubscribeFromIngestion
   } = useModelIngestion()
   const isDistributedBySpeckle = ref<boolean>(true)
   const latestAvailableVersion = ref<Version | null>(null)
@@ -366,6 +370,14 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    */
   app.$sendBinding?.on('refreshSendFilters', () => void refreshSendFilters())
 
+  const validateSendFilter = (filter?: ISendFilter) => {
+    const selectionStore = useSelectionStore()
+
+    return validateFilter(filter, {
+      selectionCount: selectionStore.selectionInfo.selectedObjectIds?.length ?? 0
+    })
+  }
+
   /**
    * Send functionality
    */
@@ -477,6 +489,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     void trackEvent('DUI3 Action', { name: 'Send Cancel' }, model.accountId)
     model.latestCreatedVersionId = undefined
 
+    // Clean up any active ingestion subscription from SDK-based connectors
+    unsubscribeFromIngestion(modelCardId)
+
     // Cancel the ingestion if applicable
     if (shouldHandleIngestion.value) {
       const ingestionId = activeIngestions.value[modelCardId]
@@ -500,13 +515,22 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     modelCardId: string
     versionId: string
     sendConversionResults: ConversionResult[]
+    ingestionId?: string
   }) => {
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === args.modelCardId
     ) as ISenderModelCard
-    model.latestCreatedVersionId = args.versionId
+    // Conversion results are always valid regardless of ingestion state
     model.report = args.sendConversionResults
-    model.progress = undefined
+
+    if (args.ingestionId) {
+      // Connector handled ingestion via SDK — composable subscribes and manages model card state to 'Version created' bla bla
+      subscribeToIngestion(model, args.ingestionId)
+    } else {
+      // Legacy path or no ingestion — behave as before
+      model.latestCreatedVersionId = args.versionId
+      model.progress = undefined
+    }
   }
 
   app.$sendBinding?.on('setModelSendResult', setModelSendResult)
@@ -924,6 +948,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     getSendSettings,
     setModelSendResult,
     setModelReceiveResult,
-    handleModelProgressEvents
+    handleModelProgressEvents,
+    validateSendFilter
   }
 })
