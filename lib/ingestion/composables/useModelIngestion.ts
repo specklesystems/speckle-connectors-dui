@@ -1,4 +1,8 @@
-import { provideApolloClient, useMutation } from '@vue/apollo-composable'
+import {
+  provideApolloClient,
+  useMutation,
+  useSubscription
+} from '@vue/apollo-composable'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import {
@@ -8,7 +12,11 @@ import {
   failModelIngestionWithError,
   failModelIngestionWithCancel
 } from '../graphql/mutations'
-import type { SourceDataInput } from '~~/lib/common/generated/gql/graphql'
+import { projectModelIngestionUpdatedSubscription } from '../graphql/subscriptions'
+import type {
+  SourceDataInput,
+  ProjectModelIngestionUpdatedSubscription
+} from '~~/lib/common/generated/gql/graphql'
 import type { ISenderModelCard } from '~/lib/models/card/send'
 import { storeToRefs } from 'pinia'
 import { ToastNotificationType } from '@speckle/ui-components'
@@ -217,11 +225,95 @@ export const useModelIngestion = () => {
     return res?.data?.projectMutations.modelIngestionMutations.completeWithVersion
   }
 
+  // Tracks active ingestion subscriptions so they can be stopped on cancel or terminal state
+  const activeSubscriptions: Record<string, () => void> = {}
+
+  /**
+   * Subscribes to ingestion status updates for a given ingestionId.
+   * Used when the connector (.NET SDK) handles the ingestion and passes the ingestionId
+   * back to the DUI via setModelSendResult. The DUI then subscribes to track
+   * the server-side processing state until a terminal status is reached.
+   *
+   * Manages model card state directly: updates progress, sets versionId on success,
+   * sets error on failure, and clears progress on terminal states.
+   */
+  const subscribeToIngestion = (
+    senderModelCard: ISenderModelCard,
+    ingestionId: string
+  ) => {
+    const client = accountStore.getAccountClient(senderModelCard.accountId)
+
+    senderModelCard.progress = { status: 'Remote processing...' }
+
+    const { onResult, onError, stop } = provideApolloClient(client)(() =>
+      useSubscription(projectModelIngestionUpdatedSubscription, () => ({
+        input: {
+          projectId: senderModelCard.projectId,
+          ingestionReference: { ingestionId }
+        }
+      }))
+    )
+
+    activeSubscriptions[senderModelCard.modelCardId] = stop
+
+    onResult((result) => {
+      const data = result.data as ProjectModelIngestionUpdatedSubscription | undefined
+      const statusData = data?.projectModelIngestionUpdated?.modelIngestion?.statusData
+      if (!statusData) return
+
+      switch (statusData.__typename) {
+        case 'ModelIngestionSuccessStatus':
+          senderModelCard.latestCreatedVersionId = statusData.versionId
+          senderModelCard.progress = undefined
+          unsubscribeFromIngestion(senderModelCard.modelCardId)
+          break
+        case 'ModelIngestionProcessingStatus':
+          senderModelCard.progress = {
+            status: statusData.progressMessage,
+            progress: statusData.progress ?? undefined
+          }
+          break
+        case 'ModelIngestionFailedStatus':
+          senderModelCard.error = {
+            errorMessage: statusData.errorReason,
+            dismissible: true
+          }
+          senderModelCard.progress = undefined
+          unsubscribeFromIngestion(senderModelCard.modelCardId)
+          break
+        case 'ModelIngestionCancelledStatus':
+          senderModelCard.progress = undefined
+          unsubscribeFromIngestion(senderModelCard.modelCardId)
+          break
+        case 'ModelIngestionQueuedStatus':
+          senderModelCard.progress = {
+            status: statusData.progressMessage
+          }
+          break
+      }
+    })
+
+    onError((err) => {
+      console.error('Ingestion subscription error:', err)
+      unsubscribeFromIngestion(senderModelCard.modelCardId)
+    })
+  }
+
+  const unsubscribeFromIngestion = (modelCardId: string) => {
+    const stop = activeSubscriptions[modelCardId]
+    if (stop) {
+      stop()
+      delete activeSubscriptions[modelCardId]
+    }
+  }
+
   return {
     startIngestion,
     updateIngestion,
     failIngestion,
     cancelIngestion,
-    completeIngestionWithVersion
+    completeIngestionWithVersion,
+    subscribeToIngestion,
+    unsubscribeFromIngestion
   }
 }

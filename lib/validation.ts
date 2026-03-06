@@ -1,5 +1,23 @@
+import { computed } from 'vue'
+import type {
+  ISendFilter,
+  SendFilterSelect,
+  RevitCategoriesSendFilter,
+  RevitViewsSendFilter
+} from '~/lib/models/card/send'
 import { ValidationHelpers } from '@speckle/ui-components'
 import type { GenericValidateFunction } from 'vee-validate'
+
+export const isSelectFilter = (f: ISendFilter): f is SendFilterSelect =>
+  f.type === 'Select' || 'selectedItems' in f
+
+export const isRevitCategoriesFilter = (
+  f: ISendFilter
+): f is RevitCategoriesSendFilter =>
+  f.id === 'revitCategories' || f.id === 'archicadLayers'
+
+export const isRevitViewsFilter = (f: ISendFilter): f is RevitViewsSendFilter =>
+  f.id === 'revitViews'
 
 export const isEmail = ValidationHelpers.isEmail
 
@@ -41,4 +59,43 @@ export function useModelNameValidationRules() {
     isStringOfLength({ maxLength: 512 }),
     isValidModelName
   ])
+}
+
+export type FilterValidationResult = { valid: boolean; reason?: string }
+
+export function validateFilter(
+  filter: ISendFilter | undefined,
+  context: { selectionCount: number }
+): FilterValidationResult {
+  if (!filter) return { valid: false, reason: 'No filter selected' }
+
+  // Selection Filter check
+  if (filter.name === 'Selection' || filter.id === 'selection') {
+    return context.selectionCount > 0
+      ? { valid: true }
+      : { valid: false, reason: 'No objects selected to publish' }
+  }
+
+  // List-based filters (Rhino Layers, etc.)
+  if (isSelectFilter(filter)) {
+    return (filter.selectedItems?.length ?? 0) > 0
+      ? { valid: true }
+      : { valid: false, reason: 'No items selected to publish' }
+  }
+
+  // Category-based filters
+  if (isRevitCategoriesFilter(filter)) {
+    return (filter.selectedCategories?.length ?? 0) > 0
+      ? { valid: true }
+      : { valid: false, reason: 'No categories selected to publish' }
+  }
+
+  // View-based filters
+  if (isRevitViewsFilter(filter)) {
+    return filter.selectedView?.trim()
+      ? { valid: true }
+      : { valid: false, reason: 'No view selected to publish' }
+  }
+
+  return { valid: true }
 }
