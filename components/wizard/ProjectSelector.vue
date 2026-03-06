@@ -78,13 +78,7 @@
             color="foundation"
           />
           <div class="flex justify-between items-center space-x-2">
-            <div
-              v-tippy="
-                canCreateProject
-                  ? 'Create new project'
-                  : canCreateProjectPermissionCheck?.message
-              "
-            >
+            <div v-if="canCreateProject" v-tippy="'Create new project'">
               <FormButton
                 color="outline"
                 :disabled="!canCreateProject"
@@ -92,6 +86,22 @@
                 @click="showProjectCreateDialog = true"
               >
                 <PlusIcon class="w-4 -mx-2" />
+              </FormButton>
+            </div>
+            <div
+              v-else
+              v-tippy="
+                canCreateProject
+                  ? 'Create new project'
+                  : canCreateProjectPermissionCheck?.message
+              "
+            >
+              <FormButton
+                color="primary"
+                :class="`p-1.5 bg-foundation rounded text-foreground border`"
+                @click="upgradePlanButtonAction"
+              >
+                <ArrowUpCircleIcon class="w-4 -mx-2" />
               </FormButton>
             </div>
             <CommonDialog
@@ -186,7 +196,7 @@
 <script setup lang="ts">
 import { ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
 import { storeToRefs } from 'pinia'
-import { PlusIcon } from '@heroicons/vue/20/solid'
+import { PlusIcon, ArrowUpCircleIcon } from '@heroicons/vue/20/solid'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import {
@@ -563,6 +573,24 @@ const createNewPersonalProject = async (name: string) => {
   }
 
   isCreatingProject.value = false
+}
+
+const upgradePlanButtonAction = () => {
+  if (!canCreateProjectPermissionCheck.value) return
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceNoEditorSeat') {
+    // open url to workspace/settings/users
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/members`
+    )
+    return
+  }
+  if (canCreateProjectPermissionCheck.value.code === 'WorkspaceLimitsReached') {
+    // open url to workspace/billing
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/settings/workspaces/${selectedWorkspace.value?.slug}/billing`
+    )
+    return
+  }
 }
 
 const loadMore = () => {
