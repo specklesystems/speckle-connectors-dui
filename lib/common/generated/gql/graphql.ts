@@ -1355,12 +1355,6 @@ export type CreateVersionInput = {
   totalChildrenCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type CreateWorkspaceResourceMetaInput = {
-  data: Scalars['JSON']['input'];
-  metaType: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
 export enum Currency {
   Gbp = 'gbp',
   Usd = 'usd'
@@ -4186,19 +4180,6 @@ export type ProjectPermissionChecksCanUseInviteArgs = {
   type?: InputMaybe<InviteUseType>;
 };
 
-export type ProjectResourceMeta = {
-  __typename?: 'ProjectResourceMeta';
-  authorId?: Maybe<Scalars['ID']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  data: Scalars['JSON']['output'];
-  id: Scalars['ID']['output'];
-  metaType: Scalars['String']['output'];
-  projectId: Scalars['String']['output'];
-  resourceId: Scalars['String']['output'];
-  resourceType: ResourceMetaType;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
 export type ProjectRole = {
   __typename?: 'ProjectRole';
   project: Project;
@@ -4459,8 +4440,6 @@ export type Query = {
    * Either token or workspaceId must be specified, or both
    */
   workspaceInvite?: Maybe<PendingWorkspaceCollaborator>;
-  workspaceResourceMeta: WorkspaceResourceMeta;
-  workspaceResourceMetaSearch: Array<WorkspaceResourceMeta>;
   /** Find workspaces a given user email can use SSO to sign with */
   workspaceSsoByEmail: Array<LimitedWorkspace>;
 };
@@ -4618,18 +4597,6 @@ export type QueryWorkspaceInviteArgs = {
   options?: InputMaybe<WorkspaceInviteLookupOptions>;
   token?: InputMaybe<Scalars['String']['input']>;
   workspaceId?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryWorkspaceResourceMetaArgs = {
-  id: Scalars['ID']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type QueryWorkspaceResourceMetaSearchArgs = {
-  metaType?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
 };
 
 
@@ -7390,17 +7357,6 @@ export enum WorkspaceProjectsUpdatedMessageType {
 
 export type WorkspaceRequestToJoinInput = {
   workspaceId: Scalars['ID']['input'];
-};
-
-export type WorkspaceResourceMeta = {
-  __typename?: 'WorkspaceResourceMeta';
-  authorId?: Maybe<Scalars['ID']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  data: Scalars['JSON']['output'];
-  id: Scalars['ID']['output'];
-  metaType: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId: Scalars['String']['output'];
 };
 
 export enum WorkspaceRole {
