@@ -249,6 +249,12 @@ export type AddWorkspaceDomainInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type AdditionalRequestHeader = {
+  __typename?: 'AdditionalRequestHeader';
+  header: Scalars['String']['output'];
+  value: Scalars['String']['output'];
+};
+
 export type AdminExternalSyncMutations = {
   __typename?: 'AdminExternalSyncMutations';
   /** Sync versions from external Speckle servers into local projects */
@@ -297,7 +303,10 @@ export type AdminMutations = {
    * normal role requirements.
    */
   removeWorkspaceDomain: Scalars['Boolean']['output'];
+  requestEmailVerification: SentEmailInfo;
+  requestPasswordReset: SentEmailInfo;
   revokeWorkspaceFeature: Scalars['Boolean']['output'];
+  sendDeliverabilityTestEmail: SentEmailInfo;
   /**
    * A server administrator can update the verification status of an user's email.
    * The server administrator is recommended to confirm ownership of the email address
@@ -324,8 +333,23 @@ export type AdminMutationsRemoveWorkspaceDomainArgs = {
 };
 
 
+export type AdminMutationsRequestEmailVerificationArgs = {
+  emailId: Scalars['ID']['input'];
+};
+
+
+export type AdminMutationsRequestPasswordResetArgs = {
+  input: AdminRequestPasswordResetInput;
+};
+
+
 export type AdminMutationsRevokeWorkspaceFeatureArgs = {
   input: WorkspaceFeatureGrantUpdateInput;
+};
+
+
+export type AdminMutationsSendDeliverabilityTestEmailArgs = {
+  emailId: Scalars['ID']['input'];
 };
 
 
@@ -343,11 +367,20 @@ export type AdminMutationsUpdateWorkspacePlanArgs = {
   input: AdminUpdateWorkspacePlanInput;
 };
 
+export type AdminPasswordResetToken = {
+  __typename?: 'AdminPasswordResetToken';
+  createdAt: Scalars['DateTime']['output'];
+  email: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  obfuscatedToken: Scalars['String']['output'];
+};
+
 export type AdminQueries = {
   __typename?: 'AdminQueries';
   inviteList: AdminInviteList;
   projectList: ProjectCollection;
   serverStatistics: ServerStatistics;
+  user?: Maybe<AdminUserListItem>;
   userList: AdminUserList;
   workspaceList: WorkspaceCollection;
 };
@@ -369,6 +402,11 @@ export type AdminQueriesProjectListArgs = {
 };
 
 
+export type AdminQueriesUserArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type AdminQueriesUserListArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: Scalars['Int']['input'];
@@ -383,9 +421,9 @@ export type AdminQueriesWorkspaceListArgs = {
   query?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type AdminSupportMutations = {
-  __typename?: 'AdminSupportMutations';
-  externalSync: AdminExternalSyncMutations;
+export type AdminRequestPasswordResetInput = {
+  email: Scalars['String']['input'];
+  userId: Scalars['ID']['input'];
 };
 
 export type AdminUpdateEmailVerificationInput = {
@@ -414,7 +452,9 @@ export type AdminUserListItem = {
   email?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
+  passwordResetTokens: Array<AdminPasswordResetToken>;
   role?: Maybe<Scalars['String']['output']>;
+  userEmails: Array<UserEmail>;
   verified?: Maybe<Scalars['Boolean']['output']>;
 };
 
@@ -497,6 +537,10 @@ export type AppUpdateInput = {
 export type ApproveWorkspaceJoinRequestInput = {
   userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+export type ApproveWorkspaceSupportAccessInput = {
+  sessionId: Scalars['ID']['input'];
 };
 
 export type ArchiveCommentInput = {
@@ -1253,6 +1297,15 @@ export type CreateModelInput = {
   projectId: Scalars['ID']['input'];
 };
 
+export type CreateResourceMetaInput = {
+  data: Scalars['JSON']['input'];
+  metaType: Scalars['String']['input'];
+  projectId?: InputMaybe<Scalars['String']['input']>;
+  resourceId: Scalars['String']['input'];
+  resourceType: ResourceMetaType;
+  workspaceId: Scalars['String']['input'];
+};
+
 export type CreateSavedViewGroupInput = {
   /** Will default to auto-generated group name otherwise */
   groupName?: InputMaybe<Scalars['String']['input']>;
@@ -1402,6 +1455,7 @@ export type DashboardMutationsUpdateArgs = {
 
 export type DashboardPermissionChecks = {
   __typename?: 'DashboardPermissionChecks';
+  canAccessModelValidation: PermissionCheckResult;
   canCreateToken: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canDuplicate: PermissionCheckResult;
@@ -1633,14 +1687,14 @@ export type FileUploadCollection = {
 export type FileUploadMutations = {
   __typename?: 'FileUploadMutations';
   /**
+   * **For internal service usage**
    * Marks the file import flow as completed for that specific job
    * recording the provided status, and emitting the needed subscriptions.
-   * Mostly for internal service usage.
    */
   finishFileImport: Scalars['Boolean']['output'];
   /**
    * Generate a pre-signed url to which a file can be uploaded.
-   * After uploading the file, call mutation startFileImport to register the completed upload.
+   * After uploading the file, call mutation startFileIngestion to register the completed upload.
    */
   generateUploadUrl: GenerateFileUploadUrlOutput;
   /**
@@ -1648,6 +1702,7 @@ export type FileUploadMutations = {
    * pre-signed url and blobId. Then upload the file to that url.
    * Once the upload to the pre-signed url is completed, this mutation should be
    * called to register the completed upload and create the blob metadata.
+   * @deprecated We now offer a common interface for all data ingestion. Use the startModelIngestion mutation instead. Will be removed on or after 2026-06-01
    */
   startFileImport: FileUpload;
   /**
@@ -1692,41 +1747,6 @@ export type FinishFileImportInput = {
   warnings?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
-export type GendoAiRender = {
-  __typename?: 'GendoAIRender';
-  camera?: Maybe<Scalars['JSONObject']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  gendoGenerationId?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  modelId: Scalars['String']['output'];
-  projectId: Scalars['String']['output'];
-  prompt: Scalars['String']['output'];
-  /** This is a blob id. */
-  responseImage?: Maybe<Scalars['String']['output']>;
-  status: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  user?: Maybe<LimitedUser>;
-  userId: Scalars['String']['output'];
-  versionId: Scalars['String']['output'];
-};
-
-export type GendoAiRenderCollection = {
-  __typename?: 'GendoAIRenderCollection';
-  items: Array<Maybe<GendoAiRender>>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type GendoAiRenderInput = {
-  /** Base64 encoded image of the depthmap. */
-  baseImage: Scalars['String']['input'];
-  camera: Scalars['JSONObject']['input'];
-  modelId: Scalars['ID']['input'];
-  projectId: Scalars['ID']['input'];
-  /** The generation prompt. */
-  prompt: Scalars['String']['input'];
-  versionId: Scalars['ID']['input'];
-};
-
 export type GenerateFileUploadUrlInput = {
   fileName: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
@@ -1734,7 +1754,11 @@ export type GenerateFileUploadUrlInput = {
 
 export type GenerateFileUploadUrlOutput = {
   __typename?: 'GenerateFileUploadUrlOutput';
+  /** The additional headers which must be sent with the PUT upload request to the returned url. */
+  additionalRequestHeaders: Array<AdditionalRequestHeader>;
+  /** The id of the file upload. This id must be used in subsequent calls to startFileImport. */
   fileId: Scalars['String']['output'];
+  /** The pre-signed url to which the file must be uploaded. */
   url: Scalars['String']['output'];
 };
 
@@ -2429,6 +2453,7 @@ export enum ModelIngestionHandlerType {
   Acc = 'acc',
   AutomateFileUpload = 'automateFileUpload',
   ClientSide = 'clientSide',
+  DataUpload = 'dataUpload',
   FileUpload = 'fileUpload'
 }
 
@@ -2583,7 +2608,6 @@ export type Mutation = {
   activeUserMutations: ActiveUserMutations;
   admin: AdminMutations;
   adminDeleteUser: Scalars['Boolean']['output'];
-  adminSupport: AdminSupportMutations;
   /** Creates an personal api token. */
   apiTokenCreate: Scalars['String']['output'];
   /** Revokes (deletes) an personal api token/app token. */
@@ -2644,10 +2668,12 @@ export type Mutation = {
   notificationMutations: NotificationMutations;
   /** @deprecated Part of the old API surface and will be removed in the future. */
   objectCreate: Array<Scalars['String']['output']>;
+  powerTools: PowerToolsMutations;
   projectMutations: ProjectMutations;
   /** (Re-)send the account verification e-mail */
   requestVerification: SentEmailInfo;
   requestVerificationByEmail: SentEmailInfo;
+  resourceMetaMutations: ResourceMetaMutations;
   serverInfoMutations: ServerInfoMutations;
   serverInfoUpdate?: Maybe<Scalars['Boolean']['output']>;
   /** Note: The required scope to invoke this is not given out to app or personal access tokens */
@@ -3070,18 +3096,13 @@ export type ObjectCreateInput = {
 };
 
 export type OnboardingCompletionInput = {
-  plans?: InputMaybe<Array<Scalars['String']['input']>>;
-  role?: InputMaybe<Scalars['String']['input']>;
-  source?: InputMaybe<Scalars['String']['input']>;
+  /** The primary use case for how Speckle will help the user in their role */
+  useCase?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum PaidWorkspacePlans {
   Business = 'business',
-  Legacy = 'legacy',
-  Pro = 'pro',
-  ProUnlimited = 'proUnlimited',
-  Team = 'team',
-  TeamUnlimited = 'teamUnlimited'
+  Legacy = 'legacy'
 }
 
 export type PasswordStrengthCheckFeedback = {
@@ -3171,6 +3192,11 @@ export type PermissionCheckResult = {
   errorMessage?: Maybe<Scalars['String']['output']>;
   message: Scalars['String']['output'];
   payload?: Maybe<Scalars['JSONObject']['output']>;
+};
+
+export type PowerToolsMutations = {
+  __typename?: 'PowerToolsMutations';
+  externalSync: AdminExternalSyncMutations;
 };
 
 export type Price = {
@@ -4007,11 +4033,6 @@ export type ProjectMutations = {
   /** Create new project */
   create: Project;
   createEmbedToken: CreateEmbedTokenReturn;
-  /**
-   * Create onboarding/tutorial project. If one is already created for the active user, that
-   * one will be returned instead.
-   */
-  createForOnboarding: Project;
   /** Delete an existing project */
   delete: Scalars['Boolean']['output'];
   /** Invite related mutations */
@@ -4109,14 +4130,17 @@ export enum ProjectPendingVersionsUpdatedMessageType {
 export type ProjectPermissionChecks = {
   __typename?: 'ProjectPermissionChecks';
   canAccessIssuesFeature: PermissionCheckResult;
+  canAccessViewerTableFeature: PermissionCheckResult;
   canBroadcastActivity: PermissionCheckResult;
   canCreateAutomation: PermissionCheckResult;
   /** @deprecated Comments were moved to issues. Use canCreateIssue instead. This check will be removed after 01 Jun 2026. */
   canCreateComment: PermissionCheckResult;
+  canCreateDashboards: PermissionCheckResult;
   canCreateEmbedTokens: PermissionCheckResult;
   canCreateIngestion: PermissionCheckResult;
   canCreateIssue: PermissionCheckResult;
   canCreateModel: PermissionCheckResult;
+  canCreateResourceMeta: PermissionCheckResult;
   canCreateSavedView: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canInvite: PermissionCheckResult;
@@ -4136,12 +4160,19 @@ export type ProjectPermissionChecks = {
   canRevokeEmbedTokens: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
+  canUpdateRole: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
 };
 
 
 export type ProjectPermissionChecksCanMoveToWorkspaceArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type ProjectPermissionChecksCanUpdateRoleArgs = {
+  targetRole?: InputMaybe<StreamRole>;
+  targetUserId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -4342,6 +4373,8 @@ export type Query = {
    * isn't specified, the server will look for any valid invite.
    */
   projectInvite?: Maybe<PendingStreamCollaborator>;
+  resourceMeta: ResourceMeta;
+  resourceMetaSearch: Array<ResourceMeta>;
   serverInfo: ServerInfo;
   /** Receive metadata about an invite by the invite token */
   serverInviteByToken?: Maybe<ServerInvite>;
@@ -4472,6 +4505,22 @@ export type QueryProjectInviteArgs = {
 };
 
 
+export type QueryResourceMetaArgs = {
+  id: Scalars['ID']['input'];
+  projectId?: InputMaybe<Scalars['String']['input']>;
+  workspaceId: Scalars['String']['input'];
+};
+
+
+export type QueryResourceMetaSearchArgs = {
+  metaType?: InputMaybe<Scalars['String']['input']>;
+  projectId?: InputMaybe<Scalars['String']['input']>;
+  resourceId: Scalars['String']['input'];
+  resourceType: ResourceMetaType;
+  workspaceId: Scalars['String']['input'];
+};
+
+
 export type QueryServerInviteByTokenArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
 };
@@ -4560,11 +4609,51 @@ export type RemoveWorkspaceDomainInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type RequestWorkspaceSupportAccessInput = {
+  /** Optional expiry timestamp. Null means no expiration. */
+  validUntil?: InputMaybe<Scalars['DateTime']['input']>;
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type ResourceIdentifier = {
   __typename?: 'ResourceIdentifier';
   resourceId: Scalars['String']['output'];
   resourceType: ResourceType;
 };
+
+export type ResourceMeta = {
+  __typename?: 'ResourceMeta';
+  authorId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  data: Scalars['JSON']['output'];
+  id: Scalars['ID']['output'];
+  metaType: Scalars['String']['output'];
+  projectId?: Maybe<Scalars['String']['output']>;
+  resourceId: Scalars['String']['output'];
+  resourceType: ResourceMetaType;
+  updatedAt: Scalars['DateTime']['output'];
+  workspaceId: Scalars['String']['output'];
+};
+
+export type ResourceMetaMutations = {
+  __typename?: 'ResourceMetaMutations';
+  create: ResourceMeta;
+};
+
+
+export type ResourceMetaMutationsCreateArgs = {
+  input: CreateResourceMetaInput;
+};
+
+export enum ResourceMetaType {
+  Issue = 'issue',
+  Model = 'model',
+  Object = 'object',
+  Project = 'project',
+  Version = 'version',
+  Widget = 'widget',
+  Workspace = 'workspace'
+}
 
 export enum ResourceType {
   Comment = 'comment',
@@ -4572,6 +4661,10 @@ export enum ResourceType {
   Object = 'object',
   Stream = 'stream'
 }
+
+export type RevokeWorkspaceSupportAccessInput = {
+  sessionId: Scalars['ID']['input'];
+};
 
 export type Role = {
   __typename?: 'Role';
@@ -4584,7 +4677,8 @@ export type RootPermissionChecks = {
   __typename?: 'RootPermissionChecks';
   canCreatePersonalProject: PermissionCheckResult;
   canCreateWorkspace: PermissionCheckResult;
-  canUseAdminSupportTools: PermissionCheckResult;
+  canManageServerWorkspaces: PermissionCheckResult;
+  canUsePowerTools: PermissionCheckResult;
 };
 
 export type SavedView = {
@@ -5392,8 +5486,6 @@ export type Subscription = {
   projectTriggeredAutomationsStatusUpdated: ProjectTriggeredAutomationsStatusUpdatedMessage;
   /** Track updates to a specific project */
   projectUpdated: ProjectUpdatedMessage;
-  projectVersionGendoAIRenderCreated: GendoAiRender;
-  projectVersionGendoAIRenderUpdated: GendoAiRender;
   /** Subscribe to when a project's versions get their preview image fully generated. */
   projectVersionsPreviewGenerated: ProjectVersionsPreviewGeneratedMessage;
   /** Subscribe to changes to a project's versions. */
@@ -5431,6 +5523,11 @@ export type Subscription = {
    * Either slug or id must be set.
    */
   workspaceProjectsUpdated: WorkspaceProjectsUpdatedMessage;
+  /**
+   * Track support session changes for a specific workspace.
+   * Fires when sessions are requested, approved, revoked, or expire.
+   */
+  workspaceSupportSessionUpdated: WorkspaceSupportSessionUpdatedMessage;
   /**
    * Track updates to a specific workspace.
    * Either slug or id must be set.
@@ -5540,18 +5637,6 @@ export type SubscriptionProjectUpdatedArgs = {
 };
 
 
-export type SubscriptionProjectVersionGendoAiRenderCreatedArgs = {
-  id: Scalars['String']['input'];
-  versionId: Scalars['String']['input'];
-};
-
-
-export type SubscriptionProjectVersionGendoAiRenderUpdatedArgs = {
-  id: Scalars['String']['input'];
-  versionId: Scalars['String']['input'];
-};
-
-
 export type SubscriptionProjectVersionsPreviewGeneratedArgs = {
   id: Scalars['String']['input'];
 };
@@ -5586,6 +5671,11 @@ export type SubscriptionWorkspacePlanUsageUpdatedArgs = {
 export type SubscriptionWorkspaceProjectsUpdatedArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
   workspaceSlug?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type SubscriptionWorkspaceSupportSessionUpdatedArgs = {
+  id: WorkspaceIdOrSlug;
 };
 
 
@@ -5762,6 +5852,11 @@ export type UpgradeToPaidlPlanInput = {
  */
 export type User = {
   __typename?: 'User';
+  /**
+   * All active support sessions for the current user across all workspaces.
+   * Used by the frontend to show support mode banners globally.
+   */
+  activeSupportSessions?: Maybe<Array<WorkspaceSupportSession>>;
   /** The last-visited workspace for the given user */
   activeWorkspace?: Maybe<LimitedWorkspace>;
   /**
@@ -5805,7 +5900,6 @@ export type User = {
    * @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on January 1st, 2026.
    */
   favoriteStreams: StreamCollection;
-  gendoAICredits: UserGendoAiCredits;
   /** Whether the user has a pending/active email verification token */
   hasPendingVerification?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
@@ -5997,6 +6091,7 @@ export type UserDeleteInput = {
 
 export type UserEmail = {
   __typename?: 'UserEmail';
+  distinctId: Scalars['String']['output'];
   email: Scalars['String']['output'];
   id: Scalars['ID']['output'];
   primary: Scalars['Boolean']['output'];
@@ -6036,13 +6131,6 @@ export type UserEmailMutationsSetPrimaryArgs = {
 
 export type UserEmailMutationsVerifyArgs = {
   input: VerifyUserEmailInput;
-};
-
-export type UserGendoAiCredits = {
-  __typename?: 'UserGendoAICredits';
-  limit: Scalars['Int']['output'];
-  resetDate: Scalars['DateTime']['output'];
-  used: Scalars['Int']['output'];
 };
 
 export type UserMeta = {
@@ -6207,11 +6295,11 @@ export type Version = {
    */
   commentThreads: CommentCollection;
   createdAt: Scalars['DateTime']['output'];
-  gendoAIRender: GendoAiRender;
-  gendoAIRenders: GendoAiRenderCollection;
   id: Scalars['ID']['output'];
   message?: Maybe<Scalars['String']['output']>;
   model: Model;
+  objectKey?: Maybe<Scalars['String']['output']>;
+  packfileSize?: Maybe<Scalars['BigInt']['output']>;
   parents?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   permissions: VersionPermissionChecks;
   previewUrl: Scalars['String']['output'];
@@ -6224,11 +6312,6 @@ export type Version = {
 export type VersionCommentThreadsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: Scalars['Int']['input'];
-};
-
-
-export type VersionGendoAiRenderArgs = {
-  id: Scalars['String']['input'];
 };
 
 export type VersionCollection = {
@@ -6257,7 +6340,6 @@ export type VersionMutations = {
   delete: Scalars['Boolean']['output'];
   markReceived: Scalars['Boolean']['output'];
   moveToModel: Model;
-  requestGendoAIRender: Scalars['Boolean']['output'];
   update: Version;
 };
 
@@ -6279,11 +6361,6 @@ export type VersionMutationsMarkReceivedArgs = {
 
 export type VersionMutationsMoveToModelArgs = {
   input: MoveVersionsInput;
-};
-
-
-export type VersionMutationsRequestGendoAiRenderArgs = {
-  input: GendoAiRenderInput;
 };
 
 
@@ -6444,6 +6521,12 @@ export type WebhookUpdateInput = {
 
 export type Workspace = {
   __typename?: 'Workspace';
+  /**
+   * The current user's active or pending support session for this workspace.
+   * Null if the current user has no active/pending session.
+   * Only relevant for server admins — used to show the support mode CTA state.
+   */
+  activeSupportSession?: Maybe<WorkspaceSupportSession>;
   /** Get all join requests for all the workspaces the user is an admin of */
   adminWorkspacesJoinRequests?: Maybe<WorkspaceJoinRequestCollection>;
   automateFunctions: AutomateFunctionCollection;
@@ -6512,6 +6595,12 @@ export type Workspace = {
   /** Information about the workspace's SSO configuration and the current user's SSO session, if present */
   sso?: Maybe<WorkspaceSso>;
   subscription?: Maybe<WorkspaceSubscription>;
+  /**
+   * Paginated list of support sessions for this workspace.
+   * Includes pending, active, revoked, and expired sessions.
+   * Only accessible to workspace admins.
+   */
+  supportSessions: WorkspaceSupportSessionCollection;
   team: WorkspaceCollaboratorCollection;
   teamByRole: WorkspaceTeamByRole;
   updatedAt: Scalars['DateTime']['output'];
@@ -6557,6 +6646,13 @@ export type WorkspaceIssueLabelsArgs = {
 export type WorkspaceProjectsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<WorkspaceProjectsFilter>;
+  limit?: Scalars['Int']['input'];
+};
+
+
+export type WorkspaceSupportSessionsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<WorkspaceSupportSessionFilter>;
   limit?: Scalars['Int']['input'];
 };
 
@@ -6689,8 +6785,15 @@ export enum WorkspaceFeatureName {
   Presentations = 'presentations',
   ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
+  ViewerTable = 'viewerTable',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
 }
+
+/** One of the fields must be set, with id taking precedence */
+export type WorkspaceIdOrSlug = {
+  id?: InputMaybe<Scalars['String']['input']>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type WorkspaceIdentifier = {
   id?: InputMaybe<Scalars['String']['input']>;
@@ -6910,6 +7013,8 @@ export type WorkspaceMutations = {
   delete: Scalars['Boolean']['output'];
   deleteDomain: Workspace;
   deleteSsoProvider: Scalars['Boolean']['output'];
+  /** Revoke the SSO session for a specific user in a workspace. Only workspace admins can perform this action. */
+  deleteSsoSession: Scalars['Boolean']['output'];
   /** Dismiss a workspace from the discoverable list, behind the scene a join request is created with the status "dismissed" */
   dismiss: Scalars['Boolean']['output'];
   invites: WorkspaceInviteMutations;
@@ -6919,12 +7024,16 @@ export type WorkspaceMutations = {
   requestToJoin: Scalars['Boolean']['output'];
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
+  /** Support session management mutations */
+  support: WorkspaceSupportMutations;
   update: Workspace;
   /** @deprecated workspaces no longer have creation state, is always created true. Field will be removed after 01 Jun 2026 */
   updateCreationState: Scalars['Boolean']['output'];
   updateEmbedOptions: WorkspaceEmbedOptions;
   updateRole: Workspace;
   updateSeatType: Workspace;
+  /** Update the SSO provider details for a workspace. */
+  updateSsoProvider: Scalars['Boolean']['output'];
 };
 
 
@@ -6949,6 +7058,12 @@ export type WorkspaceMutationsDeleteDomainArgs = {
 
 
 export type WorkspaceMutationsDeleteSsoProviderArgs = {
+  workspaceId: Scalars['String']['input'];
+};
+
+
+export type WorkspaceMutationsDeleteSsoSessionArgs = {
+  userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 };
 
@@ -6998,14 +7113,15 @@ export type WorkspaceMutationsUpdateSeatTypeArgs = {
   input: WorkspaceUpdateSeatTypeInput;
 };
 
+
+export type WorkspaceMutationsUpdateSsoProviderArgs = {
+  input: WorkspaceSsoProviderUpdateInput;
+};
+
 export type WorkspacePaidPlanPrices = {
   __typename?: 'WorkspacePaidPlanPrices';
   business: WorkspacePlanPrice;
   legacy: WorkspacePlanPrice;
-  pro: WorkspacePlanPrice;
-  proUnlimited: WorkspacePlanPrice;
-  team: WorkspacePlanPrice;
-  teamUnlimited: WorkspacePlanPrice;
 };
 
 export enum WorkspacePaymentMethod {
@@ -7018,13 +7134,13 @@ export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
   canAcceptJoinRequest: PermissionCheckResult;
   canAccessDashboards: PermissionCheckResult;
-  canAccessModelValidation: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canDeleteInvite: PermissionCheckResult;
+  canDeleteSsoSession: PermissionCheckResult;
   canEditEmbedOptions: PermissionCheckResult;
   canEditWorkspaceIssueLabels: PermissionCheckResult;
   canInvite: PermissionCheckResult;
@@ -7035,24 +7151,34 @@ export type WorkspacePermissionChecks = {
   canManageInvites: PermissionCheckResult;
   canManageJoinRequests: PermissionCheckResult;
   canManageSso: PermissionCheckResult;
+  /** Whether the current user can approve/manage support sessions (workspace admins only) */
+  canManageSupportSessions: PermissionCheckResult;
   canMoveProjectToWorkspace: PermissionCheckResult;
+  canReadAutomateFunctions: PermissionCheckResult;
   canReadAutomateSettings: PermissionCheckResult;
   canReadBillingSettings: PermissionCheckResult;
   canReadDataResidencySettings: PermissionCheckResult;
   canReadIntegrationsSettings: PermissionCheckResult;
   canReadMemberEmail: PermissionCheckResult;
+  canReadMemberRole: PermissionCheckResult;
   canReadPeopleSettings: PermissionCheckResult;
   canReadProjectsSettings: PermissionCheckResult;
   canReadSecuritySettings: PermissionCheckResult;
+  /** Whether the current user can read/list support sessions for this workspace */
+  canReadSupportSessions: PermissionCheckResult;
   canReadWorkspaceIssueLabels: PermissionCheckResult;
   canRejectJoinRequest: PermissionCheckResult;
   canRemoveUser: PermissionCheckResult;
+  /** Whether the current user can request support access to this workspace (server admins only) */
+  canRequestSupportAccess: PermissionCheckResult;
   canResendInvite: PermissionCheckResult;
   canSendJoinRequest: PermissionCheckResult;
+  canUpdate: PermissionCheckResult;
+  canUpdateRole: PermissionCheckResult;
   canUpgradePlan: PermissionCheckResult;
-  canUseAdminSupportTools: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
+  canUsePowerTools: PermissionCheckResult;
 };
 
 
@@ -7062,8 +7188,19 @@ export type WorkspacePermissionChecksCanChangeSeatTypeArgs = {
 };
 
 
+export type WorkspacePermissionChecksCanDeleteSsoSessionArgs = {
+  targetUserId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
 export type WorkspacePermissionChecksCanMoveProjectToWorkspaceArgs = {
   projectId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type WorkspacePermissionChecksCanUpdateRoleArgs = {
+  targetRole: WorkspaceRole;
+  targetUserId: Scalars['String']['input'];
 };
 
 
@@ -7130,12 +7267,6 @@ export enum WorkspacePlans {
   Enterprise = 'enterprise',
   Free = 'free',
   Legacy = 'legacy',
-  Pro = 'pro',
-  ProUnlimited = 'proUnlimited',
-  ProUnlimitedInvoiced = 'proUnlimitedInvoiced',
-  Team = 'team',
-  TeamUnlimited = 'teamUnlimited',
-  TeamUnlimitedInvoiced = 'teamUnlimitedInvoiced',
   Unlimited = 'unlimited'
 }
 
@@ -7282,6 +7413,15 @@ export type WorkspaceSsoProvider = {
   name: Scalars['String']['output'];
 };
 
+export type WorkspaceSsoProviderUpdateInput = {
+  clientId: Scalars['ID']['input'];
+  clientSecret: Scalars['String']['input'];
+  issuerUrl: Scalars['String']['input'];
+  providerId: Scalars['ID']['input'];
+  providerName: Scalars['String']['input'];
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type WorkspaceSsoSession = {
   __typename?: 'WorkspaceSsoSession';
   createdAt: Scalars['DateTime']['output'];
@@ -7311,6 +7451,114 @@ export type WorkspaceSubscriptionSeats = {
   editors: WorkspaceSubscriptionSeatCount;
   viewers: WorkspaceSubscriptionSeatCount;
 };
+
+export type WorkspaceSupportMutations = {
+  __typename?: 'WorkspaceSupportMutations';
+  /**
+   * Approve a pending support access request. Only workspace admins can approve.
+   * Activates the session and notifies the requesting server admin.
+   */
+  approveAccess: WorkspaceSupportSession;
+  /**
+   * Request access to a workspace for support purposes. Only server admins can request access.
+   * Creates a pending session and notifies workspace admins for approval.
+   */
+  requestAccess: WorkspaceSupportSession;
+  /**
+   * Revoke/stop support access. Works on both pending (denial) and active (revocation) sessions.
+   * Can be called by the requesting server admin or a workspace admin.
+   */
+  revokeAccess: WorkspaceSupportSession;
+};
+
+
+export type WorkspaceSupportMutationsApproveAccessArgs = {
+  input: ApproveWorkspaceSupportAccessInput;
+};
+
+
+export type WorkspaceSupportMutationsRequestAccessArgs = {
+  input: RequestWorkspaceSupportAccessInput;
+};
+
+
+export type WorkspaceSupportMutationsRevokeAccessArgs = {
+  input: RevokeWorkspaceSupportAccessInput;
+};
+
+/**
+ * A support session grants a server admin temporary access to a workspace for support purposes.
+ * Sessions are requested by server admins and must be approved by workspace admins.
+ * The session is tied to the admin user (not a specific token), so any auth token the admin
+ * uses will have support access for the workspace while the session is active.
+ */
+export type WorkspaceSupportSession = {
+  __typename?: 'WorkspaceSupportSession';
+  /** The server admin who requested/holds this support session */
+  adminUser: LimitedUser;
+  /** When the session was approved by a workspace admin. Null if still pending. */
+  approvedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** The workspace admin who approved the session. Null if still pending. */
+  approvedBy?: Maybe<LimitedUser>;
+  /** When the session request was created */
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  /** When the session was revoked/denied. Null if not revoked. */
+  revokedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current status of the session */
+  status: WorkspaceSupportSessionStatus;
+  /**
+   * When the session expires. Null means no expiration.
+   * A session with a past validUntil is considered expired regardless of stored status.
+   */
+  validUntil?: Maybe<Scalars['DateTime']['output']>;
+  /** The workspace this session grants access to */
+  workspace: LimitedWorkspace;
+};
+
+export type WorkspaceSupportSessionCollection = {
+  __typename?: 'WorkspaceSupportSessionCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<WorkspaceSupportSession>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceSupportSessionFilter = {
+  /** Filter by session status(es). Returns all statuses if not specified. */
+  status?: InputMaybe<Array<WorkspaceSupportSessionStatus>>;
+};
+
+/**
+ * Support session status lifecycle:
+ * pending → active → revoked/expired
+ */
+export enum WorkspaceSupportSessionStatus {
+  /** Session has been approved and support access is active */
+  Active = 'active',
+  /** Session has passed its validUntil timestamp */
+  Expired = 'expired',
+  /** Session has been requested by a server admin, awaiting workspace admin approval */
+  Pending = 'pending',
+  /** Session was manually stopped/revoked by either party (covers both denial and revocation) */
+  Revoked = 'revoked'
+}
+
+export type WorkspaceSupportSessionUpdatedMessage = {
+  __typename?: 'WorkspaceSupportSessionUpdatedMessage';
+  /** The affected support session */
+  session: WorkspaceSupportSession;
+  /** The type of update that occurred */
+  type: WorkspaceSupportSessionUpdatedMessageType;
+  /** The workspace this session belongs to */
+  workspace: Workspace;
+};
+
+export enum WorkspaceSupportSessionUpdatedMessageType {
+  Approved = 'APPROVED',
+  Expired = 'EXPIRED',
+  Requested = 'REQUESTED',
+  Revoked = 'REVOKED'
+}
 
 export type WorkspaceSyncUsage = {
   __typename?: 'WorkspaceSyncUsage';
