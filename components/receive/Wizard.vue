@@ -178,21 +178,25 @@ const selectVersionAndAddModel = async (
 
   if (existingModel) {
     emit('close')
-    // Patch the existing model card with new versions!
-    await hostAppStore.patchModel(existingModel.modelCardId, {
+    const patchPayload: Record<string, unknown> = {
       selectedVersionId: version.id,
       selectedVersionSourceApp: version.sourceApplication,
       selectedVersionUserId: version.authorUser?.id,
       latestVersionId: latestVersion.id,
       latestVersionSourceApp: latestVersion.sourceApplication,
       latestVersionUserId: latestVersion.authorUser?.id
-    })
+    }
+
+    // apply new settings to the existing model card if they were changed
+    if (settingsWereChanged.value && receieveSettings.value) {
+      patchPayload.settings = receieveSettings.value
+    }
+
+    // patch the existing model card with new versions and settings
+    await hostAppStore.patchModel(existingModel.modelCardId, patchPayload)
     await hostAppStore.receiveModel(existingModel.modelCardId, 'Wizard')
     return
   }
-
-  // We were tracking the source host app wrong before `getHostAppFromString`
-  // i.e. we were having `Revit 2023` instead of `revit`
   const selectedVersionSourceApp = getSlugFromHostAppNameAndVersion(
     version.sourceApplication as string
   )
