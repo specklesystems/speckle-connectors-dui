@@ -86,7 +86,7 @@ const emit = defineEmits<{
 }>()
 
 const app = useNuxtApp()
-const { generateChallenge } = useAuthManager()
+const { generateLocalChallenge } = useAuthManager()
 const { exchangeAccessCode } = useTokenExchange()
 const { trackEvent } = useMixpanel()
 const accountStore = useAccountStore()
@@ -109,7 +109,7 @@ const openBrowserAuth = () => {
     ? new URL(props.serverUrl).origin
     : 'https://app.speckle.systems'
 
-  currentChallenge = generateChallenge(currentServerUrl)
+  currentChallenge = generateLocalChallenge()
   const authUrl = `${currentServerUrl}/authn/verify/sdui/${currentChallenge}?returnExchangeToken=true`
   app.$openUrl(authUrl)
 
