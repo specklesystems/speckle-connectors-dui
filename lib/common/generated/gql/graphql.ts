@@ -574,6 +574,8 @@ export type AutomateAuthCodePayloadTest = {
 
 /** Additional resources to validate user access to. */
 export type AutomateAuthCodeResources = {
+  automationId?: InputMaybe<Scalars['String']['input']>;
+  projectId?: InputMaybe<Scalars['String']['input']>;
   workspaceId?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1247,6 +1249,18 @@ export type CreateDashboardTokenReturn = {
   __typename?: 'CreateDashboardTokenReturn';
   token: Scalars['String']['output'];
   tokenMetadata: DashboardToken;
+};
+
+export type CreateEmbedShareTokenInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  /**
+   * The model(s) and version(s) string used in the embed url.
+   * Format: 'modelId1,modelId2@versionId'
+   */
+  resourceIdString: Scalars['String']['input'];
 };
 
 export type CreateEmbedTokenReturn = {
@@ -2680,6 +2694,7 @@ export type Mutation = {
   serverInviteBatchCreate: Scalars['Boolean']['output'];
   /** Invite a new user to the speckle server and return the invite ID */
   serverInviteCreate: Scalars['Boolean']['output'];
+  sharingMutations: SharingMutations;
   /**
    * Request access to a specific stream
    * @deprecated Part of the old API surface and will be removed in the future. Use ProjectAccessRequestMutations.create instead.
@@ -3283,6 +3298,7 @@ export type Project = {
   /** Same as savedView(), but won't throw if view isn't found */
   savedViewIfExists?: Maybe<SavedView>;
   savedViews: SavedViewCollection;
+  shareTokens: ShareTokenCollection;
   /** Source apps used in any models of this project */
   sourceApps: Array<Scalars['String']['output']>;
   team: Array<ProjectCollaborator>;
@@ -3477,6 +3493,13 @@ export type ProjectSavedViewIfExistsArgs = {
 
 export type ProjectSavedViewsArgs = {
   input: ProjectSavedViewsInput;
+};
+
+
+export type ProjectShareTokensArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<ProjectShareTokensFilter>;
+  limit?: Scalars['Int']['input'];
 };
 
 
@@ -4147,6 +4170,7 @@ export type ProjectPermissionChecks = {
   canLeave: PermissionCheckResult;
   canListAutomations: PermissionCheckResult;
   canListIssues: PermissionCheckResult;
+  canListShareTokens: PermissionCheckResult;
   canListUsers: PermissionCheckResult;
   canLoad: PermissionCheckResult;
   canMoveToWorkspace: PermissionCheckResult;
@@ -4236,6 +4260,11 @@ export enum ProjectSavedViewsUpdatedMessageType {
   Deleted = 'DELETED',
   Updated = 'UPDATED'
 }
+
+export type ProjectShareTokensFilter = {
+  createdByUserId?: InputMaybe<Scalars['String']['input']>;
+  sourceType?: InputMaybe<ShareSourceType>;
+};
 
 export type ProjectTestAutomationCreateInput = {
   modelId: Scalars['String']['input'];
@@ -4614,6 +4643,22 @@ export type RequestWorkspaceSupportAccessInput = {
   validUntil?: InputMaybe<Scalars['DateTime']['input']>;
   workspaceId: Scalars['ID']['input'];
 };
+
+export type ResourceAccessRule = {
+  __typename?: 'ResourceAccessRule';
+  modelId?: Maybe<Scalars['String']['output']>;
+  projectId?: Maybe<Scalars['String']['output']>;
+  type: ResourceAccessRuleType;
+  versionId?: Maybe<Scalars['String']['output']>;
+  workspaceId?: Maybe<Scalars['String']['output']>;
+};
+
+export enum ResourceAccessRuleType {
+  Model = 'model',
+  Project = 'project',
+  Version = 'version',
+  Workspace = 'workspace'
+}
 
 export type ResourceIdentifier = {
   __typename?: 'ResourceIdentifier';
@@ -5139,6 +5184,65 @@ export enum SessionPaymentStatus {
 
 export type SetPrimaryUserEmailInput = {
   id: Scalars['ID']['input'];
+};
+
+export enum ShareSourceType {
+  Dashboard = 'dashboard',
+  Embed = 'embed',
+  SavedViewGroup = 'savedViewGroup'
+}
+
+export type ShareToken = {
+  __typename?: 'ShareToken';
+  createdAt: Scalars['DateTime']['output'];
+  createdBy: LimitedUser;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  hasPassword: Scalars['Boolean']['output'];
+  id: Scalars['String']['output'];
+  label?: Maybe<Scalars['String']['output']>;
+  lastUsed?: Maybe<Scalars['DateTime']['output']>;
+  permissions: ShareTokenPermissionChecks;
+  resourceAccessRules: Array<ResourceAccessRule>;
+  sourceId: Scalars['String']['output'];
+  sourceType: ShareSourceType;
+  /** The full token string. Only returned on creation. */
+  token?: Maybe<Scalars['String']['output']>;
+};
+
+export type ShareTokenCollection = {
+  __typename?: 'ShareTokenCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<ShareToken>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ShareTokenPermissionChecks = {
+  __typename?: 'ShareTokenPermissionChecks';
+  canRevoke: PermissionCheckResult;
+  canUpdate: PermissionCheckResult;
+};
+
+export type SharingMutations = {
+  __typename?: 'SharingMutations';
+  createEmbedShareToken: ShareToken;
+  revokeShareToken: Scalars['Boolean']['output'];
+  updateShareToken: ShareToken;
+};
+
+
+export type SharingMutationsCreateEmbedShareTokenArgs = {
+  input: CreateEmbedShareTokenInput;
+};
+
+
+export type SharingMutationsRevokeShareTokenArgs = {
+  tokenId: Scalars['String']['input'];
+};
+
+
+export type SharingMutationsUpdateShareTokenArgs = {
+  input: UpdateShareTokenInput;
+  tokenId: Scalars['String']['input'];
 };
 
 export type SmartTextEditorValue = {
@@ -5821,6 +5925,12 @@ export type UpdateServerRegionInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   key: Scalars['String']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateShareTokenInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Only non-null values will be updated */
@@ -6591,6 +6701,7 @@ export type Workspace = {
   /** Active user's seat type for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   seatType?: Maybe<WorkspaceSeatType>;
   seats?: Maybe<WorkspaceSubscriptionSeats>;
+  shareTokens: ShareTokenCollection;
   slug: Scalars['String']['output'];
   /** Information about the workspace's SSO configuration and the current user's SSO session, if present */
   sso?: Maybe<WorkspaceSso>;
@@ -6646,6 +6757,13 @@ export type WorkspaceIssueLabelsArgs = {
 export type WorkspaceProjectsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<WorkspaceProjectsFilter>;
+  limit?: Scalars['Int']['input'];
+};
+
+
+export type WorkspaceShareTokensArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<WorkspaceShareTokensFilter>;
   limit?: Scalars['Int']['input'];
 };
 
@@ -7146,6 +7264,7 @@ export type WorkspacePermissionChecks = {
   canInvite: PermissionCheckResult;
   canLeave: PermissionCheckResult;
   canListDashboards: PermissionCheckResult;
+  canListShareTokens: PermissionCheckResult;
   canMakeWorkspaceExclusive: PermissionCheckResult;
   canManageDomainBasedSecurityPolicies: PermissionCheckResult;
   canManageInvites: PermissionCheckResult;
@@ -7396,6 +7515,12 @@ export type WorkspaceSeatsByType = {
   __typename?: 'WorkspaceSeatsByType';
   editors?: Maybe<WorkspaceSeatCollection>;
   viewers?: Maybe<WorkspaceSeatCollection>;
+};
+
+export type WorkspaceShareTokensFilter = {
+  createdByUserId?: InputMaybe<Scalars['String']['input']>;
+  projectId?: InputMaybe<Scalars['String']['input']>;
+  sourceType?: InputMaybe<ShareSourceType>;
 };
 
 export type WorkspaceSso = {
