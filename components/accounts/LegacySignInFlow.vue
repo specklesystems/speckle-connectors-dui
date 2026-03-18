@@ -126,11 +126,6 @@ const startAccountAddFlow = () => {
   }, 30_000)
 }
 
-const restartFlow = () => {
-  isAddingAccount.value = false
-  showHelp.value = false
-}
-
 onMounted(async () => {
   isDesktopServiceAvailable.value = await pingDesktopService()
 })
