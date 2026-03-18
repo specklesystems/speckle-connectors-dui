@@ -4160,12 +4160,19 @@ export type ProjectPermissionChecks = {
   canRevokeEmbedTokens: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
+  canUpdateRole: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
 };
 
 
 export type ProjectPermissionChecksCanMoveToWorkspaceArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type ProjectPermissionChecksCanUpdateRoleArgs = {
+  targetRole?: InputMaybe<StreamRole>;
+  targetUserId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -7025,6 +7032,8 @@ export type WorkspaceMutations = {
   updateEmbedOptions: WorkspaceEmbedOptions;
   updateRole: Workspace;
   updateSeatType: Workspace;
+  /** Update the SSO provider details for a workspace. */
+  updateSsoProvider: Scalars['Boolean']['output'];
 };
 
 
@@ -7102,6 +7111,11 @@ export type WorkspaceMutationsUpdateRoleArgs = {
 
 export type WorkspaceMutationsUpdateSeatTypeArgs = {
   input: WorkspaceUpdateSeatTypeInput;
+};
+
+
+export type WorkspaceMutationsUpdateSsoProviderArgs = {
+  input: WorkspaceSsoProviderUpdateInput;
 };
 
 export type WorkspacePaidPlanPrices = {
@@ -7397,6 +7411,15 @@ export type WorkspaceSsoProvider = {
   id: Scalars['ID']['output'];
   issuerUrl: Scalars['String']['output'];
   name: Scalars['String']['output'];
+};
+
+export type WorkspaceSsoProviderUpdateInput = {
+  clientId: Scalars['ID']['input'];
+  clientSecret: Scalars['String']['input'];
+  issuerUrl: Scalars['String']['input'];
+  providerId: Scalars['ID']['input'];
+  providerName: Scalars['String']['input'];
+  workspaceId: Scalars['ID']['input'];
 };
 
 export type WorkspaceSsoSession = {
