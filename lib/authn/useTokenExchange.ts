@@ -33,8 +33,6 @@ export function useTokenExchange() {
       refreshToken: string
     }
 
-    console.log(token, refreshToken)
-
     // Query user and server info
     const graphqlQuery = {
       query:
@@ -74,8 +72,6 @@ export function useTokenExchange() {
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       userInfo: userAndServerInfo.data.activeUser
     }
-
-    console.log(account)
 
     await $accountBinding.addAccount(accountId, account)
   }
