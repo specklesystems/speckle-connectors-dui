@@ -8,6 +8,7 @@ import {
   IAccountBindingKey,
   MockedAccountBinding
 } from '~/lib/bindings/definitions/IAccountBinding'
+import type { IParametersBinding } from '~/lib/bindings/definitions/IParametersBinding'
 
 import type { ITestBinding } from '~/lib/bindings/definitions/ITestBinding'
 import {
@@ -132,6 +133,10 @@ export default defineNuxtPlugin(async () => {
       ITopLevelExpectionHandlerBindingKey
     )
 
+  const parametersBinding = await tryHoistBinding<IParametersBinding>(
+    'parametersBinding'
+  )
+
   // Any binding implments these two methods below, we just choose one to
   // expose globally to the app.
   const showDevTools = () => {
@@ -157,7 +162,8 @@ export default defineNuxtPlugin(async () => {
       topLevelExceptionHandlerBinding,
       showDevTools,
       openUrl,
-      revitMapperBinding
+      revitMapperBinding,
+      parametersBinding
     }
   }
 })
