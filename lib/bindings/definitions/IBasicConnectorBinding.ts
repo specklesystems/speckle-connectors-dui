@@ -26,6 +26,7 @@ export interface IBasicConnectorBinding
   highlightObjects: (objectIds: string[]) => Promise<void>
   removeModel: (model: IModelCard) => Promise<void>
   removeModels: (models: IModelCard[]) => Promise<void>
+  updateParameters: (payload: string) => Promise<void>
 }
 
 export interface IBasicConnectorBindingHostEvents
@@ -105,6 +106,10 @@ export class MockedBaseBinding implements IBasicConnectorBinding {
 
   public async highlightObjects(_objectIds: string[]) {
     await console.log('no way dude')
+  }
+
+  public async updateParameters(payload: string) {
+    await console.log('Mock: updateParameters called with payload:', payload)
   }
 
   public async showDevTools() {
