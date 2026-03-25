@@ -52,7 +52,10 @@
               <div class="space-y-2">
                 <AccountsSignInFlow :server-url="customServerUrl" />
                 <AccountsExchangeTokenSignInFlow :server-url="customServerUrl" />
-                <AccountsLegacySignInFlow :server-url="customServerUrl" />
+                <AccountsLegacySignInFlow
+                  v-if="!canStartAuthAccount"
+                  :server-url="customServerUrl"
+                />
               </div>
             </div>
           </CommonDialog>
@@ -69,10 +72,16 @@ import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
 const { pingDesktopService } = useDesktopService()
+const { $accountBinding } = useNuxtApp()
+const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
+  (name) =>
+    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+)
 
 const customServerUrl = ref<string>('https://app.speckle.systems')
 
