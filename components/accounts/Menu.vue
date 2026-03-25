@@ -39,20 +39,24 @@
             title="Add a new account"
             fullscreen="none"
           >
-            <div class="flex flex-col space-y-2">
-              <AccountsSignInFlow v-if="!showLegacy" />
-              <AccountsLegacySignInFlow v-else @back-to-sign-in="showLegacy = false" />
-
-              <FormButton
-                v-if="!showLegacy"
-                text
-                full-width
-                size="sm"
-                class="text-xs"
-                @click="showLegacy = true"
-              >
-                Legacy Sign in
-              </FormButton>
+            <div class="flex flex-col space-y-4 p-2">
+              <FormTextInput
+                v-model="customServerUrl"
+                name="Server to sign in"
+                show-label
+                placeholder="https://app.speckle.systems"
+                color="foundation"
+                autocomplete="off"
+                show-clear
+              />
+              <div class="space-y-2">
+                <AccountsSignInFlow :server-url="customServerUrl" />
+                <AccountsExchangeTokenSignInFlow :server-url="customServerUrl" />
+                <AccountsLegacySignInFlow
+                  v-if="!canStartAuthAccount"
+                  :server-url="customServerUrl"
+                />
+              </div>
             </div>
           </CommonDialog>
         </div>
@@ -68,10 +72,18 @@ import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
+import type { BaseBridge } from '~/lib/bridge/base'
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
 const { pingDesktopService } = useDesktopService()
+const { $accountBinding } = useNuxtApp()
+const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
+  (name) =>
+    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+)
+
+const customServerUrl = ref<string>('https://app.speckle.systems')
 
 const props = withDefaults(
   defineProps<{
@@ -88,7 +100,7 @@ defineEmits<{
 }>()
 
 const showAddNewAccount = ref(false)
-const showLegacy = ref(false)
+const signInMode = ref<'default' | 'exchange' | 'legacy'>('default')
 
 const showAccountsDialog = defineModel<boolean>('open', {
   required: false,
@@ -110,8 +122,8 @@ watch(showAccountsDialog, (newVal) => {
 
 watch(showAddNewAccount, (newVal) => {
   if (newVal) {
-    // reset the current/legacy state on every add account sub-dialog
-    showLegacy.value = false
+    // reset the sign-in mode on every add account sub-dialog
+    signInMode.value = 'default'
   }
 })
 

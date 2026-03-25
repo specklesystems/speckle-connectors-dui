@@ -6,18 +6,22 @@
       Welcome to Speckle
     </h1>
     <div v-if="isDesktopServiceAvailable || canAddAccount">
-      <AccountsSignInFlow v-if="!showLegacy" />
-      <AccountsLegacySignInFlow v-else @back-to-sign-in="showLegacy = false" />
-      <FormButton
-        v-if="!showLegacy"
-        text
-        full-width
-        size="sm"
-        class="text-xs"
-        @click="showLegacy = true"
-      >
-        Legacy Sign in
-      </FormButton>
+      <div class="flex flex-col space-y-4 p-2">
+        <FormTextInput
+          v-model="customServerUrl"
+          name="Server to sign in"
+          :show-label="false"
+          placeholder="https://app.speckle.systems"
+          color="foundation"
+          autocomplete="off"
+          show-clear
+        />
+        <div class="space-y-2">
+          <AccountsSignInFlow :server-url="customServerUrl" />
+          <AccountsExchangeTokenSignInFlow :server-url="customServerUrl" />
+          <AccountsLegacySignInFlow :server-url="customServerUrl" />
+        </div>
+      </div>
     </div>
     <div v-else>
       <div class="text-foreground-2 mt-2 mb-4">
@@ -53,12 +57,12 @@ import type { BaseBridge } from '~/lib/bridge/base'
 const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
 
+const customServerUrl = ref<string>('https://app.speckle.systems')
+
 const { $accountBinding } = useNuxtApp()
 const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
   ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
 )
-
-const showLegacy = ref(false)
 
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
 

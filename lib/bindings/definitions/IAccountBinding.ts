@@ -9,6 +9,7 @@ export interface IAccountBinding extends IBinding<IAccountBindingEvents> {
   getAccounts: () => Promise<Account[]>
   addAccount: (accountId: string, account: Account) => Promise<void>
   removeAccount: (accountId: string) => Promise<void>
+  authenticateAccount: (serverUrl: string) => Promise<Account>
 }
 
 // An almost 1-1 mapping of what we need from the Core accounts class.
@@ -58,6 +59,25 @@ export class MockedAccountBinding implements IAccountBinding {
 
   public async addAccount(accountId: string, account: Account) {
     return await console.log('no way dude', accountId, account)
+  }
+
+  public async authenticateAccount(serverUrl: string) {
+    const config = useRuntimeConfig()
+    return (await {
+      id: 'whatever',
+      isDefault: true,
+      token: config.public.speckleToken,
+      serverInfo: {
+        name: 'test',
+        url: serverUrl,
+        frontend2: true
+      },
+      userInfo: {
+        id: 'whatever',
+        avatar: 'whatever',
+        email: ''
+      }
+    }) as Account
   }
 
   public async removeAccount(accountId: string) {
