@@ -1,15 +1,19 @@
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 const CHALLENGE_KEY = 'speckle_challenge'
 const CHALLENGE_URL_KEY = 'speckle_url_challenge'
 const CODE_VERIFIER_KEY = 'speckle_code_verifier'
 
-function createRandomString(length = 12): string {
-  const values = crypto.getRandomValues(new Uint8Array(length))
-  let result = ''
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(values[i] % chars.length)
-  }
-  return result
+function toBase64Url(buffer: Uint8Array): string {
+  const base64 = btoa(String.fromCharCode(...buffer))
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/**
+ * Generates a cryptographically random base64url-encoded string.
+ * 32 bytes → 43 characters after base64url encoding (within the RFC 7636 range of 43-128).
+ */
+function createCodeVerifier(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32))
+  return toBase64Url(bytes)
 }
 
 /**
@@ -17,12 +21,9 @@ function createRandomString(length = 12): string {
  * This is the PKCE code_challenge derivation from a code_verifier.
  */
 async function computeS256Challenge(codeVerifier: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(codeVerifier)
+  const data = new TextEncoder().encode(codeVerifier)
   const digest = await crypto.subtle.digest('SHA-256', data)
-  // base64url encode: standard base64 with +→- /→_ and no padding
-  const base64 = btoa(String.fromCharCode(...new Uint8Array(digest)))
-  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return toBase64Url(new Uint8Array(digest))
 }
 
 export interface ChallengeData {
@@ -39,7 +40,7 @@ export function useAuthManager() {
    * recover the values after the browser navigates away and back.
    */
   const generateChallenge = async (url: string): Promise<ChallengeData> => {
-    const codeVerifier = createRandomString(43)
+    const codeVerifier = createCodeVerifier()
     const codeChallenge = await computeS256Challenge(codeVerifier)
     localStorage.setItem(CHALLENGE_KEY, codeChallenge)
     localStorage.setItem(CODE_VERIFIER_KEY, codeVerifier)
@@ -53,7 +54,7 @@ export function useAuthManager() {
    * so they don't overwrite the redirect flow's stored data.
    */
   const generateLocalChallenge = async (): Promise<ChallengeData> => {
-    const codeVerifier = createRandomString(43)
+    const codeVerifier = createCodeVerifier()
     const codeChallenge = await computeS256Challenge(codeVerifier)
     return { codeVerifier, codeChallenge }
   }
