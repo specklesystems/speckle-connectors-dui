@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col space-y-2">
+  <div v-if="!hidden" class="flex flex-col space-y-2">
     <!-- idle: server URL + sign in button -->
     <template v-if="state === 'idle'">
       <div class="flex space-x-2">
@@ -72,7 +72,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthManager } from '~/lib/authn/useAuthManager'
-import { useTokenExchange } from '~/lib/authn/useTokenExchange'
+import { useTokenExchange, supportsOAuthToken } from '~/lib/authn/useTokenExchange'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useAccountStore } from '~/store/accounts'
 import type { BaseBridge } from '~/lib/bridge/base'
@@ -100,17 +100,37 @@ const state = ref<'idle' | 'waiting' | 'submitting' | 'error'>('idle')
 const exchangeCode = ref<string | undefined>()
 const errorMessage = ref('')
 const showHelp = ref(false)
+const hidden = ref(false)
 
-let currentChallenge = ''
+const checkServerSupport = async (url: string) => {
+  const serverUrl = url ? new URL(url).origin : 'https://app.speckle.systems'
+  hidden.value = !(await supportsOAuthToken(serverUrl))
+}
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+onMounted(() => checkServerSupport(props.serverUrl))
+watch(
+  () => props.serverUrl,
+  (url) => {
+    if (debounceTimer) clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(() => checkServerSupport(url), 500)
+  }
+)
+
+let currentCodeVerifier = ''
+let currentCodeChallenge = ''
 let currentServerUrl = ''
 
-const openBrowserAuth = () => {
+const openBrowserAuth = async () => {
   currentServerUrl = props.serverUrl
     ? new URL(props.serverUrl).origin
     : 'https://app.speckle.systems'
 
-  currentChallenge = generateLocalChallenge()
-  const authUrl = `${currentServerUrl}/authn/verify/sdui/${currentChallenge}?returnExchangeToken=true`
+  const { codeVerifier, codeChallenge } = await generateLocalChallenge()
+  currentCodeVerifier = codeVerifier
+  currentCodeChallenge = codeChallenge
+  const authUrl = `${currentServerUrl}/authn/verify/sdui/${codeChallenge}?returnExchangeToken=true&code_challenge_method=S256`
   app.$openUrl(authUrl)
 
   state.value = 'waiting'
@@ -126,11 +146,16 @@ const openBrowserAuth = () => {
 
 const submitCode = async () => {
   const code = exchangeCode.value?.trim()
-  if (!code || !currentChallenge || !currentServerUrl) return
+  if (!code || !currentCodeChallenge || !currentServerUrl) return
 
   state.value = 'submitting'
   try {
-    await exchangeAccessCode(currentServerUrl, code, currentChallenge)
+    await exchangeAccessCode(
+      currentServerUrl,
+      code,
+      currentCodeChallenge,
+      currentCodeVerifier
+    )
     void trackEvent('DUI Account Added')
     // Refresh accounts so the watcher in Menu.vue detects the new account and closes the dialog
     await accountStore.refreshAccounts()

@@ -1,25 +1,59 @@
 import { md5 } from '@speckle/shared'
 import type { Account } from '~/lib/bindings/definitions/IAccountBinding'
 
+/**
+ * Checks if the server supports the new /oauth/token endpoint.
+ * The server exposes GET /oauth/token returning 'supported' when available.
+ */
+export async function supportsOAuthToken(serverUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(new URL('/oauth/token', serverUrl), { method: 'GET' })
+    return res.ok
+  } catch {
+    return false
+  }
+}
+
 export function useTokenExchange() {
   const { $accountBinding } = useNuxtApp()
 
   const exchangeAccessCode = async (
-    serverUrl: string,
+    rawServerUrl: string,
     accessCode: string,
-    challenge: string
+    challenge: string,
+    codeVerifier?: string
   ): Promise<void> => {
-    // Exchange the access code for a real token
-    const tokenResponse = await fetch(new URL('/auth/token', serverUrl), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        appId: 'sdui',
-        appSecret: 'sdui',
-        accessCode,
-        challenge
+    // Normalize to origin (strips trailing slash, path, etc.)
+    // so account IDs stay consistent with connectors
+    const serverUrl = new URL(rawServerUrl).origin
+    const tokenHeaders = { 'Content-Type': 'application/json' }
+    let tokenResponse: Response
+
+    // If we have a codeVerifier, try the new PKCE-based /oauth/token endpoint first
+    if (codeVerifier && (await supportsOAuthToken(serverUrl))) {
+      tokenResponse = await fetch(new URL('/oauth/token', serverUrl), {
+        method: 'POST',
+        headers: tokenHeaders,
+        body: JSON.stringify({
+          appId: 'sdui',
+          appSecret: 'sdui',
+          accessCode,
+          codeVerifier
+        })
       })
-    })
+    } else {
+      // Fall back to legacy /auth/token with plain challenge
+      tokenResponse = await fetch(new URL('/auth/token', serverUrl), {
+        method: 'POST',
+        headers: tokenHeaders,
+        body: JSON.stringify({
+          appId: 'sdui',
+          appSecret: 'sdui',
+          accessCode,
+          challenge
+        })
+      })
+    }
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text()

@@ -19,12 +19,12 @@ const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
 
 const { generateChallenge } = useAuthManager()
 
-const logIn = () => {
+const logIn = async () => {
   const serverUrl = props.serverUrl
     ? new URL(props.serverUrl).origin
     : 'https://app.speckle.systems'
-  const challenge = generateChallenge(serverUrl)
-  const authUrl = `${serverUrl}/authn/verify/sdui/${challenge}`
+  const { codeChallenge } = await generateChallenge(serverUrl)
+  const authUrl = `${serverUrl}/authn/verify/sdui/${codeChallenge}?code_challenge_method=S256`
   window.location.href = authUrl
 }
 </script>

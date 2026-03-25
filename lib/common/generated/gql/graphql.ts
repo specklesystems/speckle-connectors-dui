@@ -3250,6 +3250,7 @@ export type Project = {
   description?: Maybe<Scalars['String']['output']>;
   /** Public project-level configuration for embedded viewer */
   embedOptions: ProjectEmbedOptions;
+  /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   embedTokens: EmbedTokenCollection;
   /** @deprecated Use specific auth policies instead */
   hasAccessToFeature: Scalars['Boolean']['output'];
@@ -4055,6 +4056,7 @@ export type ProjectMutations = {
   batchDelete: Scalars['Boolean']['output'];
   /** Create new project */
   create: Project;
+  /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   createEmbedToken: CreateEmbedTokenReturn;
   /** Delete an existing project */
   delete: Scalars['Boolean']['output'];
@@ -4064,7 +4066,9 @@ export type ProjectMutations = {
   /** Leave a project. Only possible if you're not the last remaining owner. */
   leave: Scalars['Boolean']['output'];
   modelIngestionMutations: ProjectModelIngestionMutations;
+  /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   revokeEmbedToken: Scalars['Boolean']['output'];
+  /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   revokeEmbedTokens: Scalars['Boolean']['output'];
   savedViewMutations: SavedViewMutations;
   /** Updates an existing project */
@@ -4177,10 +4181,12 @@ export type ProjectPermissionChecks = {
   canPublish: PermissionCheckResult;
   canRead: PermissionCheckResult;
   canReadAccIntegrationSettings: PermissionCheckResult;
+  /** @deprecated Part of the old API surface and will be removed in the future. Use canListShareTokens. Field will be deleted on October 1st, 2026. */
   canReadEmbedTokens: PermissionCheckResult;
   canReadSettings: PermissionCheckResult;
   canReadWebhooks: PermissionCheckResult;
   canRequestRender: PermissionCheckResult;
+  /** @deprecated Part of the old API surface and will be removed in the future. Use canRevoke on ShareToken. Field will be deleted on October 1st, 2026. */
   canRevokeEmbedTokens: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
@@ -5225,6 +5231,7 @@ export type ShareTokenPermissionChecks = {
 export type SharingMutations = {
   __typename?: 'SharingMutations';
   createEmbedShareToken: ShareToken;
+  revokeProjectShareTokens: Scalars['Boolean']['output'];
   revokeShareToken: Scalars['Boolean']['output'];
   updateShareToken: ShareToken;
 };
@@ -5232,6 +5239,12 @@ export type SharingMutations = {
 
 export type SharingMutationsCreateEmbedShareTokenArgs = {
   input: CreateEmbedShareTokenInput;
+};
+
+
+export type SharingMutationsRevokeProjectShareTokensArgs = {
+  projectId: Scalars['String']['input'];
+  sourceType: ShareSourceType;
 };
 
 

@@ -11,7 +11,7 @@ import { useHostAppStore } from '~/store/hostApp'
 
 const route = useRoute()
 const router = useRouter()
-const { getChallenge, getChallengeUrl } = useAuthManager()
+const { getChallenge, getCodeVerifier, getChallengeUrl } = useAuthManager()
 const { exchangeAccessCode } = useTokenExchange()
 const hostApp = useHostAppStore()
 
@@ -24,7 +24,8 @@ onMounted(async () => {
       if (!challenge) {
         throw new Error('No challenge found in storage.')
       }
-      await exchangeAccessCode(origin, accessCode, challenge)
+      const codeVerifier = getCodeVerifier() ?? undefined
+      await exchangeAccessCode(origin, accessCode, challenge, codeVerifier)
     } else {
       throw new Error('No access code is found.')
     }
