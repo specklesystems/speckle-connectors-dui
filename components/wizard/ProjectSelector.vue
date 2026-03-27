@@ -591,6 +591,13 @@ const upgradePlanButtonAction = () => {
     )
     return
   }
+  // catch SSO session expired / any other unhandled permission flags
+  // redirecting to the workspace root will trigger the standard web authentication flow.
+  if (selectedWorkspace.value?.slug) {
+    $openUrl(
+      `${account.value.accountInfo.serverInfo.url}/workspaces/${selectedWorkspace.value?.slug}`
+    )
+  }
 }
 
 const loadMore = () => {
