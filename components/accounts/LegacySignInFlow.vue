@@ -2,56 +2,30 @@
   <div class="flex flex-col space-y-2">
     <div v-if="isDesktopServiceAvailable">
       <div v-show="!isAddingAccount" class="text-foreground-2 space-y-2">
-        <FormButton
-          text
-          size="sm"
-          full-width
-          @click="showCustomServerInput = !showCustomServerInput"
-        >
-          {{ showCustomServerInput ? 'Use default server' : 'Set custom server url' }}
-        </FormButton>
-        <div v-if="showCustomServerInput">
-          <FormTextInput
-            v-model="customServerUrl"
-            name="name"
-            :show-label="false"
-            color="foundation"
-            autocomplete="off"
-            show-clear
-            @clear="showCustomServerInput = false"
-          />
-        </div>
         <div class="flex space-x-2">
-          <FormButton
-            color="outline"
-            class="px-1"
-            :icon-left="ArrowLeftIcon"
-            hide-text
-            @click="emit('backToSignIn')"
-          />
-
-          <FormButton full-width @click="startAccountAddFlow()">
-            Sign in (Legacy)
+          <FormButton full-width color="outline" @click="startAccountAddFlow()">
+            Log in (Legacy)
           </FormButton>
         </div>
       </div>
 
-      <div v-show="isAddingAccount" class="text-foreground-2 mt-2 mb-4 space-y-2">
+      <div
+        v-show="isAddingAccount"
+        class="text-foreground-2 mt-2 mb-4 space-y-2 border rounded-lg p-2"
+      >
         <div class="text-sm text-center">
           Please check your browser: waiting for authorization to complete.
         </div>
         <div class="py-2"><CommonLoadingBar :loading="isAddingAccount" /></div>
-        <div v-if="showHelp" class="bg-blue-500/10 p-2 rounded-md space-y-2">
+        <div v-if="showHelp" class="p-2 rounded-md space-y-1">
           <div class="text-sm text-center">Having trouble?</div>
-          <FormButton size="sm" full-width @click="restartFlow()">Retry</FormButton>
-          <FormButton
-            text
-            size="sm"
-            full-width
-            @click="$openUrl('https://speckle.community')"
-          >
-            Get in touch with us
-          </FormButton>
+          <div class="flex justify-center">
+            <span>
+              <FormButton text size="sm" @click="$openUrl('https://speckle.community')">
+                Get in touch with us
+              </FormButton>
+            </span>
+          </div>
         </div>
       </div>
     </div>
@@ -91,6 +65,10 @@ const hostApp = useHostAppStore()
 const app = useNuxtApp()
 const { trackEvent } = useMixpanel()
 
+const props = defineProps<{
+  serverUrl: string
+}>()
+
 const emit = defineEmits<{
   (e: 'backToSignIn'): void
 }>()
@@ -98,7 +76,6 @@ const emit = defineEmits<{
 const showCustomServerInput = ref(false)
 const isAddingAccount = ref(false)
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
-const customServerUrl = ref<string | undefined>('https://app.speckle.systems')
 const showHelp = ref(false)
 
 const accountCheckerIntervalFn = useIntervalFn(
@@ -123,9 +100,9 @@ const startAccountAddFlow = () => {
   setTimeout(() => {
     showHelp.value = true
   }, 10_000)
-  const url = customServerUrl.value
+  const url = props.serverUrl
     ? `http://localhost:29364/auth/add-account?serverUrl=${
-        new URL(customServerUrl.value).origin
+        new URL(props.serverUrl).origin
       }`
     : `http://localhost:29364/auth/add-account`
 
@@ -147,11 +124,6 @@ const startAccountAddFlow = () => {
       // TODO: we could log it to sentry/seq later to see how likely it happens?
     }
   }, 30_000)
-}
-
-const restartFlow = () => {
-  isAddingAccount.value = false
-  showHelp.value = false
 }
 
 onMounted(async () => {
