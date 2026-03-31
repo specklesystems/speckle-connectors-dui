@@ -20,6 +20,8 @@ jobs:
         with:
           fetch-depth: 1
           persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
