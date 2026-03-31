@@ -1,0 +1,42 @@
+# Irrelevant source files
+deployment/docker/Dockerfile
+deployment/helm
+
+# Build output and other temporary files
+.husky/_/
+.netlify/
+.nuxt/
+dist/
+node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# GitHub / CI metadata
+.github/
+
+# Environment files
+.env
+*.env
+
+# Logs
+*.log
+
+# IDE / editor settings
+.vscode/
+.idea/
+.zed/
+*.iml
+
+# OS / editor junk
+.DS_Store
+*.swp
+*.swo
+
+# AI
+.claude/
+.cursor/
+
+# testing
+tests/

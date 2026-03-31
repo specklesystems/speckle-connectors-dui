@@ -1,0 +1,122 @@
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: {{ include "speckle-dui3.fullname" . }}-configuration
+  labels:
+    {{- include "speckle-dui3.labels" . | nindent 4 }}
+data:
+  configuration.toml: |
+    [general]
+
+    #### Address & Root dir
+    host = "::"
+    port = 80
+    root = "/app/dist"
+
+    #### Logging
+    log-level = "info"
+
+    #### Cache Control headers
+    cache-control-headers = true
+
+    #### Auto Compression
+    compression = true
+    compression-level = "default"
+
+    #### Error pages
+    # Note: If a relative path is used then it will be resolved under the root directory.
+    page404 = "./404.html"
+    page50x = "./50x.html"
+
+    #### HTTP/2 + TLS
+    # Note: We expect TLS termination to be handled by a reverse proxy (e.g. Nginx, Traefik, Cloudflare, etc.)
+    http2 = false
+    http2-tls-cert = ""
+    http2-tls-key = ""
+    ## we are terminating https upstream; redirect is at edge proxy (ingress/gateway)
+    https-redirect = false
+    https-redirect-host = "localhost"
+    https-redirect-from-port = 80
+    https-redirect-from-hosts = "localhost"
+
+    #### CORS & Security headers
+    ## security-headers must be disabled for iframe compatibility as they include x-frame-options: deny as default
+    # security-headers = false
+    ## cors-allows-origins is unset as iframe embedding does not require CORS, we are not fetching from another origin via XHR/fetch, and wildcard increases attack surface.
+    # cors-allow-origins = ""
+
+    #### Directory listing
+    directory-listing = false
+
+    #### Directory listing sorting code
+    directory-listing-order = 1
+
+    #### Directory listing content format
+    directory-listing-format = "html"
+
+    #### Directory listing download format
+    directory-listing-download = []
+
+    #### File descriptor binding
+    # fd = ""
+
+    #### Worker threads
+    threads-multiplier = 1
+
+    #### Grace period after a graceful shutdown
+    grace-period = 0
+
+    #### Page fallback for 404s
+    # page-fallback = ""
+
+    #### Log request Remote Address if available
+    log-remote-address = true
+
+    #### Log real IP from X-Forwarded-For header if available
+    log-forwarded-for = true
+
+    #### IPs to accept the X-Forwarded-For header from. Empty means all
+    trusted-proxies = {{ .Values.security.trustedProxies | toJson }}
+
+    #### Redirect to trailing slash in the requested directory uri
+    redirect-trailing-slash = true
+
+    #### Check for existing pre-compressed files
+    compression-static = true
+
+    #### Health-check endpoint (GET or HEAD `/health`)
+    health = true
+
+    #### Markdown content negotiation
+    accept-markdown = false
+
+    #### Maintenance Mode
+
+    maintenance-mode = false
+    # maintenance-mode-status = 503
+    # maintenance-mode-file = "./maintenance.html"
+
+    [advanced]
+
+    #### HTTP Headers customization
+    [[advanced.headers]]
+    source = "/*.html"
+    [advanced.headers.headers]
+    # Cache-Control = "public, max-age=36000"
+    Content-Security-Policy = """\
+    frame-ancestors {{ if .Values.security.frameAncestors }}{{ .Values.security.frameAncestors | join " " }}{{ else }}'self'{{ end }}; \
+    default-src 'self'; \
+    frame-src {{ if .Values.security.frameSource }}{{ .Values.security.frameSource | join " " }}{{ else }}'self'{{ end }}; \
+    script-src {{ if .Values.security.frameSource }}{{ .Values.security.frameSource | join " " }}{{ else }}'self'{{ end }} 'unsafe-inline'; \
+    style-src {{ if .Values.security.frameSource }}{{ .Values.security.frameSource | join " " }}{{ else }}'self'{{ end }} 'unsafe-inline'; \
+    img-src {{ if .Values.security.frameSource }}{{ .Values.security.frameSource | join " " }}{{ else }}'self'{{ end }} data: blob:; \
+    connect-src {{ if .Values.security.frameAncestors }}{{ .Values.security.frameAncestors | join " " }}{{ else }}'self'{{ end }}; \
+    object-src 'none'; \
+    base-uri 'self'; \
+    form-action {{ if .Values.security.frameAncestors }}{{ .Values.security.frameAncestors | join " " }}{{ else }}'self'{{ end }};\
+    """
+    # Strict-Transport-Security = "max-age=63072000; includeSubDomains; preload"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=()"
+    ## Purposefully do not set X-Frame-Options as this is intended to be an iframe

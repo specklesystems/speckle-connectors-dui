@@ -1,0 +1,48 @@
+name: Build Docker Container
+
+on:
+  workflow_call:
+    inputs:
+      PUBLISH:
+        required: false
+        type: boolean
+        default: false
+      IMAGE_VERSION_TAG:
+        required: true
+        type: string
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
+concurrency:
+  group: ${{ github.workflow }}-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-build:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    name: Build Docker image
+    permissions:
+      contents: read
+      packages: write # to be able to push images to ghcr.io
+      id-token: write # for connecting to private NPM registry using OIDC Connect
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Login to Helm Chart & Container Image Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Setup Docker Builder
+        uses: useblacksmith/setup-docker-builder@affa10db466676f3dfb3e54caeb228ee0691510f
+      - name: Build and push
+        uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1
+        with:
+          push: ${{ inputs.PUBLISH }}
+          tags: ghcr.io/specklesystems/speckle-dui3:${{ inputs.IMAGE_VERSION_TAG }}
+          file: ./deployment/docker/Dockerfile
+          network: host # to be able to connect to Tailscale and pull private base image during build
+          allow: network.host # to be able to connect to Tailscale and pull private base image during build

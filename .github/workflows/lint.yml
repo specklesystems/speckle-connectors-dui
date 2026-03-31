@@ -1,0 +1,33 @@
+name: Lint
+
+on:
+  workflow_call: {}
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
+concurrency:
+  group: ${{ github.workflow }}-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '22.14.0'
+          cache: 'yarn'
+
+      - name: Install Dependencies
+        run: yarn install --immutable
+
+      - name: Run Linter
+        run: yarn lint
