@@ -24,7 +24,6 @@ jobs:
     permissions:
       contents: read
       packages: write # to be able to push images to ghcr.io
-      id-token: write # for connecting to private NPM registry using OIDC Connect
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
