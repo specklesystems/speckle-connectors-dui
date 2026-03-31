@@ -17,7 +17,7 @@ export interface IReceiveBinding extends IBinding<IReceiveBindingEvents> {
 export interface IReceiveBindingEvents
   extends IBindingSharedEvents,
     IModelCardSharedEvents {
-  // See note oon timeout in bridge v2; we might not need this
+  setModelsExpired: (modelCardIds: string[]) => void
   setModelReceiveResult: (args: {
     modelCardId: string
     bakedObjectIds: string[]
