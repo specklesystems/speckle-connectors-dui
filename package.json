@@ -20,7 +20,8 @@
     "lint": "yarn lint:js && yarn lint:tsc && yarn lint:prettier && yarn lint:css",
     "lint:ci": "yarn lint:tsc && yarn lint:css",
     "gqlgen": "graphql-codegen",
-    "gqlgen:watch": "graphql-codegen --watch"
+    "gqlgen:watch": "graphql-codegen --watch",
+    "prettier:fix": "prettier --config .prettierrc --ignore-path .prettierignore --write ."
   },
   "dependencies": {
     "@apollo/client": "^3.7.14",

@@ -33,3 +33,6 @@ venv
 storybook-static
 .tshy
 .tshy-build
+
+# Helm
+deployment/helm
