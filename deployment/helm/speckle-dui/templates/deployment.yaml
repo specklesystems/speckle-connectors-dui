@@ -76,6 +76,7 @@ spec:
             secretName: {{ .Values.speckleLicense.secretName }}
             items:
               - key: {{ .Values.speckleLicense.secretKey }}
+                path: {{ .Values.speckleLicense.secretKey }}
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

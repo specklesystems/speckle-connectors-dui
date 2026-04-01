@@ -1,0 +1,67 @@
+print('🚀 Deploying Speckle DUI into a Kind Cluster via Tilt...')
+
+# we limit tilt to run only on the kind cluster
+allow_k8s_contexts(['kind-speckle-dui'])
+if k8s_context() != 'kind-speckle-dui':
+  fail('Failing early as tilt should only ever connect to kind-speckle-dui.')
+
+# Install extensions
+load('ext://helm_resource', 'helm_resource', 'helm_repo')
+load('ext://k8s_yaml_glob', 'k8s_yaml_glob')
+
+docker_build('ghcr.io/specklesystems/speckle-dui',
+                  context='../../..',
+                  dockerfile='../../../deployment/docker/Dockerfile',
+                  ignore = ['**/.nuxt', '**/node_modules', '**/dist', '**/build', '**/.git', '**/.claude', '**/.cursor', '../../../deployment/**/*', '../../../tests/**/*']
+                )
+
+# Create namespaces
+k8s_yaml_glob('./manifests/*.namespace.yaml')
+
+k8s_yaml('./manifests/coredns.configmap.yaml')
+k8s_resource(new_name='coredns',
+             objects=['coredns:configmap:kube-system'],
+             resource_deps=[],
+             labels=['coredns'])
+
+k8s_yaml('./manifests/license.secret.yaml')
+
+# Update CoreDNS to allow for local resolution of services internally (i.e. speckle.internal will be routed to nginx)
+local_resource('coredns-up',
+                cmd='./scripts/coredns-up.sh',
+                resource_deps=['coredns'],
+                deps=['./manifests/coredns.configmap.yaml', './scripts/coredns-up.sh'],
+                labels=['coredns'])
+
+helm_repo('ingress-nginx-repo',
+          'https://kubernetes.github.io/ingress-nginx')
+
+#nginx should be deployed as the last dependency as it opens ports to services
+#it expects these services to exist, which are created by the helm charts above
+helm_resource('ingress-nginx',
+            release_name='ingress-nginx',
+            namespace='ingress-nginx',
+            chart='ingress-nginx-repo/ingress-nginx',
+            flags=['--version=4.8.0',
+                    '--values=./values/nginx.values.yaml',
+                    '--kube-context=kind-speckle-dui'],
+            deps=['./values/nginx.values.yaml'],
+            resource_deps=['ingress-nginx-repo', 'coredns'],
+            labels=['speckle-dependencies'])
+
+helm_resource('speckle-dui',
+              release_name='speckle-dui',
+              namespace='speckle-dui',
+              chart='./../../../deployment/helm/speckle-dui',
+              flags=['--values=./values/speckle-dui.values.yaml',
+                     '--kube-context=kind-speckle-dui'],
+              image_deps=[
+                          'ghcr.io/specklesystems/speckle-dui'
+                          ],
+              image_keys=[
+                          ('image.repository', 'image.tag')
+                          ],
+              deps=['./../../../deployment/helm/speckle-dui',
+                    './values/speckle-dui.values.yaml'],
+              resource_deps=['ingress-nginx', 'coredns'],
+              labels=['speckle-dui'])

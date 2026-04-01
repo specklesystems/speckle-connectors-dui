@@ -41,7 +41,7 @@ jobs:
         uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1
         with:
           push: ${{ inputs.PUBLISH }}
-          tags: ghcr.io/specklesystems/speckle-dui3:${{ inputs.IMAGE_VERSION_TAG }}
+          tags: ghcr.io/specklesystems/speckle-dui:${{ inputs.IMAGE_VERSION_TAG }}
           file: ./deployment/docker/Dockerfile
           network: host # to be able to connect to Tailscale and pull private base image during build
           allow: network.host # to be able to connect to Tailscale and pull private base image during build

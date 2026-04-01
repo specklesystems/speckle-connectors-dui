@@ -1,5 +1,5 @@
 apiVersion: v2
-name: speckle-dui3-chart
+name: speckle-dui-chart
 description: A Helm chart for deploying the Speckle DUI3 application
 
 # A chart can be either an 'application' or a 'library' chart.

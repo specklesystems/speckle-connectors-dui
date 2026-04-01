@@ -1,6 +1,5 @@
 # Irrelevant source files
-deployment/docker/Dockerfile
-deployment/helm
+deployment/
 
 # Build output and other temporary files
 .husky/_/
