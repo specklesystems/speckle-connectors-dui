@@ -24,8 +24,6 @@ k8s_resource(new_name='coredns',
              resource_deps=[],
              labels=['coredns'])
 
-k8s_yaml('./manifests/license.secret.yaml')
-
 # Update CoreDNS to allow for local resolution of services internally (i.e. speckle.internal will be routed to nginx)
 local_resource('coredns-up',
                 cmd='./scripts/coredns-up.sh',

@@ -60,10 +60,6 @@ spec:
               mountPath: /app/configuration.toml
               subPath: configuration.toml
               readOnly: true
-            - name: license
-              mountPath: /app/license
-              subPath: {{ .Values.speckleLicense.secretKey }}
-              readOnly: true
             {{- with .Values.volumeMounts }}
             {{- toYaml . | nindent 12 }}
             {{- end }}
@@ -71,12 +67,6 @@ spec:
         - name: configuration
           configMap:
             name: {{ include "speckle-dui3.fullname" . }}-configuration
-        - name: license
-          secret:
-            secretName: {{ .Values.speckleLicense.secretName }}
-            items:
-              - key: {{ .Values.speckleLicense.secretKey }}
-                path: {{ .Values.speckleLicense.secretKey }}
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
