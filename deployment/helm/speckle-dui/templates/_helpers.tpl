@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "speckle-dui3.name" -}}
+{{- define "speckle-dui.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "speckle-dui3.fullname" -}}
+{{- define "speckle-dui.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,16 +26,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "speckle-dui3.chart" -}}
+{{- define "speckle-dui.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "speckle-dui3.labels" -}}
-helm.sh/chart: {{ include "speckle-dui3.chart" . }}
-{{ include "speckle-dui3.selectorLabels" . }}
+{{- define "speckle-dui.labels" -}}
+helm.sh/chart: {{ include "speckle-dui.chart" . }}
+{{ include "speckle-dui.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -45,17 +45,17 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "speckle-dui3.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "speckle-dui3.name" . }}
+{{- define "speckle-dui.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "speckle-dui.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "speckle-dui3.serviceAccountName" -}}
+{{- define "speckle-dui.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "speckle-dui3.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "speckle-dui.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}

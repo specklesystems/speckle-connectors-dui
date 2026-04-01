@@ -1,14 +1,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "speckle-dui3.fullname" . }}
+  name: {{ include "speckle-dui.fullname" . }}
   labels:
-    {{- include "speckle-dui3.labels" . | nindent 4 }}
+    {{- include "speckle-dui.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "speckle-dui3.selectorLabels" . | nindent 6 }}
+      {{- include "speckle-dui.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -16,7 +16,7 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "speckle-dui3.labels" . | nindent 8 }}
+        {{- include "speckle-dui.labels" . | nindent 8 }}
         {{- with .Values.podLabels }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -25,7 +25,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "speckle-dui3.serviceAccountName" . }}
+      serviceAccountName: {{ include "speckle-dui.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
       {{- with .Values.podSecurityContext }}
       securityContext:
@@ -66,7 +66,7 @@ spec:
       volumes:
         - name: configuration
           configMap:
-            name: {{ include "speckle-dui3.fullname" . }}-configuration
+            name: {{ include "speckle-dui.fullname" . }}-configuration
         {{- with .Values.volumes }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
