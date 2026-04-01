@@ -36,6 +36,19 @@
               {{ isDarkTheme ? 'Light theme' : 'Dark theme' }}
             </div>
           </MenuItem>
+
+          <MenuItem v-slot="{ active }" @click="toggleCache">
+            <div
+              :class="[
+                active ? 'bg-highlight-1' : '',
+                'my-1 text-body-2xs flex justify-between px-2 py-1 text-foreground cursor-pointer transition mx-1 rounded'
+              ]"
+            >
+              <span>Disable Cache</span>
+              <span v-if="isCacheDisabled" class="text-primary font-bold ml-2">✓</span>
+            </div>
+          </MenuItem>
+
           <div class="border-t border-outline-3 mt-1">
             <MenuItem v-if="app.$revitMapperBinding" v-slot="{ active }">
               <button
@@ -124,8 +137,9 @@ import { useConfigStore } from '~/store/config'
 const app = useNuxtApp()
 
 const uiConfigStore = useConfigStore()
-const { isDarkTheme, hasConfigBindings, isDevMode } = storeToRefs(uiConfigStore)
-const { toggleTheme } = uiConfigStore
+const { isDarkTheme, hasConfigBindings, isDevMode, isCacheDisabled } =
+  storeToRefs(uiConfigStore)
+const { toggleTheme, toggleCache } = uiConfigStore
 
 const { $showDevTools, $openUrl } = useNuxtApp()
 const showAccountsDialog = ref(false)
