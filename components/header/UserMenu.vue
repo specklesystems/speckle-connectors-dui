@@ -147,13 +147,29 @@ const { isDarkTheme, hasConfigBindings, isDevMode, isCacheDisabled } =
 const { toggleTheme, toggleCache } = uiConfigStore
 
 const hostAppStore = useHostAppStore()
-const { hostAppName } = storeToRefs(hostAppStore)
+const { hostAppName, connectorVersion } = storeToRefs(hostAppStore)
 
-// TODO: https://linear.app/speckle/issue/CNX-3278/migrate-disable-cache-ui-to-use-connector-version-check
 const isDisableCacheSupported = computed(() => {
-  if (!hostAppName.value) return false
+  const appName = hostAppName.value
+  const version = connectorVersion.value
+
+  if (!appName || !version) return false
+
+  // excludes non-sharp connectors (assuming they don't have backend cache bypass)
   const nonSharpApps = ['sketchup', 'archicad', 'vectorworks']
-  return !nonSharpApps.includes(hostAppName.value.toLowerCase())
+  if (nonSharpApps.includes(appName.toLowerCase())) return false
+
+  // always show in dev environments
+  if (version.includes('dev') || version.includes('local')) return true
+
+  // for sharp connectors, check if version is >= 3.18.0
+  const targetVersion = '3.18.0'
+  return (
+    version.localeCompare(targetVersion, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    }) >= 0
+  )
 })
 
 const { $showDevTools, $openUrl } = useNuxtApp()
