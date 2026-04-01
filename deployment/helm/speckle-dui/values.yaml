@@ -56,12 +56,6 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 80
 
-speckleLicense:
-  # The name of the Kubernetes secret containing the Speckle license token.
-  secretName: 'license'
-  # The key within the secret that contains the license token.
-  secretKey: 'license_token'
-
 security:
   ## The IP addresses of trusted proxies, such as loadbalancers or WAFs, that may be forwarding traffic to the dashboards. This is important for correctly handling the X-Forwarded-For header and ensuring accurate client IP logging and security measures. Empty means all proxies are trusted, which may not be secure in production environments. We recommend setting this to the specific IP addresses of your trusted proxies.
   trustedProxies: []

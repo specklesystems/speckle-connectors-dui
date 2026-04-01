@@ -36,4 +36,4 @@ jobs:
     secrets: {}
     permissions:
       contents: read
-      packages: write # the workflow fragment requires this as it has the capability to publish, even though the logic prevents publishing
+      packages: read # the workflow fragment requires packages capability, but PUBLISH is false so it won't actually publish anything

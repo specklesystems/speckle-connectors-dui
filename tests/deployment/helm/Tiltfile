@@ -12,7 +12,7 @@ load('ext://k8s_yaml_glob', 'k8s_yaml_glob')
 docker_build('ghcr.io/specklesystems/speckle-dui',
                   context='../../..',
                   dockerfile='../../../deployment/docker/Dockerfile',
-                  ignore = ['**/.nuxt', '**/node_modules', '**/dist', '**/build', '**/.git', '**/.claude', '**/.cursor', '../../../deployment/**/*', '../../../tests/**/*']
+                  ignore = ['**/.nuxt', '**/node_modules', '**/dist', '**/build', '**/.git', '**/.claude', '**/.cursor', '**/deployment/**/*', '**/tests/**/*']
                 )
 
 # Create namespaces
