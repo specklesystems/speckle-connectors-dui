@@ -36,3 +36,4 @@ storybook-static
 
 # Helm
 deployment/helm
+tests/deployment
