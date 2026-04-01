@@ -149,6 +149,7 @@ const { toggleTheme, toggleCache } = uiConfigStore
 const hostAppStore = useHostAppStore()
 const { hostAppName } = storeToRefs(hostAppStore)
 
+// TODO: https://linear.app/speckle/issue/CNX-3278/migrate-disable-cache-ui-to-use-connector-version-check
 const isDisableCacheSupported = computed(() => {
   if (!hostAppName.value) return false
   const nonSharpApps = ['sketchup', 'archicad', 'vectorworks']
