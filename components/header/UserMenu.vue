@@ -37,7 +37,11 @@
             </div>
           </MenuItem>
 
-          <MenuItem v-slot="{ active }" @click="toggleCache">
+          <MenuItem
+            v-if="isDisableCacheSupported"
+            v-slot="{ active }"
+            @click="toggleCache"
+          >
             <div
               :class="[
                 active ? 'bg-highlight-1' : '',
@@ -133,6 +137,7 @@ import { storeToRefs } from 'pinia'
 import { XMarkIcon, Bars3Icon } from '@heroicons/vue/20/solid'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { useConfigStore } from '~/store/config'
+import { useHostAppStore } from '~/store/hostApp'
 
 const app = useNuxtApp()
 
@@ -140,6 +145,15 @@ const uiConfigStore = useConfigStore()
 const { isDarkTheme, hasConfigBindings, isDevMode, isCacheDisabled } =
   storeToRefs(uiConfigStore)
 const { toggleTheme, toggleCache } = uiConfigStore
+
+const hostAppStore = useHostAppStore()
+const { hostAppName } = storeToRefs(hostAppStore)
+
+const isDisableCacheSupported = computed(() => {
+  if (!hostAppName.value) return false
+  const nonSharpApps = ['sketchup', 'archicad', 'vectorworks']
+  return !nonSharpApps.includes(hostAppName.value.toLowerCase())
+})
 
 const { $showDevTools, $openUrl } = useNuxtApp()
 const showAccountsDialog = ref(false)
