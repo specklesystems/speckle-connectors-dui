@@ -160,7 +160,11 @@ const isExpired = computed(() => {
 })
 
 const handleUpdateSettings = async (settings: CardSetting[]) => {
-  trackSettingsChange('Load Card Settings Updated', settings, store.receiveSettings || [])
+  trackSettingsChange(
+    'Load Card Settings Updated',
+    settings,
+    store.receiveSettings || []
+  )
   await store.patchModel(props.modelCard.modelCardId, { settings, expired: true })
 }
 
