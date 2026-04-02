@@ -36,6 +36,23 @@
               {{ isDarkTheme ? 'Light theme' : 'Dark theme' }}
             </div>
           </MenuItem>
+
+          <MenuItem
+            v-if="isDisableCacheSupported"
+            v-slot="{ active }"
+            @click="toggleCache"
+          >
+            <div
+              :class="[
+                active ? 'bg-highlight-1' : '',
+                'my-1 text-body-2xs flex justify-between px-2 py-1 text-foreground cursor-pointer transition mx-1 rounded'
+              ]"
+            >
+              <span>Disable Cache</span>
+              <span v-if="isCacheDisabled" class="text-primary font-bold ml-2">✓</span>
+            </div>
+          </MenuItem>
+
           <div class="border-t border-outline-3 mt-1">
             <MenuItem v-if="app.$revitMapperBinding" v-slot="{ active }">
               <button
@@ -120,12 +137,40 @@ import { storeToRefs } from 'pinia'
 import { XMarkIcon, Bars3Icon } from '@heroicons/vue/20/solid'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { useConfigStore } from '~/store/config'
+import { useHostAppStore } from '~/store/hostApp'
 
 const app = useNuxtApp()
 
 const uiConfigStore = useConfigStore()
-const { isDarkTheme, hasConfigBindings, isDevMode } = storeToRefs(uiConfigStore)
-const { toggleTheme } = uiConfigStore
+const { isDarkTheme, hasConfigBindings, isDevMode, isCacheDisabled } =
+  storeToRefs(uiConfigStore)
+const { toggleTheme, toggleCache } = uiConfigStore
+
+const hostAppStore = useHostAppStore()
+const { hostAppName, connectorVersion } = storeToRefs(hostAppStore)
+
+const isDisableCacheSupported = computed(() => {
+  const appName = hostAppName.value
+  const version = connectorVersion.value
+
+  if (!appName || !version) return false
+
+  // excludes non-sharp connectors (assuming they don't have backend cache bypass)
+  const nonSharpApps = ['sketchup', 'archicad', 'vectorworks']
+  if (nonSharpApps.includes(appName.toLowerCase())) return false
+
+  // always show in dev environments
+  if (version.includes('dev') || version.includes('local')) return true
+
+  // for sharp connectors, check if version is >= 3.18.0
+  const targetVersion = '3.18.0'
+  return (
+    version.localeCompare(targetVersion, undefined, {
+      numeric: true,
+      sensitivity: 'base'
+    }) >= 0
+  )
+})
 
 const { $showDevTools, $openUrl } = useNuxtApp()
 const showAccountsDialog = ref(false)

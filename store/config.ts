@@ -8,15 +8,23 @@ export const useConfigStore = defineStore('configStore', () => {
 
   const userSelectedWorkspaceId = ref<string>()
 
-  const config = ref<ConnectorConfig>({ darkTheme: true })
+  const config = ref<ConnectorConfig>({ darkTheme: true, disableCache: false })
 
   const isDarkTheme = computed(() => {
     return config.value?.darkTheme
+  })
+  const isCacheDisabled = computed(() => {
+    return config.value?.disableCache || false
   })
   const isDevMode = ref(false)
 
   const toggleTheme = () => {
     config.value.darkTheme = !config.value.darkTheme
+    $configBinding.updateConfig(config.value)
+  }
+
+  const toggleCache = () => {
+    config.value.disableCache = !config.value.disableCache
     $configBinding.updateConfig(config.value)
   }
 
@@ -33,7 +41,8 @@ export const useConfigStore = defineStore('configStore', () => {
 
   const init = async () => {
     if (!$configBinding) return
-    config.value = await $configBinding.getConfig()
+    const fetchedConfig = await $configBinding.getConfig()
+    config.value = { disableCache: false, ...fetchedConfig }
     const workspacesConfig = await $configBinding.getWorkspacesConfig()
     if (workspacesConfig && workspacesConfig.userSelectedWorkspaceId) {
       userSelectedWorkspaceId.value = workspacesConfig.userSelectedWorkspaceId
@@ -51,9 +60,11 @@ export const useConfigStore = defineStore('configStore', () => {
     config,
     hasConfigBindings,
     isDarkTheme,
+    isCacheDisabled,
     isDevMode,
     userSelectedWorkspaceId,
     toggleTheme,
+    toggleCache,
     setUserSelectedWorkspace
   }
 })
