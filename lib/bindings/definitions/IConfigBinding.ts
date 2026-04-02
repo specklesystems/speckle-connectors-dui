@@ -31,6 +31,7 @@ export type GlobalConfig = {
 
 export type ConnectorConfig = {
   darkTheme: boolean
+  disableCache?: boolean
 }
 
 export type AccountsConfig = {
@@ -48,7 +49,7 @@ export class MockedConfigBinding implements IConfigBinding {
   }
 
   public async getConfig() {
-    return await { darkTheme: false }
+    return await { darkTheme: false, disableCache: false }
   }
 
   public async getGlobalConfig() {
