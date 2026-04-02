@@ -874,7 +874,7 @@ export type BlobMetadata = {
   streamId: Scalars['String']['output'];
   uploadError?: Maybe<Scalars['String']['output']>;
   uploadStatus: Scalars['Int']['output'];
-  userId?: Maybe<Scalars['String']['output']>;
+  userId: Scalars['String']['output'];
 };
 
 export type BlobMetadataCollection = {
@@ -1269,14 +1269,6 @@ export type CreateEmbedTokenReturn = {
   tokenMetadata: EmbedToken;
 };
 
-export type CreateFromTemplateInput = {
-  modelIds: Array<Scalars['String']['input']>;
-  /** Override the template's name for this insight */
-  name?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  templateId: Scalars['String']['input'];
-};
-
 export type CreateIssueInput = {
   assigneeId?: InputMaybe<Scalars['ID']['input']>;
   attachmentBlobIds?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -1538,17 +1530,6 @@ export type DashboardUpdateInput = {
   state?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type DataSourceColumn = {
-  __typename?: 'DataSourceColumn';
-  name: Scalars['String']['output'];
-  type: Scalars['String']['output'];
-};
-
-export type DataSourceRefInput = {
-  alias: Scalars['String']['input'];
-  dataSourceId: Scalars['String']['input'];
-};
-
 export type DateIntervalFilter = {
   after?: InputMaybe<Scalars['DateTime']['input']>;
   before?: InputMaybe<Scalars['DateTime']['input']>;
@@ -1644,26 +1625,6 @@ export type EmbedTokenCreateInput = {
   resourceIdString: Scalars['String']['input'];
 };
 
-export type ExecuteQueryInput = {
-  dataSources?: InputMaybe<Array<DataSourceRefInput>>;
-  modelIds: Array<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  query: Scalars['JSONObject']['input'];
-};
-
-export type ExecuteQueryResult = {
-  __typename?: 'ExecuteQueryResult';
-  aggregate: ModelExecutionResult;
-  perModel: Array<ModelExecutionResult>;
-};
-
-export type ExecuteVersionQueryInput = {
-  modelId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-  query: Scalars['JSONObject']['input'];
-  versionId: Scalars['String']['input'];
-};
-
 export type ExtendedViewerResources = {
   __typename?: 'ExtendedViewerResources';
   /** The groups of viewer resources themselves */
@@ -1683,19 +1644,6 @@ export type ExtendedViewerResourcesRequest = {
   __typename?: 'ExtendedViewerResourcesRequest';
   /** Specific id that was requested or null if loaded implicit (undefined req) or nothing (null req) */
   savedViewId?: Maybe<Scalars['ID']['output']>;
-};
-
-export type ExternalDataSource = {
-  __typename?: 'ExternalDataSource';
-  columns: Array<DataSourceColumn>;
-  createdAt: Scalars['DateTime']['output'];
-  filename: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  projectId?: Maybe<Scalars['String']['output']>;
-  rowCount: Scalars['Int']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId: Scalars['String']['output'];
 };
 
 export type FileImportResultInput = {
@@ -1862,277 +1810,6 @@ export type HistoricalUser = {
 export type IngestionHistoryInput = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type Insight = {
-  __typename?: 'Insight';
-  /**
-   * Aggregate results across all tracked models (newest first).
-   * Use limit=1 for KPI badge.
-   */
-  aggregateResults: Array<InsightResult>;
-  createdAt: Scalars['DateTime']['output'];
-  createdBy: Scalars['String']['output'];
-  customized: Scalars['Boolean']['output'];
-  dataSources: Array<InsightDataSourceLink>;
-  /** Version history (previous snapshots) */
-  history: Array<InsightVersion>;
-  id: Scalars['String']['output'];
-  /** Latest result per model (excludes aggregate) */
-  latestResults: Array<InsightResult>;
-  metadata: Scalars['JSONObject']['output'];
-  modelIds: Array<Scalars['String']['output']>;
-  /** Historical results for a specific model (newest first) */
-  modelResults: Array<InsightResult>;
-  name: Scalars['String']['output'];
-  projectId: Scalars['String']['output'];
-  query: Scalars['JSONObject']['output'];
-  /** The template this insight was created from (null if ad-hoc or template deleted) */
-  template?: Maybe<InsightTemplate>;
-  /** Which template version was snapshotted at creation/last sync */
-  templateVersion?: Maybe<Scalars['Int']['output']>;
-  trigger: Scalars['String']['output'];
-  type: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  updatedBy?: Maybe<Scalars['String']['output']>;
-  version: Scalars['Int']['output'];
-  /** Stored results for a specific version */
-  versionResults: Array<InsightResult>;
-};
-
-
-export type InsightAggregateResultsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type InsightModelResultsArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  modelId: Scalars['String']['input'];
-};
-
-
-export type InsightVersionResultsArgs = {
-  modelId: Scalars['String']['input'];
-  versionId: Scalars['String']['input'];
-};
-
-export type InsightCreateInput = {
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  modelIds?: InputMaybe<Array<Scalars['String']['input']>>;
-  name: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-  query: Scalars['JSONObject']['input'];
-  trigger?: InputMaybe<Scalars['String']['input']>;
-  type?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type InsightDataSourceLink = {
-  __typename?: 'InsightDataSourceLink';
-  alias: Scalars['String']['output'];
-  dataSource?: Maybe<ExternalDataSource>;
-  dataSourceId: Scalars['String']['output'];
-  insightId: Scalars['String']['output'];
-};
-
-export type InsightMutations = {
-  __typename?: 'InsightMutations';
-  addModels: Insight;
-  create: Insight;
-  /** Create an insight by snapshotting a workspace template */
-  createFromTemplate: Insight;
-  delete: Scalars['Boolean']['output'];
-  /** Execute a query ad-hoc against selected models (preview, no persistence) */
-  executeQuery: ExecuteQueryResult;
-  /** Execute a query against a single specific version of a model */
-  executeVersionQuery: VersionQueryResult;
-  linkDataSource: Scalars['Boolean']['output'];
-  removeModel: Insight;
-  /** Reset a customized insight back to its template's latest version */
-  resetToTemplate: Insight;
-  /** Rollback an insight to a previous version */
-  rollbackInsight: Insight;
-  update: Insight;
-};
-
-
-export type InsightMutationsAddModelsArgs = {
-  insightId: Scalars['String']['input'];
-  modelIds: Array<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-};
-
-
-export type InsightMutationsCreateArgs = {
-  input: InsightCreateInput;
-};
-
-
-export type InsightMutationsCreateFromTemplateArgs = {
-  input: CreateFromTemplateInput;
-};
-
-
-export type InsightMutationsDeleteArgs = {
-  id: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
-export type InsightMutationsExecuteQueryArgs = {
-  input: ExecuteQueryInput;
-};
-
-
-export type InsightMutationsExecuteVersionQueryArgs = {
-  input: ExecuteVersionQueryInput;
-};
-
-
-export type InsightMutationsLinkDataSourceArgs = {
-  alias: Scalars['String']['input'];
-  dataSourceId: Scalars['String']['input'];
-  insightId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
-export type InsightMutationsRemoveModelArgs = {
-  insightId: Scalars['String']['input'];
-  modelId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
-export type InsightMutationsResetToTemplateArgs = {
-  insightId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
-export type InsightMutationsRollbackInsightArgs = {
-  insightId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-  toVersion: Scalars['Int']['input'];
-};
-
-
-export type InsightMutationsUpdateArgs = {
-  input: InsightUpdateInput;
-};
-
-export type InsightResult = {
-  __typename?: 'InsightResult';
-  id: Scalars['String']['output'];
-  insightId: Scalars['String']['output'];
-  modelId?: Maybe<Scalars['String']['output']>;
-  result: Scalars['JSONObject']['output'];
-  summary: Scalars['JSONObject']['output'];
-  timestamp: Scalars['DateTime']['output'];
-  versionId?: Maybe<Scalars['String']['output']>;
-};
-
-export type InsightTemplate = {
-  __typename?: 'InsightTemplate';
-  createdAt: Scalars['DateTime']['output'];
-  createdBy: Scalars['String']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  /** Version history (previous snapshots) */
-  history: Array<InsightTemplateVersion>;
-  id: Scalars['String']['output'];
-  metadata: Scalars['JSONObject']['output'];
-  name: Scalars['String']['output'];
-  query: Scalars['JSONObject']['output'];
-  type: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  updatedBy: Scalars['String']['output'];
-  version: Scalars['Int']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-export type InsightTemplateCreateInput = {
-  description?: InputMaybe<Scalars['String']['input']>;
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  name: Scalars['String']['input'];
-  query: Scalars['JSONObject']['input'];
-  type: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-export type InsightTemplateMutations = {
-  __typename?: 'InsightTemplateMutations';
-  create: InsightTemplate;
-  delete: Scalars['Boolean']['output'];
-  rollback: InsightTemplate;
-  update: InsightTemplate;
-};
-
-
-export type InsightTemplateMutationsCreateArgs = {
-  input: InsightTemplateCreateInput;
-};
-
-
-export type InsightTemplateMutationsDeleteArgs = {
-  id: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type InsightTemplateMutationsRollbackArgs = {
-  id: Scalars['String']['input'];
-  toVersion: Scalars['Int']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type InsightTemplateMutationsUpdateArgs = {
-  input: InsightTemplateUpdateInput;
-};
-
-export type InsightTemplateUpdateInput = {
-  description?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** If true, propagate changes to all non-customized insights using this template */
-  propagateToInsights?: InputMaybe<Scalars['Boolean']['input']>;
-  query?: InputMaybe<Scalars['JSONObject']['input']>;
-  type?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type InsightTemplateVersion = {
-  __typename?: 'InsightTemplateVersion';
-  metadata: Scalars['JSONObject']['output'];
-  name: Scalars['String']['output'];
-  query: Scalars['JSONObject']['output'];
-  type: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  updatedBy: Scalars['String']['output'];
-  version: Scalars['Int']['output'];
-};
-
-export type InsightUpdateInput = {
-  id: Scalars['String']['input'];
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  query?: InputMaybe<Scalars['JSONObject']['input']>;
-  trigger?: InputMaybe<Scalars['String']['input']>;
-  type?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type InsightVersion = {
-  __typename?: 'InsightVersion';
-  customized: Scalars['Boolean']['output'];
-  metadata: Scalars['JSONObject']['output'];
-  name: Scalars['String']['output'];
-  query: Scalars['JSONObject']['output'];
-  type: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  updatedBy?: Maybe<Scalars['String']['output']>;
-  version: Scalars['Int']['output'];
 };
 
 export type InvitableCollaboratorsFilter = {
@@ -2557,7 +2234,7 @@ export type LimitedWorkspace = {
   id: Scalars['ID']['output'];
   /**
    * Optional base64 encoded workspace logo image
-   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2026.
+   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2025.
    */
   logo?: Maybe<Scalars['String']['output']>;
   /** URL for pulling the workspace logo image */
@@ -2706,15 +2383,6 @@ export type ModelCollection = {
   cursor?: Maybe<Scalars['String']['output']>;
   items: Array<Model>;
   totalCount: Scalars['Int']['output'];
-};
-
-export type ModelExecutionResult = {
-  __typename?: 'ModelExecutionResult';
-  durationMs: Scalars['Int']['output'];
-  modelId?: Maybe<Scalars['String']['output']>;
-  result: Scalars['JSONObject']['output'];
-  summary: Scalars['JSONObject']['output'];
-  versionId?: Maybe<Scalars['String']['output']>;
 };
 
 export type ModelIngestion = {
@@ -3000,8 +2668,6 @@ export type Mutation = {
   commitsMove: Scalars['Boolean']['output'];
   dashboardMutations: DashboardMutations;
   fileUploadMutations: FileUploadMutations;
-  insightMutations: InsightMutations;
-  insightTemplateMutations: InsightTemplateMutations;
   /**
    * Delete a pending invite
    * Note: The required scope to invoke this is not given out to app or personal access tokens
@@ -3044,8 +2710,30 @@ export type Mutation = {
    * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.create instead.
    */
   streamCreate?: Maybe<Scalars['String']['output']>;
+  /**
+   * Deletes an existing stream.
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.delete instead. Field will be deleted on January 1st, 2026.
+   */
+  streamDelete: Scalars['Boolean']['output'];
   /** @deprecated Part of the old API surface and will be removed in the future. */
   streamFavorite?: Maybe<Stream>;
+  /**
+   * Note: The required scope to invoke this is not given out to app or personal access tokens
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectInviteMutations.batchCreate instead. Field will be deleted on January 1st, 2026.
+   */
+  streamInviteBatchCreate: Scalars['Boolean']['output'];
+  /**
+   * Cancel a pending stream invite. Can only be invoked by a stream owner.
+   * Note: The required scope to invoke this is not given out to app or personal access tokens
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectInviteMutations.cancel instead. Field will be deleted on January 1st, 2026.
+   */
+  streamInviteCancel: Scalars['Boolean']['output'];
+  /**
+   * Invite a new or registered user to the specified stream
+   * Note: The required scope to invoke this is not given out to app or personal access tokens
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectInviteMutations.create instead. Field will be deleted on January 1st, 2026.
+   */
+  streamInviteCreate: Scalars['Boolean']['output'];
   /**
    * Accept or decline a stream invite
    * @deprecated Part of the old API surface and will be removed in the future. Use ProjectInviteMutations.use instead.
@@ -3057,10 +2745,22 @@ export type Mutation = {
    */
   streamLeave: Scalars['Boolean']['output'];
   /**
+   * Revokes the permissions of a user on a given stream.
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.updateRole instead. Field will be deleted on January 1st, 2026.
+   */
+  streamRevokePermission?: Maybe<Scalars['Boolean']['output']>;
+  /**
    * Updates an existing stream.
    * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.update instead.
    */
   streamUpdate: Scalars['Boolean']['output'];
+  /**
+   * Update permissions of a user on a given stream.
+   * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.updateRole instead. Field will be deleted on January 1st, 2026.
+   */
+  streamUpdatePermission?: Maybe<Scalars['Boolean']['output']>;
+  /** @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.batchDelete instead. Field will be deleted on January 1st, 2026. */
+  streamsDelete: Scalars['Boolean']['output'];
   /** Delete a user's account. */
   userDelete: Scalars['Boolean']['output'];
   userNotificationPreferencesUpdate?: Maybe<Scalars['Boolean']['output']>;
@@ -3231,9 +2931,30 @@ export type MutationStreamCreateArgs = {
 };
 
 
+export type MutationStreamDeleteArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type MutationStreamFavoriteArgs = {
   favorited: Scalars['Boolean']['input'];
   streamId: Scalars['String']['input'];
+};
+
+
+export type MutationStreamInviteBatchCreateArgs = {
+  input: Array<StreamInviteCreateInput>;
+};
+
+
+export type MutationStreamInviteCancelArgs = {
+  inviteId: Scalars['String']['input'];
+  streamId: Scalars['String']['input'];
+};
+
+
+export type MutationStreamInviteCreateArgs = {
+  input: StreamInviteCreateInput;
 };
 
 
@@ -3249,8 +2970,23 @@ export type MutationStreamLeaveArgs = {
 };
 
 
+export type MutationStreamRevokePermissionArgs = {
+  permissionParams: StreamRevokePermissionInput;
+};
+
+
 export type MutationStreamUpdateArgs = {
   stream: StreamUpdateInput;
+};
+
+
+export type MutationStreamUpdatePermissionArgs = {
+  permissionParams: StreamUpdatePermissionInput;
+};
+
+
+export type MutationStreamsDeleteArgs = {
+  ids?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 
@@ -3492,8 +3228,6 @@ export type Project = {
   allowPublicComments: Scalars['Boolean']['output'];
   /** List of allowed assignees for this issue */
   allowedIssueAssignees: IssueParticipantCollection;
-  /** When the project was archived. Null if the project is active. */
-  archivedAt?: Maybe<Scalars['DateTime']['output']>;
   /** Get a single automation by id. Error will be thrown if automation is not found or inaccessible. */
   automation: Automation;
   automations: AutomationCollection;
@@ -4317,8 +4051,6 @@ export type ProjectMutations = {
   __typename?: 'ProjectMutations';
   /** Access request related mutations */
   accessRequestMutations: ProjectAccessRequestMutations;
-  /** Archive an existing project. Only project owners can archive. */
-  archive: Project;
   automationMutations: ProjectAutomationMutations;
   /** Batch delete projects */
   batchDelete: Scalars['Boolean']['output'];
@@ -4339,17 +4071,10 @@ export type ProjectMutations = {
   /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   revokeEmbedTokens: Scalars['Boolean']['output'];
   savedViewMutations: SavedViewMutations;
-  /** Unarchive an archived project. Only project owners can unarchive. */
-  unarchive: Project;
   /** Updates an existing project */
   update: Project;
   /** Update role for a collaborator */
   updateRole: Project;
-};
-
-
-export type ProjectMutationsArchiveArgs = {
-  id: Scalars['String']['input'];
 };
 
 
@@ -4394,11 +4119,6 @@ export type ProjectMutationsRevokeEmbedTokensArgs = {
 };
 
 
-export type ProjectMutationsUnarchiveArgs = {
-  id: Scalars['String']['input'];
-};
-
-
 export type ProjectMutationsUpdateArgs = {
   update: ProjectUpdateInput;
 };
@@ -4438,7 +4158,6 @@ export type ProjectPermissionChecks = {
   __typename?: 'ProjectPermissionChecks';
   canAccessIssuesFeature: PermissionCheckResult;
   canAccessViewerTableFeature: PermissionCheckResult;
-  canArchive: PermissionCheckResult;
   canBroadcastActivity: PermissionCheckResult;
   canCreateAutomation: PermissionCheckResult;
   /** @deprecated Comments were moved to issues. Use canCreateIssue instead. This check will be removed after 01 Jun 2026. */
@@ -4469,7 +4188,6 @@ export type ProjectPermissionChecks = {
   canRequestRender: PermissionCheckResult;
   /** @deprecated Part of the old API surface and will be removed in the future. Use canRevoke on ShareToken. Field will be deleted on October 1st, 2026. */
   canRevokeEmbedTokens: PermissionCheckResult;
-  canUnarchive: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
@@ -4640,13 +4358,6 @@ export enum ProjectVisibility {
   Workspace = 'WORKSPACE'
 }
 
-export type PropagationResult = {
-  __typename?: 'PropagationResult';
-  failed: Scalars['Int']['output'];
-  skipped: Scalars['Int']['output'];
-  updated: Scalars['Int']['output'];
-};
-
 export type Query = {
   __typename?: 'Query';
   /** Stare into the void. */
@@ -4684,12 +4395,6 @@ export type Query = {
    * @deprecated Part of the old API surface and will be removed in the future.
    */
   discoverableStreams?: Maybe<StreamCollection>;
-  /** Get a single insight by ID */
-  insight?: Maybe<Insight>;
-  /** Get a single insight template by ID */
-  insightTemplate?: Maybe<InsightTemplate>;
-  /** List all insights tracking a specific model */
-  modelInsights: Array<Insight>;
   /** Get the (limited) profile information of another server user */
   otherUser?: Maybe<LimitedUser>;
   permissions: RootPermissionChecks;
@@ -4698,8 +4403,6 @@ export type Query = {
    * to see it, for example, if a project isn't public and the user doesn't have the appropriate rights.
    */
   project: Project;
-  /** List all insights for a project, optionally filtered by type */
-  projectInsights: Array<Insight>;
   /**
    * Look for an invitation to a project, for the current user (authed or not). If token
    * isn't specified, the server will look for any valid invite.
@@ -4730,6 +4433,11 @@ export type Query = {
    */
   streamInvite?: Maybe<PendingStreamCollaborator>;
   /**
+   * Get all invitations to streams that the active user has
+   * @deprecated Part of the old API surface and will be removed in the future. Use User.projectInvites instead. Field will be deleted on January 1st, 2026.
+   */
+  streamInvites: Array<PendingStreamCollaborator>;
+  /**
    * Returns all streams that the active user is a collaborator on.
    * Pass in the `query` parameter to search by name, description or ID.
    * @deprecated Part of the old API surface and will be removed in the future. Use User.projects instead.
@@ -4759,8 +4467,6 @@ export type Query = {
   validateWorkspaceSlug: Scalars['Boolean']['output'];
   workspace: Workspace;
   workspaceBySlug: Workspace;
-  /** List templates for a workspace, optionally filtered by type */
-  workspaceInsightTemplates: Array<InsightTemplate>;
   /**
    * Look for an invitation to a workspace, for the current user (authed or not).
    *
@@ -4818,24 +4524,6 @@ export type QueryDiscoverableStreamsArgs = {
 };
 
 
-export type QueryInsightArgs = {
-  id: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
-export type QueryInsightTemplateArgs = {
-  id: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type QueryModelInsightsArgs = {
-  modelId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-
 export type QueryOtherUserArgs = {
   id: Scalars['String']['input'];
 };
@@ -4843,12 +4531,6 @@ export type QueryOtherUserArgs = {
 
 export type QueryProjectArgs = {
   id: Scalars['String']['input'];
-};
-
-
-export type QueryProjectInsightsArgs = {
-  projectId: Scalars['String']['input'];
-  type?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -4943,12 +4625,6 @@ export type QueryWorkspaceArgs = {
 
 export type QueryWorkspaceBySlugArgs = {
   slug: Scalars['String']['input'];
-};
-
-
-export type QueryWorkspaceInsightTemplatesArgs = {
-  type?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
 };
 
 
@@ -5342,8 +5018,6 @@ export type ServerAutomateInfo = {
 export type ServerConfiguration = {
   __typename?: 'ServerConfiguration';
   blobSizeLimitBytes: Scalars['Int']['output'];
-  /** Origin URL of the dashboards service */
-  dashboardsOrigin?: Maybe<Scalars['String']['output']>;
   /** Email verification code timeout in minutes */
   emailVerificationTimeoutMinutes: Scalars['Int']['output'];
   /** Active server-level feature flags */
@@ -5466,7 +5140,6 @@ export enum ServerRole {
   ServerAdmin = 'SERVER_ADMIN',
   ServerArchivedUser = 'SERVER_ARCHIVED_USER',
   ServerGuest = 'SERVER_GUEST',
-  ServerSupport = 'SERVER_SUPPORT',
   ServerUser = 'SERVER_USER'
 }
 
@@ -5640,6 +5313,11 @@ export type StartFileImportInput = {
 
 export type Stream = {
   __typename?: 'Stream';
+  /**
+   * All the recent activity on this stream in chronological order
+   * @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on January 1st, 2026.
+   */
+  activity?: Maybe<ActivityCollection>;
   allowPublicComments: Scalars['Boolean']['output'];
   /** @deprecated Part of the old API surface and will be removed in the future. Use Project.blob instead. */
   blob?: Maybe<BlobMetadata>;
@@ -5709,6 +5387,15 @@ export type Stream = {
   updatedAt: Scalars['DateTime']['output'];
   /** @deprecated Part of the old API surface and will be removed in the future. Use Project.webhooks instead. */
   webhooks: WebhookCollection;
+};
+
+
+export type StreamActivityArgs = {
+  actionType?: InputMaybe<Scalars['String']['input']>;
+  after?: InputMaybe<Scalars['DateTime']['input']>;
+  before?: InputMaybe<Scalars['DateTime']['input']>;
+  cursor?: InputMaybe<Scalars['DateTime']['input']>;
+  limit?: Scalars['Int']['input'];
 };
 
 
@@ -5803,6 +5490,22 @@ export type StreamCreateInput = {
   withContributors?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+export type StreamInviteCreateInput = {
+  email?: InputMaybe<Scalars['String']['input']>;
+  message?: InputMaybe<Scalars['String']['input']>;
+  /** Defaults to the contributor role, if not specified */
+  role?: InputMaybe<Scalars['String']['input']>;
+  /** Can only be specified if guest mode is on or if the user is an admin */
+  serverRole?: InputMaybe<Scalars['String']['input']>;
+  streamId: Scalars['String']['input'];
+  userId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type StreamRevokePermissionInput = {
+  streamId: Scalars['String']['input'];
+  userId: Scalars['String']['input'];
+};
+
 export enum StreamRole {
   StreamContributor = 'STREAM_CONTRIBUTOR',
   StreamOwner = 'STREAM_OWNER',
@@ -5821,6 +5524,12 @@ export type StreamUpdateInput = {
   /** Whether the stream can be viewed by non-contributors */
   isPublic?: InputMaybe<Scalars['Boolean']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type StreamUpdatePermissionInput = {
+  role: Scalars['String']['input'];
+  streamId: Scalars['String']['input'];
+  userId: Scalars['String']['input'];
 };
 
 export type Subscription = {
@@ -5935,7 +5644,7 @@ export type Subscription = {
    * Track support session changes for a specific workspace.
    * Fires when sessions are requested, approved, revoked, or expire.
    */
-  workspaceSupportSessionUpdated?: Maybe<WorkspaceSupportSessionUpdatedMessage>;
+  workspaceSupportSessionUpdated: WorkspaceSupportSessionUpdatedMessage;
   /**
    * Track updates to a specific workspace.
    * Either slug or id must be set.
@@ -6289,7 +5998,7 @@ export type User = {
   /**
    * Get commits authored by the user. If requested for another user, then only commits
    * from public streams will be returned.
-   * @deprecated Part of the old API surface and will be removed in the future. Use User.versions instead.
+   * @deprecated Part of the old API surface and will be removed in the future. Use User.versions instead. Field will be deleted on January 1st, 2026.
    */
   commits?: Maybe<CommitCollection>;
   company?: Maybe<Scalars['String']['output']>;
@@ -6308,6 +6017,12 @@ export type User = {
    * (3) The user does not have a valid SSO session for the given SSO provider
    */
   expiredSsoSessions: Array<LimitedWorkspace>;
+  /**
+   * All the streams that a active user has favorited.
+   * Note: You can't use this to retrieve another user's favorite streams.
+   * @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on January 1st, 2026.
+   */
+  favoriteStreams: StreamCollection;
   /** Whether the user has a pending/active email verification token */
   hasPendingVerification?: Maybe<Scalars['Boolean']['output']>;
   id: Scalars['ID']['output'];
@@ -6330,7 +6045,7 @@ export type User = {
   /**
    * Returns all streams that the user is a collaborator on. If requested for a user, who isn't the
    * authenticated user, then this will only return discoverable streams.
-   * @deprecated Part of the old API surface and will be removed in the future. Use User.projects instead.
+   * @deprecated Part of the old API surface and will be removed in the future. Use User.projects instead. Field will be deleted on January 1st, 2026.
    */
   streams: UserStreamCollection;
   /**
@@ -6388,6 +6103,16 @@ export type UserAutomateFunctionsArgs = {
  * when a user is reading/writing info about himself
  */
 export type UserCommitsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+};
+
+
+/**
+ * Full user type, should only be used in the context of admin operations or
+ * when a user is reading/writing info about himself
+ */
+export type UserFavoriteStreamsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: Scalars['Int']['input'];
 };
@@ -6774,15 +6499,6 @@ export type VersionPermissionChecks = {
   canUpdate: PermissionCheckResult;
 };
 
-export type VersionQueryResult = {
-  __typename?: 'VersionQueryResult';
-  createdAt: Scalars['DateTime']['output'];
-  durationMs: Scalars['Int']['output'];
-  result: Scalars['JSONObject']['output'];
-  summary: Scalars['JSONObject']['output'];
-  versionId: Scalars['String']['output'];
-};
-
 /**
  * If only one is set, the other will be resolved automatically
  * If none are set, the view will be added to the end of the list
@@ -6980,7 +6696,7 @@ export type Workspace = {
   issueLabels: IssueLabelCollection;
   /**
    * Logo image as base64-encoded string
-   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2026.
+   * @deprecated Use the `workspace.logoUrl` field instead. Will be removed after June 2025.
    */
   logo?: Maybe<Scalars['String']['output']>;
   /** URL for pulling the workspace logo image */
@@ -6990,13 +6706,6 @@ export type Workspace = {
   plan?: Maybe<WorkspacePlan>;
   /** Shows the plan prices localized for the given workspace */
   planPrices?: Maybe<WorkspacePaidPlanPrices>;
-  /**
-   * Bulk project activity data for the workspace timeline widget.
-   * Returns versions created within a date window, grouped by project.
-   * First call discovers top N projects; pass the returned cursor to load older data.
-   * Internal API — may change without notice.
-   */
-  projectActivityTimeline?: Maybe<WorkspaceProjectActivityTimelineResult>;
   projects: ProjectCollection;
   /** A Workspace is marked as readOnly if its trial period is finished or a paid plan is subscribed but payment has failed */
   readOnly: Scalars['Boolean']['output'];
@@ -7055,11 +6764,6 @@ export type WorkspaceInvitedTeamArgs = {
 
 export type WorkspaceIssueLabelsArgs = {
   input: WorkspaceIssueLabelsInput;
-};
-
-
-export type WorkspaceProjectActivityTimelineArgs = {
-  input: WorkspaceProjectActivityTimelineInput;
 };
 
 
@@ -7201,7 +6905,6 @@ export enum WorkspaceFeatureName {
   DomainDiscoverability = 'domainDiscoverability',
   EmbedPrivateProjects = 'embedPrivateProjects',
   ExclusiveMembership = 'exclusiveMembership',
-  Frontend3 = 'frontend3',
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
@@ -7211,7 +6914,6 @@ export enum WorkspaceFeatureName {
   Presentation = 'presentation',
   /** @deprecated Use presentation instead. Value will be dropped after July 19, 2026. */
   Presentations = 'presentations',
-  ProjectArchival = 'projectArchival',
   ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
   ViewerTable = 'viewerTable',
@@ -7700,43 +7402,6 @@ export enum WorkspacePlans {
   Unlimited = 'unlimited'
 }
 
-export type WorkspaceProjectActivityTimelineInput = {
-  /**
-   * Opaque cursor from a previous response. When provided, withProjectRoleOnly and projectLimit are ignored.
-   * Encodes the locked-in project set and next date boundary.
-   */
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Size of each date window in days. Default: 7.
-   * Used for both discovery (now - N days) and pagination (cursor.before - N days).
-   * Can change between pages — the cursor locks the project set and boundary,
-   * while this controls how far back from that boundary to look.
-   */
-  dateRangeDays?: InputMaybe<Scalars['Int']['input']>;
-  /** Max projects to discover by updatedAt DESC. Default: 20. Ignored when cursor is provided. */
-  projectLimit?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Only return projects where the active user has an explicit project role.
-   * Used on first call (discovery). Ignored when cursor is provided (as projects are pre-determined then).
-   */
-  withProjectRoleOnly?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-export type WorkspaceProjectActivityTimelineProjectGroup = {
-  __typename?: 'WorkspaceProjectActivityTimelineProjectGroup';
-  project: Project;
-  /** Versions within the date range, ordered by createdAt DESC. */
-  versions: Array<Version>;
-};
-
-export type WorkspaceProjectActivityTimelineResult = {
-  __typename?: 'WorkspaceProjectActivityTimelineResult';
-  /** Opaque cursor for loading older data. Null when no more data is available. */
-  cursor?: Maybe<Scalars['String']['output']>;
-  /** Projects with their versions, ordered by most recent version DESC. */
-  projectGroups: Array<WorkspaceProjectActivityTimelineProjectGroup>;
-};
-
 export type WorkspaceProjectCreateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -7799,8 +7464,6 @@ export type WorkspaceProjectMutationsUpdateRoleArgs = {
 };
 
 export type WorkspaceProjectsFilter = {
-  /** Include archived projects in results. Only respected for workspace admins; silently ignored for non-admins. */
-  includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
   /** Filter out projects by name */
   search?: InputMaybe<Scalars['String']['input']>;
   /** Only return workspace projects that the active user has an explicit project role in */
