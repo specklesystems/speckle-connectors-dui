@@ -74,7 +74,7 @@
     </div>
   </div>
   <div
-    v-if="projectIsAccesible && !projectIsAccesible"
+    v-else-if="projectIsAccesible === false"
     class="px-2 py-4 bg-foundation dark:bg-neutral-700/10 rounded-md shadow"
   >
     <CommonAlert
@@ -159,7 +159,7 @@ const removeProjectModels = async () => {
 const projectDetails = computed(() => projectDetailsResult.value?.project)
 
 watch(projectDetails, (newValue) => {
-  projectIsAccesible.value = newValue !== undefined
+  projectIsAccesible.value = !!newValue
 })
 
 const canLoad = computed(() => !!projectDetails.value?.permissions.canLoad.authorized)

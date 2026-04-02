@@ -216,6 +216,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const modelsToRemove = documentModelStore.value.models.filter(
       (item) => item.projectId === projectId
     )
+    documentModelStore.value.models = documentModelStore.value.models.filter(
+      (item) => item.projectId !== projectId
+    )
     if (modelsToRemove.length !== 0) {
       await app.$baseBinding.removeModels(modelsToRemove)
     }
