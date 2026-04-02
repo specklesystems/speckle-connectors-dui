@@ -103,11 +103,13 @@ import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import { versionDetailsQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useInterval, watchOnce } from '@vueuse/core'
 import { useAccountStore } from '~~/store/accounts'
 import type { CardSetting } from '~/lib/models/card/setting'
 
 const { trackEvent } = useMixpanel()
+const { trackSettingsChange } = useSettingsTracking()
 const app = useNuxtApp()
 const accountStore = useAccountStore()
 
@@ -157,17 +159,48 @@ const isExpired = computed(() => {
   return props.modelCard.latestVersionId !== props.modelCard.selectedVersionId
 })
 
-const handleUpdateSettings = async (settings: CardSetting[]) => {
-  await store.patchModel(props.modelCard.modelCardId, {
-    settings
-  })
+// Buffer settings changes while the version dialog is open, then apply on close.
+// This matches the send card's batch-then-save pattern (SendSettingsDialog).
+let pendingSettings: CardSetting[] | undefined
+let settingsWereChanged = false
+let versionWasSelected = false
+
+const handleUpdateSettings = (settings: CardSetting[]) => {
+  pendingSettings = settings
+  settingsWereChanged = true
 }
+
+watch(openVersionsDialog, async (isOpen) => {
+  if (isOpen) {
+    // Reset flags when dialog opens
+    pendingSettings = undefined
+    settingsWereChanged = false
+    versionWasSelected = false
+    return
+  }
+
+  // Dialog closed — apply buffered settings if they changed
+  // and the user didn't select a version (which triggers a fresh receive anyway)
+  if (settingsWereChanged && pendingSettings && !versionWasSelected) {
+    trackSettingsChange(
+      'Load Card Settings Updated',
+      pendingSettings,
+      store.receiveSettings || []
+    )
+
+    await store.patchModel(props.modelCard.modelCardId, {
+      settings: pendingSettings,
+      expired: true
+    })
+  }
+})
 
 // Cancels any in progress receive AND load selected version
 const handleVersionSelection = async (
   selectedVersion: VersionListItemFragment,
   latestVersion: VersionListItemFragment
 ) => {
+  versionWasSelected = true
   openVersionsDialog.value = false
   void trackEvent('DUI3 Action', {
     name: 'Load Card Version Change',

@@ -8,7 +8,7 @@
     >
       <ModelSettings
         :expandable="false"
-        :default-settings="(store.sendSettings as unknown as CardSetting[])"
+        :default-settings="(props.defaultSettings ?? store.sendSettings) as unknown as CardSetting[]"
         :settings="props.settings"
         @update:settings="updateSettings"
       ></ModelSettings>
@@ -32,6 +32,7 @@ const { trackSettingsChange } = useSettingsTracking()
 const props = defineProps<{
   settings?: CardSetting[]
   modelCardId: string
+  defaultSettings?: CardSetting[]
 }>()
 
 const store = useHostAppStore()
@@ -51,7 +52,7 @@ const saveSettings = async () => {
   trackSettingsChange(
     'Model Card Settings Updated',
     newSettings,
-    store.sendSettings || []
+    props.defaultSettings || store.sendSettings || []
   )
 
   await store.patchModel(props.modelCardId, {

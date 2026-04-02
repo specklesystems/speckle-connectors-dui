@@ -514,7 +514,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   app.$receiveBinding?.on('setModelsExpired', (modelCardIds) => {
     documentModelStore.value.models
       .filter((m) => modelCardIds.includes(m.modelCardId))
-      .forEach((model: IReceiverModelCard) => {
+      .forEach((model) => {
         model.error = undefined
         model.expired = true
       })

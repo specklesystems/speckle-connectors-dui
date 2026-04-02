@@ -5342,6 +5342,8 @@ export type ServerAutomateInfo = {
 export type ServerConfiguration = {
   __typename?: 'ServerConfiguration';
   blobSizeLimitBytes: Scalars['Int']['output'];
+  /** Origin URL of the dashboards service */
+  dashboardsOrigin?: Maybe<Scalars['String']['output']>;
   /** Email verification code timeout in minutes */
   emailVerificationTimeoutMinutes: Scalars['Int']['output'];
   /** Active server-level feature flags */
@@ -5464,6 +5466,7 @@ export enum ServerRole {
   ServerAdmin = 'SERVER_ADMIN',
   ServerArchivedUser = 'SERVER_ARCHIVED_USER',
   ServerGuest = 'SERVER_GUEST',
+  ServerSupport = 'SERVER_SUPPORT',
   ServerUser = 'SERVER_USER'
 }
 
@@ -6987,6 +6990,13 @@ export type Workspace = {
   plan?: Maybe<WorkspacePlan>;
   /** Shows the plan prices localized for the given workspace */
   planPrices?: Maybe<WorkspacePaidPlanPrices>;
+  /**
+   * Bulk project activity data for the workspace timeline widget.
+   * Returns versions created within a date window, grouped by project.
+   * First call discovers top N projects; pass the returned cursor to load older data.
+   * Internal API — may change without notice.
+   */
+  projectActivityTimeline?: Maybe<WorkspaceProjectActivityTimelineResult>;
   projects: ProjectCollection;
   /** A Workspace is marked as readOnly if its trial period is finished or a paid plan is subscribed but payment has failed */
   readOnly: Scalars['Boolean']['output'];
@@ -7045,6 +7055,11 @@ export type WorkspaceInvitedTeamArgs = {
 
 export type WorkspaceIssueLabelsArgs = {
   input: WorkspaceIssueLabelsInput;
+};
+
+
+export type WorkspaceProjectActivityTimelineArgs = {
+  input: WorkspaceProjectActivityTimelineInput;
 };
 
 
@@ -7186,6 +7201,7 @@ export enum WorkspaceFeatureName {
   DomainDiscoverability = 'domainDiscoverability',
   EmbedPrivateProjects = 'embedPrivateProjects',
   ExclusiveMembership = 'exclusiveMembership',
+  Frontend3 = 'frontend3',
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
@@ -7683,6 +7699,43 @@ export enum WorkspacePlans {
   Legacy = 'legacy',
   Unlimited = 'unlimited'
 }
+
+export type WorkspaceProjectActivityTimelineInput = {
+  /**
+   * Opaque cursor from a previous response. When provided, withProjectRoleOnly and projectLimit are ignored.
+   * Encodes the locked-in project set and next date boundary.
+   */
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Size of each date window in days. Default: 7.
+   * Used for both discovery (now - N days) and pagination (cursor.before - N days).
+   * Can change between pages — the cursor locks the project set and boundary,
+   * while this controls how far back from that boundary to look.
+   */
+  dateRangeDays?: InputMaybe<Scalars['Int']['input']>;
+  /** Max projects to discover by updatedAt DESC. Default: 20. Ignored when cursor is provided. */
+  projectLimit?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Only return projects where the active user has an explicit project role.
+   * Used on first call (discovery). Ignored when cursor is provided (as projects are pre-determined then).
+   */
+  withProjectRoleOnly?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+export type WorkspaceProjectActivityTimelineProjectGroup = {
+  __typename?: 'WorkspaceProjectActivityTimelineProjectGroup';
+  project: Project;
+  /** Versions within the date range, ordered by createdAt DESC. */
+  versions: Array<Version>;
+};
+
+export type WorkspaceProjectActivityTimelineResult = {
+  __typename?: 'WorkspaceProjectActivityTimelineResult';
+  /** Opaque cursor for loading older data. Null when no more data is available. */
+  cursor?: Maybe<Scalars['String']['output']>;
+  /** Projects with their versions, ordered by most recent version DESC. */
+  projectGroups: Array<WorkspaceProjectActivityTimelineProjectGroup>;
+};
 
 export type WorkspaceProjectCreateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
