@@ -18,7 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  docker-build:
+  docker-build-and-publish:
+    if: ${{ inputs.PUBLISH == true }}
     runs-on: blacksmith-4vcpu-ubuntu-2404
     name: Build Docker image
     permissions:
@@ -40,7 +41,34 @@ jobs:
       - name: Build and push
         uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1
         with:
-          push: ${{ inputs.PUBLISH }}
+          push: true
+          tags: ghcr.io/specklesystems/speckle-dui:${{ inputs.IMAGE_VERSION_TAG }}
+          file: ./deployment/docker/Dockerfile
+          network: host # to be able to connect to Tailscale and pull private base image during build
+          allow: network.host # to be able to connect to Tailscale and pull private base image during build
+  docker-build:
+    if: ${{ inputs.PUBLISH == false }}
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    name: Build Docker image
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Login to Helm Chart & Container Image Registry
+        uses: docker/login-action@5e57cd118135c172c3672efd75eb46360885c0ef
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+      - name: Setup Docker Builder
+        uses: useblacksmith/setup-docker-builder@affa10db466676f3dfb3e54caeb228ee0691510f
+      - name: Build and push
+        uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1
+        with:
+          push: false
           tags: ghcr.io/specklesystems/speckle-dui:${{ inputs.IMAGE_VERSION_TAG }}
           file: ./deployment/docker/Dockerfile
           network: host # to be able to connect to Tailscale and pull private base image during build

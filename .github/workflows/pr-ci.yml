@@ -36,4 +36,3 @@ jobs:
     secrets: {}
     permissions:
       contents: read
-      packages: read # the workflow fragment requires packages capability, but PUBLISH is false so it won't actually publish anything
