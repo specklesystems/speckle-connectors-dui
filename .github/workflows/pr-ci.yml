@@ -36,3 +36,4 @@ jobs:
     secrets: {}
     permissions:
       contents: read
+      packages: write # to be able to push images to ghcr.io, even if PUBLISH is false, as permissions is static at workflow level
