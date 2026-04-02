@@ -13,7 +13,7 @@
       :title="`${modelName} actions`"
       fullscreen="none"
     >
-      <SendSettingsDialog
+      <ModelSettingsDialog
         v-if="hasSettings"
         :model-card-id="props.modelCard.modelCardId"
         :settings="props.modelCard.settings"
@@ -25,7 +25,7 @@
             <div><Cog6ToothIcon class="w-5 h-5" /></div>
           </button>
         </template>
-      </SendSettingsDialog>
+      </ModelSettingsDialog>
       <ReportBase v-if="modelCard.report" :report="modelCard.report">
         <template #activator="{ toggle }">
           <button class="action action-normal" @click="toggle()">
