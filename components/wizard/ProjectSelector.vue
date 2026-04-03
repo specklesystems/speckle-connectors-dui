@@ -78,7 +78,7 @@
             color="foundation"
           />
           <div class="flex justify-between items-center space-x-2">
-            <template v-if="showNewProject">
+            <template v-if="isSender">
               <div v-if="canCreateProject" v-tippy="'Create new project'">
                 <FormButton
                   color="outline"
@@ -170,7 +170,7 @@
           v-if="
             projects?.length === 0 &&
             !!searchText &&
-            showNewProject &&
+            isSender &&
             canCreateProjectPermissionCheck?.authorized
           "
           full-width
@@ -239,7 +239,6 @@ const emit = defineEmits<{
 const props = withDefaults(
   defineProps<{
     isSender: boolean
-    showNewProject?: boolean
     /**
      * For the send wizard - not allowing selecting projects we can't write to.
      */
@@ -247,7 +246,6 @@ const props = withDefaults(
     urlParseError?: string
   }>(),
   {
-    showNewProject: true,
     disableNoWriteAccessProjects: false
   }
 )
