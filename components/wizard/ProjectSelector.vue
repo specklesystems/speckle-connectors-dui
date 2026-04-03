@@ -78,68 +78,70 @@
             color="foundation"
           />
           <div class="flex justify-between items-center space-x-2">
-            <div v-if="canCreateProject" v-tippy="'Create new project'">
-              <FormButton
-                color="outline"
-                :disabled="!canCreateProject"
-                :class="`p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border`"
-                @click="showProjectCreateDialog = true"
+            <template v-if="showNewProject">
+              <div v-if="canCreateProject" v-tippy="'Create new project'">
+                <FormButton
+                  color="outline"
+                  :disabled="!canCreateProject"
+                  :class="`p-1.5 bg-foundation hover:bg-primary-muted rounded text-foreground border`"
+                  @click="showProjectCreateDialog = true"
+                >
+                  <PlusIcon class="w-4 -mx-2" />
+                </FormButton>
+              </div>
+              <div
+                v-else
+                v-tippy="
+                  canCreateProject
+                    ? 'Create new project'
+                    : canCreateProjectPermissionCheck?.message
+                "
               >
-                <PlusIcon class="w-4 -mx-2" />
-              </FormButton>
-            </div>
-            <div
-              v-else
-              v-tippy="
-                canCreateProject
-                  ? 'Create new project'
-                  : canCreateProjectPermissionCheck?.message
-              "
-            >
-              <FormButton
-                color="primary"
-                :class="`p-1.5 bg-foundation rounded text-foreground border`"
-                @click="upgradePlanButtonAction"
+                <FormButton
+                  color="primary"
+                  :class="`p-1.5 bg-foundation rounded text-foreground border`"
+                  @click="upgradePlanButtonAction"
+                >
+                  <ArrowUpCircleIcon class="w-4 -mx-2" />
+                </FormButton>
+              </div>
+              <CommonDialog
+                v-model:open="showProjectCreateDialog"
+                :title="`Create new project`"
+                fullscreen="none"
               >
-                <ArrowUpCircleIcon class="w-4 -mx-2" />
-              </FormButton>
-            </div>
-            <CommonDialog
-              v-model:open="showProjectCreateDialog"
-              :title="`Create new project`"
-              fullscreen="none"
-            >
-              <form @submit="createProject(newProjectName as string)">
-                <div class="text-body-2xs mb-2 ml-1">Project name</div>
-                <FormTextInput
-                  v-model="newProjectName"
-                  class="text-xs"
-                  placeholder="A Beautiful Home, A Small Bridge..."
-                  autocomplete="off"
-                  name="name"
-                  label="Project name"
-                  color="foundation"
-                  :show-clear="!!newProjectName"
-                  :rules="[
-                    ValidationHelpers.isRequired,
-                    ValidationHelpers.isStringOfLength({ minLength: 3 })
-                  ]"
-                  full-width
-                />
-                <div class="mt-4 flex justify-end items-center space-x-2 w-full">
-                  <FormButton size="sm" text @click="showProjectCreateDialog = false">
-                    Cancel
-                  </FormButton>
-                  <FormButton
-                    size="sm"
-                    submit
-                    :disabled="isCreatingProject || !newProjectName"
-                  >
-                    Create
-                  </FormButton>
-                </div>
-              </form>
-            </CommonDialog>
+                <form @submit="createProject(newProjectName as string)">
+                  <div class="text-body-2xs mb-2 ml-1">Project name</div>
+                  <FormTextInput
+                    v-model="newProjectName"
+                    class="text-xs"
+                    placeholder="A Beautiful Home, A Small Bridge..."
+                    autocomplete="off"
+                    name="name"
+                    label="Project name"
+                    color="foundation"
+                    :show-clear="!!newProjectName"
+                    :rules="[
+                      ValidationHelpers.isRequired,
+                      ValidationHelpers.isStringOfLength({ minLength: 3 })
+                    ]"
+                    full-width
+                  />
+                  <div class="mt-4 flex justify-end items-center space-x-2 w-full">
+                    <FormButton size="sm" text @click="showProjectCreateDialog = false">
+                      Cancel
+                    </FormButton>
+                    <FormButton
+                      size="sm"
+                      submit
+                      :disabled="isCreatingProject || !newProjectName"
+                    >
+                      Create
+                    </FormButton>
+                  </div>
+                </form>
+              </CommonDialog>
+            </template>
             <div v-if="!workspacesEnabled || !workspaces" class="mt-1">
               <AccountsMenu
                 :current-selected-account-id="accountId"
@@ -168,6 +170,7 @@
           v-if="
             projects?.length === 0 &&
             !!searchText &&
+            showNewProject &&
             canCreateProjectPermissionCheck?.authorized
           "
           full-width

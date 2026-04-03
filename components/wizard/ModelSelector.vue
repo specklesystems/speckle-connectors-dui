@@ -14,6 +14,7 @@
           color="foundation"
         />
         <div
+          v-if="showNewModel"
           v-tippy="
             canCreateModelResult?.project.permissions.canCreateModel.authorized
               ? 'Create new model'
@@ -83,6 +84,7 @@
           v-if="
             models?.length === 0 &&
             !!searchText &&
+            showNewModel &&
             canCreateModelResult?.project.permissions.canCreateModel?.authorized
           "
           full-width
