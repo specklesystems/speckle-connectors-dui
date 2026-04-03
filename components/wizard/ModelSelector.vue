@@ -106,6 +106,7 @@
       </div>
     </div>
     <CommonDialog
+      v-if="isSender"
       v-model:open="showNewModelDialog"
       title="Create new model"
       fullscreen="none"
