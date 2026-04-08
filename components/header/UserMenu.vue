@@ -164,7 +164,7 @@ const isDisableCacheSupported = computed(() => {
     return true
 
   // for sharp connectors, check if version is >= 3.18.0
-  const targetVersion = '3.18.0'
+  const targetVersion = '3.19.0'
   return (
     version.localeCompare(targetVersion, undefined, {
       numeric: true,
