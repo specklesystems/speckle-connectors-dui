@@ -160,10 +160,11 @@ const isDisableCacheSupported = computed(() => {
   if (nonSharpApps.includes(appName.toLowerCase())) return false
 
   // always show in dev environments
-  if (version.includes('dev') || version.includes('local')) return true
+  if (version.includes('dev') || version.includes('local') || version.includes('1.0.0'))
+    return true
 
   // for sharp connectors, check if version is >= 3.18.0
-  const targetVersion = '3.18.0'
+  const targetVersion = '3.19.0'
   return (
     version.localeCompare(targetVersion, undefined, {
       numeric: true,
