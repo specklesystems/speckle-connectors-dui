@@ -74,7 +74,7 @@
     </div>
   </div>
   <div
-    v-else-if="projectIsAccesible === false"
+    v-if="projectIsAccesible === false"
     class="px-2 py-4 bg-foundation dark:bg-neutral-700/10 rounded-md shadow"
   >
     <CommonAlert
@@ -145,10 +145,25 @@ const projectNavigatorTippy = computed(() =>
 
 const clientId = projectAccount.value.accountInfo.id
 
-const { result: projectDetailsResult, refetch: refetchProjectDetails } = useQuery(
+const accountExists = accountStore.isAccountExistsById(props.project.accountId)
+
+if (!accountExists) {
+  projectIsAccesible.value = false
+}
+
+const {
+  result: projectDetailsResult,
+  refetch: refetchProjectDetails,
+  onError: onProjectDetailsError
+} = useQuery(
   projectDetailsQuery,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, debounce: 500, fetchPolicy: 'network-only' })
+  () => ({
+    clientId,
+    debounce: 500,
+    fetchPolicy: 'network-only',
+    enabled: accountExists
+  })
 )
 
 const removeProjectModels = async () => {
@@ -159,7 +174,11 @@ const removeProjectModels = async () => {
 const projectDetails = computed(() => projectDetailsResult.value?.project)
 
 watch(projectDetails, (newValue) => {
-  projectIsAccesible.value = !!newValue
+  projectIsAccesible.value = newValue !== undefined
+})
+
+onProjectDetailsError(() => {
+  projectIsAccesible.value = false
 })
 
 const canLoad = computed(() => !!projectDetails.value?.permissions.canLoad.authorized)
@@ -194,13 +213,13 @@ const isWorkspaceReadOnly = computed(() => {
 const { onResult: userProjectsUpdated } = useSubscription(
   userProjectsUpdatedSubscription,
   () => ({}),
-  () => ({ clientId })
+  () => ({ clientId, enabled: accountExists })
 )
 
 const { onResult: projectUpdated } = useSubscription(
   projectUpdatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: accountExists })
 )
 
 // to catch changes on visibility of project
@@ -236,7 +255,7 @@ const workspaceUrl = computed(() => {
 const { onResult } = useSubscription(
   versionCreatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: accountExists })
 )
 
 onResult((res) => {
