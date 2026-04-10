@@ -7,7 +7,7 @@ COPY .yarnrc.yml .
 RUN yarn install --immutable || (cat /tmp/xfs-*/build.log && exit 1)
 COPY . .
 # NODE_ENV must be set after the dependencies are installed because @nuxt/kit is a devDependency and is required to build the application
-ARG NODE_ENV='production'
+ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 ENV NUXT_PUBLIC_MIXPANEL_TOKEN_ID=acd87c5a50b56df91a795e999812a3a4
 ENV NUXT_PUBLIC_MIXPANEL_API_HOST=https://analytics.speckle.systems
