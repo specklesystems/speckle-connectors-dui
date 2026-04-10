@@ -33,6 +33,7 @@ const props = defineProps<{
   settings?: CardSetting[]
   modelCardId: string
   defaultSettings?: CardSetting[]
+  isSender?: boolean
 }>()
 
 const store = useHostAppStore()
@@ -50,7 +51,7 @@ const updateSettings = (settings: CardSetting[]) => {
 
 const saveSettings = async () => {
   trackSettingsChange(
-    'Model Card Settings Updated',
+    props.isSender ? 'Publish Card Settings Updated' : 'Load Card Settings Updated',
     newSettings,
     props.defaultSettings || store.sendSettings || []
   )

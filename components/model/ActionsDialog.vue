@@ -18,6 +18,7 @@
         :model-card-id="props.modelCard.modelCardId"
         :settings="props.modelCard.settings"
         :default-settings="settingsDefaults as unknown as CardSetting[]"
+        :is-sender="isSender"
       >
         <template #activator="{ toggle }">
           <button class="action action-normal" @click="toggle()">
