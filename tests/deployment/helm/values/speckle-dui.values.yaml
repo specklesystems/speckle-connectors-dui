@@ -1,0 +1,16 @@
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: speckle.internal
+      paths:
+        # Please retain this path, the dashboards expect to serve all paths under the root.
+        - path: /
+          pathType: ImplementationSpecific
+security:
+  trustedProxies: []
+  frameAncestors:
+    - "speckle.internal"
+  frameSource:
+    - "speckle.internal"
