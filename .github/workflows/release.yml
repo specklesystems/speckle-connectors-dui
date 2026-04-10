@@ -1,9 +1,12 @@
-name: Pull Request
+name: Release
 
 on:
-  pull_request:
+  push:
     branches:
       - main
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -18,22 +21,21 @@ jobs:
     secrets: {}
     permissions:
       contents: read
-
   lint:
     uses: ./.github/workflows/lint.yml
     with: {}
     secrets: {}
     permissions:
       contents: read
-
   build:
+    uses: ./.github/workflows/build.yml
     needs:
       - get-version
-    uses: ./.github/workflows/build.yml
+      - lint
     with:
-      PUBLISH: false
+      PUBLISH: true
       IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
     secrets: {}
     permissions:
       contents: read
-      packages: write # to be able to push images to ghcr.io, even if PUBLISH is false, as permissions is static at workflow level
+      packages: write # to be able to push images to ghcr.io
