@@ -53,7 +53,9 @@ const saveSettings = async () => {
   trackSettingsChange(
     props.isSender ? 'Publish Card Settings Updated' : 'Load Card Settings Updated',
     newSettings,
-    props.defaultSettings || (props.isSender ? store.sendSettings : store.receiveSettings) || []
+    props.defaultSettings ||
+      (props.isSender ? store.sendSettings : store.receiveSettings) ||
+      []
   )
 
   await store.patchModel(props.modelCardId, {
