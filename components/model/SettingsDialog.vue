@@ -8,7 +8,7 @@
     >
       <ModelSettings
         :expandable="false"
-        :default-settings="(props.defaultSettings ?? store.sendSettings) as unknown as CardSetting[]"
+        :default-settings="(props.defaultSettings ?? (props.isSender ? store.sendSettings : store.receiveSettings)) as unknown as CardSetting[]"
         :settings="props.settings"
         @update:settings="updateSettings"
       ></ModelSettings>
@@ -53,7 +53,7 @@ const saveSettings = async () => {
   trackSettingsChange(
     props.isSender ? 'Publish Card Settings Updated' : 'Load Card Settings Updated',
     newSettings,
-    props.defaultSettings || store.sendSettings || []
+    props.defaultSettings || (props.isSender ? store.sendSettings : store.receiveSettings) || []
   )
 
   await store.patchModel(props.modelCardId, {
