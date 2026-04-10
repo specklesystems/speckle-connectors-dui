@@ -1,0 +1,63 @@
+name: Get Version
+
+on:
+  workflow_call:
+    outputs:
+      IMAGE_VERSION_TAG:
+        description: 'The image version tag under which the Helm chart and docker image should be published'
+        value: ${{ jobs.get-version.outputs.VERSION }}
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
+concurrency:
+  group: ${{ github.workflow }}-get-version-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  get-version:
+    outputs:
+      VERSION: ${{ steps.get-version.outputs.VERSION }}
+    name: Get Version
+    permissions:
+      contents: read
+
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          sparse-checkout: ''
+          fetch-depth: 1
+          fetch-tags: 1
+          persist-credentials: true # zizmor: ignore[artipacked] need to fetch tags in the next step and this ensures that git is configured & authenticated
+      - run: git fetch origin 'refs/tags/*:refs/tags/*'
+      - name: Get version tag
+        id: get-version
+        run: |
+          VERSION=""
+          if [[ "${GITHUB_REF_NAME}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              VERSION="${GITHUB_REF_NAME}"
+              echo "VERSION=${VERSION}" >> ${GITHUB_OUTPUT}
+              echo "${VERSION} is a valid semver, we shall use it. Exiting"
+              exit 0
+          fi
+
+          LAST_RELEASE="$(git describe --always --tags $(git rev-list --tags --max-count=1) | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)" # get the last release tag. FIXME: Fails if a commit is tagged with more than one tag: https://stackoverflow.com/questions/8089002/git-describe-with-two-tags-on-the-same-commit/56039163#56039163
+          LAST_RELEASE="${LAST_RELEASE:-0.0.0}"
+          NEXT_RELEASE="$(echo "${LAST_RELEASE}" | awk -F. -v OFS=. '{$NF += 1 ; print}')"
+
+          if [[ "${GITHUB_REF_NAME}" == "main" ]]; then
+              VERSION="${NEXT_RELEASE}-alpha.${GITHUB_RUN_NUMBER}"
+              echo "VERSION=${VERSION}" >> ${GITHUB_OUTPUT}
+              echo "${VERSION} will be an alpha version. Exiting"
+              exit 0
+          fi
+
+          BRANCH_NAME_TRUNCATED="$(echo "${GITHUB_REF_NAME}" | cut -c -28 | sed 's/[^a-zA-Z0-9.-]/-/g')" # docker has a 128 character tag limit, so ensuring the branch name will be short enough
+
+          PADDED_RUN_NUMBER="$(printf "%06d" "${GITHUB_RUN_NUMBER}")"
+          COMMIT_SHA1_TRUNCATED="$(echo "${GITHUB_SHA}" | cut -c -7)"
+
+          VERSION="${NEXT_RELEASE}-branch.${BRANCH_NAME_TRUNCATED}.${PADDED_RUN_NUMBER}-${COMMIT_SHA1_TRUNCATED}"
+          echo "VERSION=${VERSION}" >> ${GITHUB_OUTPUT}
+          echo "${VERSION} will be a branch build version. Exiting"
+          exit 0
