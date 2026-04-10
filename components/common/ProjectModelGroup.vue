@@ -145,7 +145,9 @@ const projectNavigatorTippy = computed(() =>
 
 const clientId = projectAccount.value.accountInfo.id
 
-const accountExists = accountStore.isAccountExistsById(props.project.accountId)
+const accountExists =
+  accountStore.isAccountExistsById(props.project.accountId) ||
+  accountStore.isAccountExistsByServer(props.project.serverUrl)
 
 if (!accountExists) {
   projectIsAccesible.value = false
