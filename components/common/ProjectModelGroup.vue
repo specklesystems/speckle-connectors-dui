@@ -149,7 +149,31 @@ const accountExists =
   accountStore.isAccountExistsById(props.project.accountId) ||
   accountStore.isAccountExistsByServer(props.project.serverUrl)
 
+console.log('[ProjectModelGroup] Mounting for project:', {
+  projectId: props.project.projectId,
+  storedAccountId: props.project.accountId,
+  storedServerUrl: props.project.serverUrl,
+  accountExists,
+  existsById: accountStore.isAccountExistsById(props.project.accountId),
+  existsByServer: accountStore.isAccountExistsByServer(props.project.serverUrl),
+  availableAccounts: accountStore.accounts.map((a) => ({
+    id: a.accountInfo.id,
+    serverUrl: a.accountInfo.serverInfo.url
+  }))
+})
+
+console.log('[ProjectModelGroup] Mounting for project:', {
+  projectId: props.project.projectId,
+  serverUrl: props.project.serverUrl,
+  storedAccountId: props.project.accountId,
+  accountExists
+})
+
 if (!accountExists) {
+  console.log(
+    '[ProjectModelGroup] Account not found on this machine — marking project as inaccessible:',
+    props.project.projectId
+  )
   projectIsAccesible.value = false
 }
 
@@ -179,7 +203,13 @@ watch(projectDetails, (newValue) => {
   projectIsAccesible.value = newValue !== undefined
 })
 
-onProjectDetailsError(() => {
+onProjectDetailsError((err) => {
+  console.log('[ProjectModelGroup] projectDetailsQuery errored:', {
+    projectId: props.project.projectId,
+    error: err.message,
+    graphQLErrors: err.graphQLErrors,
+    networkError: err.networkError
+  })
   projectIsAccesible.value = false
 })
 
