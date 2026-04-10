@@ -198,8 +198,7 @@ const handleModelSelect = (model: ModelListModelItemFragment) => {
   if (existingModelProblem.value) {
     existingModelName.value = model.name
   }
-  hasNonZeroVersionsProblem.value =
-    model.versions.totalCount !== 0 && props.isSender
+  hasNonZeroVersionsProblem.value = model.versions.totalCount !== 0 && props.isSender
 
   if (!existingModelProblem.value && !hasNonZeroVersionsProblem.value) {
     return emit('next', model)
