@@ -145,11 +145,18 @@ const projectNavigatorTippy = computed(() =>
 
 const clientId = projectAccount.value.accountInfo.id
 
-const accountExists = accountStore.isAccountExistsById(props.project.accountId)
+// match by account ID first, then fall back to server URL
+const accountExists = computed(
+  () =>
+    accountStore.isAccountExistsById(props.project.accountId) ||
+    accountStore.isAccountExistsByServer(props.project.serverUrl)
+)
 
-if (!accountExists) {
-  projectIsAccesible.value = false
-}
+watchEffect(() => {
+  if (!accountExists.value) {
+    projectIsAccesible.value = false
+  }
+})
 
 const {
   result: projectDetailsResult,
@@ -162,7 +169,7 @@ const {
     clientId,
     debounce: 500,
     fetchPolicy: 'network-only',
-    enabled: accountExists
+    enabled: accountExists.value
   })
 )
 
@@ -173,9 +180,20 @@ const removeProjectModels = async () => {
 
 const projectDetails = computed(() => projectDetailsResult.value?.project)
 
-watch(projectDetails, (newValue) => {
-  projectIsAccesible.value = newValue !== undefined
-})
+watch(
+  projectDetails,
+  (newValue) => {
+    if (newValue === null) {
+      // query resolved but project is missing or user has no permissions
+      projectIsAccesible.value = false
+    } else if (newValue !== undefined) {
+      // query returned real data — project is accessible
+      projectIsAccesible.value = true
+    }
+    // undefined means the query is still loading; don't update state yet
+  },
+  { immediate: true }
+)
 
 onProjectDetailsError(() => {
   projectIsAccesible.value = false
@@ -213,13 +231,13 @@ const isWorkspaceReadOnly = computed(() => {
 const { onResult: userProjectsUpdated } = useSubscription(
   userProjectsUpdatedSubscription,
   () => ({}),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId, enabled: accountExists.value })
 )
 
 const { onResult: projectUpdated } = useSubscription(
   projectUpdatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId, enabled: accountExists.value })
 )
 
 // to catch changes on visibility of project
@@ -255,7 +273,7 @@ const workspaceUrl = computed(() => {
 const { onResult } = useSubscription(
   versionCreatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId, enabled: accountExists.value })
 )
 
 onResult((res) => {
