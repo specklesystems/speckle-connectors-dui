@@ -148,11 +148,22 @@ const projectNavigatorTippy = computed(() =>
 const clientId = projectAccount.value.accountInfo.id
 
 // match by account ID first, then fall back to server URL
-const accountExists = computed(
-  () =>
-    accountStore.isAccountExistsById(props.project.accountId) ||
-    accountStore.isAccountExistsByServer(props.project.serverUrl)
-)
+const accountExists = computed(() => {
+  const byId = accountStore.isAccountExistsById(props.project.accountId)
+  const byServer = accountStore.isAccountExistsByServer(props.project.serverUrl)
+  console.log('[ProjectModelGroup] accountExists check', {
+    projectId: props.project.projectId,
+    accountId: props.project.accountId,
+    serverUrl: props.project.serverUrl,
+    existsById: byId,
+    existsByServer: byServer,
+    accounts: accountStore.accounts.map((a) => ({
+      id: a.accountInfo.id,
+      serverUrl: a.accountInfo.serverInfo.url
+    }))
+  })
+  return byId || byServer
+})
 
 watchEffect(() => {
   if (!accountExists.value) {
@@ -185,6 +196,16 @@ const projectDetails = computed(() => projectDetailsResult.value?.project)
 watch(
   projectDetails,
   (newValue) => {
+    console.log('[ProjectModelGroup] projectDetails changed', {
+      projectId: props.project.projectId,
+      newValue,
+      settingAccessibleTo:
+        newValue === null
+          ? false
+          : newValue !== undefined
+          ? true
+          : 'no change (loading)'
+    })
     if (newValue === null) {
       // query resolved but project is missing or user has no permissions
       projectIsAccesible.value = false
