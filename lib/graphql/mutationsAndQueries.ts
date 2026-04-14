@@ -95,6 +95,9 @@ export const workspaceListFragment = graphql(`
         code
         message
       }
+      canUseIntercomSupport {
+        authorized
+      }
     }
   }
 `)
