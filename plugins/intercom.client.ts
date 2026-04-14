@@ -8,7 +8,9 @@ import Intercom, {
 } from '@intercom/messenger-js-sdk'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
+import { useConfigStore } from '~/store/config'
 import { storeToRefs } from 'pinia'
+import { workspaceIntercomPermissionQuery } from '~/lib/workspaces/graphql/queries'
 
 const disabledRoutes: string[] = []
 
@@ -17,16 +19,22 @@ export const useIntercom = () => {
 
   const accountStore = useAccountStore()
   const hostAppStore = useHostAppStore()
+  const configStore = useConfigStore()
+
   const { activeAccount } = storeToRefs(accountStore)
   const { isDistributedBySpeckle } = storeToRefs(hostAppStore)
+  const { userSelectedWorkspaceId } = storeToRefs(configStore)
 
   const isInitialized = ref(false)
+  const hasIntercomAccess = ref(false)
 
   const isRouteBlacklisted = computed(() => {
     return disabledRoutes.some((disabledRoute) => route.path.includes(disabledRoute))
   })
 
-  const shouldEnableIntercom = computed(() => !isRouteBlacklisted.value)
+  const shouldEnableIntercom = computed(() => {
+    return !isRouteBlacklisted.value && hasIntercomAccess.value
+  })
 
   const bootIntercom = () => {
     if (!shouldEnableIntercom.value || isInitialized.value || !activeAccount.value)
@@ -44,13 +52,10 @@ export const useIntercom = () => {
   }
 
   const showIntercom = () => {
-    if (!isInitialized.value) return
-    show()
+    if (isInitialized.value) show()
   }
-
   const hideIntercom = () => {
-    if (!isInitialized.value) return
-    hide()
+    if (isInitialized.value) hide()
   }
 
   const shutdownIntercom = () => {
@@ -60,8 +65,7 @@ export const useIntercom = () => {
   }
 
   const trackIntercom = (event: string, metadata?: Record<string, unknown>) => {
-    if (!isInitialized.value) return
-    trackEvent(event, metadata)
+    if (isInitialized.value) trackEvent(event, metadata)
   }
 
   const updateConnectorDetails = (
@@ -69,51 +73,78 @@ export const useIntercom = () => {
     hostAppVersion: string,
     connectorVersion: string
   ) => {
-    update({
-      page_title: `CNX: (hostApp: ${hostAppName}:v${hostAppVersion}),(version: ${connectorVersion})`
-    })
+    if (isInitialized.value) {
+      update({
+        page_title: `CNX: (hostApp: ${hostAppName}:v${hostAppVersion}),(version: ${connectorVersion})`
+      })
+    }
   }
 
-  // On route change, check if we need to shutodwn or boot Intercom
-  watch(route, () => {
-    if (isRouteBlacklisted.value) {
-      shutdownIntercom()
-    } else {
-      bootIntercom()
+  const checkPermissions = async () => {
+    if (!activeAccount.value || !userSelectedWorkspaceId.value) {
+      hasIntercomAccess.value = false
+      return
     }
+
+    try {
+      const { data } = await activeAccount.value.client.query({
+        query: workspaceIntercomPermissionQuery,
+        variables: { workspaceId: userSelectedWorkspaceId.value },
+        fetchPolicy: 'cache-first'
+      })
+
+      hasIntercomAccess.value =
+        data?.workspace?.permissions?.canAccessHelpCenter?.authorized === true
+    } catch (e) {
+      console.warn('Failed to fetch Intercom permissions for workspace', e)
+      hasIntercomAccess.value = false
+    }
+  }
+
+  watch(route, () => {
+    if (isRouteBlacklisted.value || !shouldEnableIntercom.value) shutdownIntercom()
+    else bootIntercom()
   })
 
   // we listen to changes in the host app distribution status that fetched on updateConnector composable after the intercom is initialized, we cant simply rely on activeAccount watcher
   watch(isDistributedBySpeckle, (newValue) => {
-    if (!newValue) {
-      shutdownIntercom()
-    }
+    if (!newValue) shutdownIntercom()
   })
 
-  watch(activeAccount, (newValue) => {
-    if (newValue) {
-      if (!isInitialized.value) {
-        bootIntercom() // if active account changed and itercom is not initialised, do it
-        return // we do not need to update, as that's done by default in the init
-      }
-      update({
-        user_id: activeAccount.value.accountInfo.userInfo.id || '',
-        name: activeAccount.value.accountInfo.userInfo.name,
-        email: activeAccount.value.accountInfo.userInfo.email
-      })
-    } else {
-      if (isInitialized.value) {
+  watch(
+    [activeAccount, userSelectedWorkspaceId],
+    async ([newAccount], [oldAccount]) => {
+      await checkPermissions()
+
+      if (newAccount) {
+        if (!shouldEnableIntercom.value) {
+          shutdownIntercom()
+          return
+        }
+
+        if (!isInitialized.value) {
+          bootIntercom()
+        } else if (newAccount.accountInfo.id !== oldAccount?.accountInfo?.id) {
+          update({
+            user_id: newAccount.accountInfo.userInfo.id || '',
+            name: newAccount.accountInfo.userInfo.name,
+            email: newAccount.accountInfo.userInfo.email
+          })
+        }
+      } else {
         shutdownIntercom()
       }
-    }
-  })
+    },
+    { immediate: true }
+  )
 
   return {
     show: showIntercom,
     hide: hideIntercom,
     shutdown: shutdownIntercom,
     track: trackIntercom,
-    updateConnectorDetails
+    updateConnectorDetails,
+    shouldEnableIntercom
   }
 }
 
