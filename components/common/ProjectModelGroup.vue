@@ -92,13 +92,15 @@
       <template #header>Remove Project</template>
       <div class="text-xs mb-4">Do you want to remove the project from this file?</div>
       <div class="flex justify-between center py-2 space-x-3">
-        <FormButton size="sm" full-width @click="removeProjectModels">Yes</FormButton>
+        <FormButton size="sm" full-width @click="removeProjectModels">
+          Remove
+        </FormButton>
         <FormButton
           size="sm"
           full-width
           @click="askDismissProjectQuestionDialog = false"
         >
-          Hide error
+          Cancel
         </FormButton>
       </div>
     </CommonDialog>
