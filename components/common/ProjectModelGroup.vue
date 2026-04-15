@@ -88,20 +88,14 @@
           No account found for
           <code>{{ project.serverUrl }}</code>
         </span>
-        <span v-else-if="inaccessibleReason === 'no-permission'">
-          <!-- project query resolved but returned null — project is private, deleted,
-               or this account has no visibility of it at the project level.
-               note: model card level permission errors (e.g. role changes) surface separately on the card itself -->
+        <span v-else>
+          <!-- project query threw — server will throw for any reason the account can't see
+               the project (deleted, private, auth failure, stale token). model card level
+               permission errors e.g. role changes surface separately on the card itself -->
           Project
           <code>{{ project.projectId }}</code>
-          not found or inaccessible on
+          is not accessible on
           <code>{{ project.serverUrl }}</code>
-        </span>
-        <span v-else>
-          <!-- query failed before resolving — network error or token expired/invalidated -->
-          Could not connect to
-          <code>{{ project.serverUrl }}</code>
-          — try re-adding your account
         </span>
       </template>
     </CommonAlert>
@@ -150,9 +144,7 @@ const showModels = ref(true)
 const askDismissProjectQuestionDialog = ref(false)
 const writeAccessRequested = ref(false)
 const projectIsAccesible = ref<boolean | undefined>(undefined)
-const inaccessibleReason = ref<'no-account' | 'no-permission' | 'error' | undefined>(
-  undefined
-)
+const inaccessibleReason = ref<'no-account' | 'error' | undefined>(undefined)
 
 const projectAccount = computed(() =>
   accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
@@ -233,14 +225,6 @@ watch(
       })
       inaccessibleReason.value = 'no-account'
       projectIsAccesible.value = false
-    } else if (details === null) {
-      // query resolved but project is missing or user has no permissions
-      console.warn('[ProjectModelGroup] inaccessible: project query returned null', {
-        projectId: props.project.projectId,
-        accountId: props.project.accountId
-      })
-      inaccessibleReason.value = 'no-permission'
-      projectIsAccesible.value = false
     } else if (details !== undefined) {
       // query returned real data — project is accessible
       inaccessibleReason.value = undefined
@@ -252,6 +236,8 @@ watch(
 )
 
 onProjectDetailsError((error) => {
+  // the project query throws for any reason the account can't see the project —
+  // deleted, private, auth failure, network error. all cases show the same message.
   console.warn('[ProjectModelGroup] inaccessible: project query errored', {
     projectId: props.project.projectId,
     accountId: props.project.accountId,
