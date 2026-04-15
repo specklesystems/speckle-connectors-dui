@@ -136,7 +136,7 @@ const openFeedbackDialog = () => {
     $intercom.show()
   } else {
     // community forum fallback
-    window.open('https://speckle.community', '_blank')
+    app.$openUrl('https://speckle.community')
   }
 }
 </script>
