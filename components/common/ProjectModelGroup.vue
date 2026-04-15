@@ -88,10 +88,10 @@
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else-if="inaccessibleReason === 'no-permission'">
-          <!-- project was deleted, or user lost access (removed from team / visibility changed) -->
+          <!-- user lost access (removed from team / visibility changed) -->
           Project
           <code>{{ project.projectId }}</code>
-          not found or inaccessible on
+          not found you no longer have access on
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else>
