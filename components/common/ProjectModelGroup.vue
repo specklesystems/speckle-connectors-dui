@@ -88,11 +88,15 @@
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else-if="inaccessibleReason === 'no-permission'">
-          You don't have access to this project on
+          <!-- project was deleted, or user lost access (removed from team / visibility changed) -->
+          Project
+          <code>{{ project.projectId }}</code>
+          not found or inaccessible on
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else>
-          Could not reach
+          <!-- network error, expired token, or server rejected the request -->
+          Failed to load project from
           <code>{{ project.serverUrl }}</code>
         </span>
       </template>
