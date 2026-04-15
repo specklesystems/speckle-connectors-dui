@@ -84,20 +84,24 @@
     >
       <template #title>
         <span v-if="inaccessibleReason === 'no-account'">
+          <!-- no local account matches this project's server — query was never attempted -->
           No account found for
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else-if="inaccessibleReason === 'no-permission'">
-          <!-- user lost access (removed from team / visibility changed) -->
+          <!-- project query resolved but returned null — project is private, deleted,
+               or this account has no visibility of it at the project level.
+               note: model card level permission errors (e.g. role changes) surface separately on the card itself -->
           Project
           <code>{{ project.projectId }}</code>
-          not found you no longer have access on
+          not found or inaccessible on
           <code>{{ project.serverUrl }}</code>
         </span>
         <span v-else>
-          <!-- network error, expired token, or server rejected the request -->
-          Failed to load project from
+          <!-- query failed before resolving — network error or token expired/invalidated -->
+          Could not connect to
           <code>{{ project.serverUrl }}</code>
+          — try re-adding your account
         </span>
       </template>
     </CommonAlert>
