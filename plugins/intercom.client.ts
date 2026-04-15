@@ -82,6 +82,8 @@ export const useIntercom = () => {
 
   const checkPermissions = async () => {
     if (!activeAccount.value || !userSelectedWorkspaceId.value) {
+      // userSelectedWorkspaceId is only null before any publish/load action,
+      // at which point the NavBar (and feedback button) isn't visible anyway
       hasIntercomAccess.value = false
       return
     }
