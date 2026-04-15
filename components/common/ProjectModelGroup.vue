@@ -83,9 +83,18 @@
       @dismiss="askDismissProjectQuestionDialog = true"
     >
       <template #title>
-        Whoops - project
-        <code>{{ project.projectId }}</code>
-        is inaccessible.
+        <span v-if="inaccessibleReason === 'no-account'">
+          No account found for
+          <code>{{ project.serverUrl }}</code>
+        </span>
+        <span v-else-if="inaccessibleReason === 'no-permission'">
+          You don't have access to this project on
+          <code>{{ project.serverUrl }}</code>
+        </span>
+        <span v-else>
+          Could not reach
+          <code>{{ project.serverUrl }}</code>
+        </span>
       </template>
     </CommonAlert>
     <CommonDialog v-model:open="askDismissProjectQuestionDialog" fullscreen="none">
@@ -133,6 +142,9 @@ const showModels = ref(true)
 const askDismissProjectQuestionDialog = ref(false)
 const writeAccessRequested = ref(false)
 const projectIsAccesible = ref<boolean | undefined>(undefined)
+const inaccessibleReason = ref<'no-account' | 'no-permission' | 'error' | undefined>(
+  undefined
+)
 
 const projectAccount = computed(() =>
   accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
@@ -211,6 +223,7 @@ watch(
           serverUrl: a.accountInfo.serverInfo.url
         }))
       })
+      inaccessibleReason.value = 'no-account'
       projectIsAccesible.value = false
     } else if (details === null) {
       // query resolved but project is missing or user has no permissions
@@ -218,9 +231,11 @@ watch(
         projectId: props.project.projectId,
         accountId: props.project.accountId
       })
+      inaccessibleReason.value = 'no-permission'
       projectIsAccesible.value = false
     } else if (details !== undefined) {
       // query returned real data — project is accessible
+      inaccessibleReason.value = undefined
       projectIsAccesible.value = true
     }
     // undefined means the query is still loading; don't update state yet
@@ -234,6 +249,7 @@ onProjectDetailsError((error) => {
     accountId: props.project.accountId,
     error: error.message
   })
+  inaccessibleReason.value = 'error'
   projectIsAccesible.value = false
 })
 
