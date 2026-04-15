@@ -134,6 +134,7 @@ import {
   useSubscription
 } from '@vue/apollo-composable'
 import { useAccountStore } from '~/store/accounts'
+import type { ApolloClient } from '@apollo/client/core'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
 import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
@@ -253,7 +254,9 @@ const setVersionMessage = async (message: string) => {
   })
 
   isUpdatingVersionMessage.value = true
-  const { mutate } = provideApolloClient(projectAccount.value.client)(() =>
+  const client = projectAccount.value?.client as ApolloClient<unknown> | undefined
+  if (!client) return
+  const { mutate } = provideApolloClient(client)(() =>
     useMutation(setVersionMessageMutation)
   )
 
