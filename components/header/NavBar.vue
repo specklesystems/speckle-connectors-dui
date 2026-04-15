@@ -132,8 +132,11 @@ const openFeedbackDialog = () => {
     !hostAppStore.isDistributedBySpeckle
   ) {
     showFeedbackDialog.value = true
-  } else {
+  } else if ($intercom.shouldEnableIntercom.value) {
     $intercom.show()
+  } else {
+    // community forum fallback
+    app.$openUrl('https://speckle.community')
   }
 }
 </script>
