@@ -30,7 +30,16 @@
         <span class="truncate">{{ createdAgo }}</span>
       </FormButton>
     </div>
-
+    <!-- <div
+        class="min-w-0 truncate text-foreground-2 -mt-1"
+        :title="
+          versionDetailsResult?.project.model.version.message || 'No message provided'
+        "
+      >
+        <span class="truncate max-[275px]:truncate-no select-none text-xs">
+          {{ createdAgo }}
+        </span>
+      </div> -->
     <CommonDialog
       v-model:open="openVersionsDialog"
       fullscreen="none"
