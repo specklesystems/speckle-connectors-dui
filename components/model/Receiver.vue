@@ -30,16 +30,6 @@
         <span class="truncate">{{ createdAgo }}</span>
       </FormButton>
     </div>
-    <!-- <div
-        class="min-w-0 truncate text-foreground-2 -mt-1"
-        :title="
-          versionDetailsResult?.project.model.version.message || 'No message provided'
-        "
-      >
-        <span class="truncate max-[275px]:truncate-no select-none text-xs">
-          {{ createdAgo }}
-        </span>
-      </div> -->
 
     <CommonDialog
       v-model:open="openVersionsDialog"
@@ -271,6 +261,8 @@ const errorNotification = computed(() => {
   return notification
 })
 
+const clientId = computed(() => projectAccount.value?.accountInfo.id)
+
 const { result: versionDetailsResult, refetch } = useQuery(
   versionDetailsQuery,
   () => ({
@@ -279,7 +271,8 @@ const { result: versionDetailsResult, refetch } = useQuery(
     versionId: props.modelCard.selectedVersionId
   }),
   () => ({
-    clientId: projectAccount.value.accountInfo.id
+    clientId: clientId.value,
+    enabled: !!clientId.value
   })
 )
 
