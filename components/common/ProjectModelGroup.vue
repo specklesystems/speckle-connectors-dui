@@ -157,17 +157,6 @@ const accountExists = computed(() => {
       normalizeUrl(acc.accountInfo.serverInfo.url) ===
       normalizeUrl(props.project.serverUrl)
   )
-  console.log('[ProjectModelGroup] accountExists check', {
-    projectId: props.project.projectId,
-    accountId: props.project.accountId,
-    serverUrl: props.project.serverUrl,
-    existsById: byId,
-    existsByServer: byServer,
-    accounts: accountStore.accounts.map((a) => ({
-      id: a.accountInfo.id,
-      serverUrl: a.accountInfo.serverInfo.url
-    }))
-  })
   return byId || byServer
 })
 
@@ -196,16 +185,24 @@ const projectDetails = computed(() => projectDetailsResult.value?.project)
 watch(
   [projectDetails, accountExists],
   ([details, exists]) => {
-    console.log('[ProjectModelGroup] projectDetails/accountExists changed', {
-      projectId: props.project.projectId,
-      details,
-      exists
-    })
     if (!exists) {
       // account not present on this machine at all
+      console.warn('[ProjectModelGroup] inaccessible: no matching account', {
+        projectId: props.project.projectId,
+        storedAccountId: props.project.accountId,
+        storedServerUrl: props.project.serverUrl,
+        localAccounts: accountStore.accounts.map((a) => ({
+          id: a.accountInfo.id,
+          serverUrl: a.accountInfo.serverInfo.url
+        }))
+      })
       projectIsAccesible.value = false
     } else if (details === null) {
       // query resolved but project is missing or user has no permissions
+      console.warn('[ProjectModelGroup] inaccessible: project query returned null', {
+        projectId: props.project.projectId,
+        accountId: props.project.accountId
+      })
       projectIsAccesible.value = false
     } else if (details !== undefined) {
       // query returned real data — project is accessible
@@ -216,7 +213,12 @@ watch(
   { immediate: true }
 )
 
-onProjectDetailsError(() => {
+onProjectDetailsError((error) => {
+  console.warn('[ProjectModelGroup] inaccessible: project query errored', {
+    projectId: props.project.projectId,
+    accountId: props.project.accountId,
+    error: error.message
+  })
   projectIsAccesible.value = false
 })
 
