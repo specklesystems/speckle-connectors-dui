@@ -401,6 +401,7 @@ const latestVersionNotification = computed(() => {
   notification.cta = {
     name: 'View',
     tooltipText: 'Check your model in the browser!',
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-unsafe-member-access
     action: () => cardBase.value?.viewModel()
   }
   return notification
