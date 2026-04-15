@@ -145,7 +145,6 @@ const projectNavigatorTippy = computed(() =>
     : 'Open project in browser'
 )
 
-const clientId = projectAccount.value.accountInfo.id
 const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase()
 
 // match by account ID first, then fall back to server URL
@@ -160,6 +159,9 @@ const accountExists = computed(() => {
   return byId || byServer
 })
 
+// reactive so it re-derives if accounts change after mount (e.g. user adds the missing account)
+const clientId = computed(() => projectAccount.value.accountInfo.id)
+
 const {
   result: projectDetailsResult,
   refetch: refetchProjectDetails,
@@ -168,12 +170,25 @@ const {
   projectDetailsQuery,
   () => ({ projectId: props.project.projectId }),
   () => ({
-    clientId,
+    clientId: clientId.value,
     debounce: 500,
     fetchPolicy: 'network-only',
     enabled: accountExists.value
   })
 )
+
+// re-run the query when the resolved account changes (account added) or
+// when accountExists flips back to true (account re-added after removal)
+watch([clientId, accountExists], ([, exists], [, prevExists]) => {
+  if (exists) {
+    if (!prevExists) {
+      // accountExists just recovered — reset accessible state so we don't
+      // show stale inaccessible UI while the query is in flight
+      projectIsAccesible.value = undefined
+    }
+    void refetchProjectDetails()
+  }
+})
 
 const removeProjectModels = async () => {
   await hostAppStore.removeProjectModels(props.project.projectId)
@@ -218,7 +233,7 @@ onProjectDetailsError((error) => {
     (e) => e.extensions?.code === 'SSO_SESSION_MISSING_OR_EXPIRED_ERROR'
   )
   if (isSsoError) {
-    // don't mark the project as permanently inaccessible
+    // sso expired - don't mark the project as permanently inaccessible
     return
   }
   console.warn('[ProjectModelGroup] inaccessible: project query errored', {
@@ -227,6 +242,18 @@ onProjectDetailsError((error) => {
     error: error.message
   })
   projectIsAccesible.value = false
+})
+
+// when the account's validity changes (e.g. SSO session deleted externally), refetch
+// so the query hits the server and picks up the new auth state
+const accountIsValid = computed(
+  () => accountStore.accounts.find((a) => a.accountInfo.id === clientId.value)?.isValid
+)
+
+watch(accountIsValid, (isValid, wasValid) => {
+  if (wasValid !== undefined && isValid !== wasValid) {
+    void refetchProjectDetails()
+  }
 })
 
 const canLoad = computed(() => !!projectDetails.value?.permissions.canLoad.authorized)
@@ -261,13 +288,13 @@ const isWorkspaceReadOnly = computed(() => {
 const { onResult: userProjectsUpdated } = useSubscription(
   userProjectsUpdatedSubscription,
   () => ({}),
-  () => ({ clientId, enabled: accountExists.value })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 const { onResult: projectUpdated } = useSubscription(
   projectUpdatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists.value })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 // to catch changes on visibility of project
@@ -286,14 +313,14 @@ userProjectsUpdated((res) => {
 })
 
 const projectUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId)
+  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/projects/${
     props.project.projectId
   }`
 })
 
 const workspaceUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId)
+  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/workspaces/${
     projectDetails.value?.workspace?.slug
   }`
@@ -303,7 +330,7 @@ const workspaceUrl = computed(() => {
 const { onResult } = useSubscription(
   versionCreatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists.value })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 onResult((res) => {
