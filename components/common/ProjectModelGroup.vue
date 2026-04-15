@@ -146,11 +146,17 @@ const projectNavigatorTippy = computed(() =>
 )
 
 const clientId = projectAccount.value.accountInfo.id
+const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase()
 
 // match by account ID first, then fall back to server URL
+// normalized to avoid trailing-slash / casing mismatches (can that even be a thing??)
 const accountExists = computed(() => {
   const byId = accountStore.isAccountExistsById(props.project.accountId)
-  const byServer = accountStore.isAccountExistsByServer(props.project.serverUrl)
+  const byServer = accountStore.accounts.some(
+    (acc) =>
+      normalizeUrl(acc.accountInfo.serverInfo.url) ===
+      normalizeUrl(props.project.serverUrl)
+  )
   console.log('[ProjectModelGroup] accountExists check', {
     projectId: props.project.projectId,
     accountId: props.project.accountId,
@@ -163,12 +169,6 @@ const accountExists = computed(() => {
     }))
   })
   return byId || byServer
-})
-
-watchEffect(() => {
-  if (!accountExists.value) {
-    projectIsAccesible.value = false
-  }
 })
 
 const {
@@ -194,22 +194,20 @@ const removeProjectModels = async () => {
 const projectDetails = computed(() => projectDetailsResult.value?.project)
 
 watch(
-  projectDetails,
-  (newValue) => {
-    console.log('[ProjectModelGroup] projectDetails changed', {
+  [projectDetails, accountExists],
+  ([details, exists]) => {
+    console.log('[ProjectModelGroup] projectDetails/accountExists changed', {
       projectId: props.project.projectId,
-      newValue,
-      settingAccessibleTo:
-        newValue === null
-          ? false
-          : newValue !== undefined
-          ? true
-          : 'no change (loading)'
+      details,
+      exists
     })
-    if (newValue === null) {
+    if (!exists) {
+      // account not present on this machine at all
+      projectIsAccesible.value = false
+    } else if (details === null) {
       // query resolved but project is missing or user has no permissions
       projectIsAccesible.value = false
-    } else if (newValue !== undefined) {
+    } else if (details !== undefined) {
       // query returned real data — project is accessible
       projectIsAccesible.value = true
     }
