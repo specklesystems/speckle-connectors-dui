@@ -40,7 +40,6 @@
           {{ createdAgo }}
         </span>
       </div> -->
-
     <CommonDialog
       v-model:open="openVersionsDialog"
       fullscreen="none"
@@ -271,6 +270,8 @@ const errorNotification = computed(() => {
   return notification
 })
 
+const clientId = computed(() => projectAccount.value?.accountInfo.id)
+
 const { result: versionDetailsResult, refetch } = useQuery(
   versionDetailsQuery,
   () => ({
@@ -279,7 +280,8 @@ const { result: versionDetailsResult, refetch } = useQuery(
     versionId: props.modelCard.selectedVersionId
   }),
   () => ({
-    clientId: projectAccount.value.accountInfo.id
+    clientId: clientId.value,
+    enabled: !!clientId.value
   })
 )
 
