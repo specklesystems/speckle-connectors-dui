@@ -229,13 +229,6 @@ watch(
 )
 
 onProjectDetailsError((error) => {
-  const isSsoError = error.graphQLErrors?.some(
-    (e) => e.extensions?.code === 'SSO_SESSION_MISSING_OR_EXPIRED_ERROR'
-  )
-  if (isSsoError) {
-    // sso expired - don't mark the project as permanently inaccessible
-    return
-  }
   console.warn('[ProjectModelGroup] inaccessible: project query errored', {
     projectId: props.project.projectId,
     accountId: props.project.accountId,
