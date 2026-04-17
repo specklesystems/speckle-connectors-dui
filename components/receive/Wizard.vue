@@ -205,7 +205,7 @@ const selectVersionAndAddModel = async (
   )
 
   const modelCard = new ReceiverModelCard()
-  modelCard.settings = receieveSettings.value
+  modelCard.settings = receieveSettings.value ?? (hostAppStore.receiveSettings ? [...hostAppStore.receiveSettings] : undefined)
   modelCard.accountId = selectedAccountId.value
   modelCard.serverUrl = activeAccount.value.accountInfo.serverInfo.url
 
