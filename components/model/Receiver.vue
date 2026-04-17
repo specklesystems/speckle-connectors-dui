@@ -63,6 +63,10 @@
         :notification="receiveSettingsMissingNotification"
       />
       <CommonModelNotification
+        v-if="settingsExpiredNotification"
+        :notification="settingsExpiredNotification"
+      />
+      <CommonModelNotification
         v-if="expiredNotification"
         :notification="expiredNotification"
         @dismiss="
@@ -154,9 +158,7 @@ const isExpired = computed(() => {
 })
 
 const handleUpdateSettings = async (settings: CardSetting[]) => {
-  await store.patchModel(props.modelCard.modelCardId, {
-    settings
-  })
+  await store.patchModel(props.modelCard.modelCardId, { settings, expired: true })
 }
 
 // Cancels any in progress receive AND load selected version
@@ -208,6 +210,27 @@ const receiveLatestVersion = async () => {
     await store.receiveModelCancel(props.modelCard.modelCardId)
   await store.receiveModel(props.modelCard.modelCardId, 'UpdateNotification')
 }
+
+const settingsExpiredNotification = computed(() => {
+  if (!props.modelCard.expired) return
+
+  const notification = {} as ModelCardNotification
+  notification.dismissible = false
+  notification.level = 'info'
+  notification.text = 'Settings changed since last load'
+
+  const ctaType = props.modelCard.progress ? 'Restart' : 'Update'
+  notification.cta = {
+    name: ctaType,
+    action: async () => {
+      if (props.modelCard.progress) {
+        await store.receiveModelCancel(props.modelCard.modelCardId)
+      }
+      await receiveCurrentVersion()
+    }
+  }
+  return notification
+})
 
 const expiredNotification = computed(() => {
   if (!props.modelCard.latestVersionId || props.modelCard.hasDismissedUpdateWarning)

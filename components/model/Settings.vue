@@ -71,13 +71,17 @@ const data = computed(() => {
 
 const onParamsFormChange = (e: JsonFormsChangeEvent) => {
   if (settings.value === undefined) return
+  let hasChanged = false
   settings.value?.forEach((setting) => {
     if (setting) {
       if (setting.value !== (e.data as DataType)[setting.id]) {
         setting.value = (e.data as DataType)[setting.id] as CardSettingValue
+        hasChanged = true
       }
     }
   })
-  emit('update:settings', settings.value)
+  if (hasChanged) {
+    emit('update:settings', settings.value)
+  }
 }
 </script>

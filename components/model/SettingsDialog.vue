@@ -5,10 +5,16 @@
       v-model:open="showSettingsDialog"
       :title="`Settings`"
       fullscreen="none"
+      @fully-closed="
+        () => {
+          settingsWereChanged = false
+          newSettings = undefined
+        }
+      "
     >
       <ModelSettings
         :expandable="false"
-        :default-settings="(store.sendSettings as unknown as CardSetting[])"
+        :default-settings="(props.defaultSettings ?? (props.isSender ? store.sendSettings : store.receiveSettings)) as unknown as CardSetting[]"
         :settings="props.settings"
         @update:settings="updateSettings"
       ></ModelSettings>
@@ -32,6 +38,8 @@ const { trackSettingsChange } = useSettingsTracking()
 const props = defineProps<{
   settings?: CardSetting[]
   modelCardId: string
+  defaultSettings?: CardSetting[]
+  isSender?: boolean
 }>()
 
 const store = useHostAppStore()
@@ -42,16 +50,26 @@ const toggleDialog = () => {
   showSettingsDialog.value = !showSettingsDialog.value
 }
 
-let newSettings: CardSetting[]
+let newSettings: CardSetting[] | undefined = undefined
+let settingsWereChanged = false
+
 const updateSettings = (settings: CardSetting[]) => {
   newSettings = settings
+  settingsWereChanged = true
 }
 
 const saveSettings = async () => {
+  if (!settingsWereChanged) {
+    showSettingsDialog.value = false
+    return
+  }
+
   trackSettingsChange(
-    'Model Card Settings Updated',
-    newSettings,
-    store.sendSettings || []
+    props.isSender ? 'Publish Card Settings Updated' : 'Load Card Settings Updated',
+    newSettings!,
+    props.defaultSettings ||
+      (props.isSender ? store.sendSettings : store.receiveSettings) ||
+      []
   )
 
   await store.patchModel(props.modelCardId, {
