@@ -5,6 +5,12 @@
       v-model:open="showSettingsDialog"
       :title="`Settings`"
       fullscreen="none"
+      @fully-closed="
+        () => {
+          settingsWereChanged = false
+          newSettings = undefined
+        }
+      "
     >
       <ModelSettings
         :expandable="false"
@@ -44,15 +50,23 @@ const toggleDialog = () => {
   showSettingsDialog.value = !showSettingsDialog.value
 }
 
-let newSettings: CardSetting[]
+let newSettings: CardSetting[] | undefined = undefined
+let settingsWereChanged = false
+
 const updateSettings = (settings: CardSetting[]) => {
   newSettings = settings
+  settingsWereChanged = true
 }
 
 const saveSettings = async () => {
+  if (!settingsWereChanged) {
+    showSettingsDialog.value = false
+    return
+  }
+
   trackSettingsChange(
     props.isSender ? 'Publish Card Settings Updated' : 'Load Card Settings Updated',
-    newSettings,
+    newSettings!,
     props.defaultSettings ||
       (props.isSender ? store.sendSettings : store.receiveSettings) ||
       []
