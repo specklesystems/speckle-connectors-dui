@@ -103,13 +103,11 @@ import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import { versionDetailsQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
-import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useInterval, watchOnce } from '@vueuse/core'
 import { useAccountStore } from '~~/store/accounts'
 import type { CardSetting } from '~/lib/models/card/setting'
 
 const { trackEvent } = useMixpanel()
-const { trackSettingsChange } = useSettingsTracking()
 const app = useNuxtApp()
 const accountStore = useAccountStore()
 
@@ -160,11 +158,6 @@ const isExpired = computed(() => {
 })
 
 const handleUpdateSettings = async (settings: CardSetting[]) => {
-  trackSettingsChange(
-    'Load Card Settings Updated',
-    settings,
-    store.receiveSettings || []
-  )
   await store.patchModel(props.modelCard.modelCardId, { settings, expired: true })
 }
 

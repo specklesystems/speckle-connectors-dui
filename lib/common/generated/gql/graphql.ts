@@ -435,6 +435,7 @@ export type AdminUpdateEmailVerificationInput = {
 export type AdminUpdateWorkspacePlanInput = {
   plan: WorkspacePlans;
   status: WorkspacePlanStatuses;
+  validUntil?: InputMaybe<Scalars['DateTime']['input']>;
   workspaceId: Scalars['ID']['input'];
 };
 
@@ -1383,7 +1384,6 @@ export enum Currency {
 
 export type CurrencyBasedPrices = {
   __typename?: 'CurrencyBasedPrices';
-  gbp: WorkspacePaidPlanPrices;
   usd: WorkspacePaidPlanPrices;
 };
 
@@ -3379,8 +3379,7 @@ export type OnboardingCompletionInput = {
 };
 
 export enum PaidWorkspacePlans {
-  Business = 'business',
-  Legacy = 'legacy'
+  Business = 'business'
 }
 
 export type PasswordStrengthCheckFeedback = {
@@ -3470,6 +3469,10 @@ export type PermissionCheckResult = {
   errorMessage?: Maybe<Scalars['String']['output']>;
   message: Scalars['String']['output'];
   payload?: Maybe<Scalars['JSONObject']['output']>;
+};
+
+export type PlanAddOn = {
+  quantity: Scalars['Int']['input'];
 };
 
 export type PowerToolsMutations = {
@@ -5057,9 +5060,14 @@ export type Role = {
 
 export type RootPermissionChecks = {
   __typename?: 'RootPermissionChecks';
+  canAccessServerAdminPanel: PermissionCheckResult;
   canCreatePersonalProject: PermissionCheckResult;
   canCreateWorkspace: PermissionCheckResult;
+  canManageServerRegions: PermissionCheckResult;
+  canManageServerUsers: PermissionCheckResult;
   canManageServerWorkspaces: PermissionCheckResult;
+  canSupportServerUsers: PermissionCheckResult;
+  canUpdateServerSettings: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
 };
 
@@ -5438,9 +5446,11 @@ export type ServerMultiRegionConfiguration = {
   __typename?: 'ServerMultiRegionConfiguration';
   /**
    * Keys of available regions defined in the multi region config file. Used keys will
-   * be filtered out from the result.
+   * be filtered out from the result. Nullable because the field is only resolvable for
+   * users that can manage server regions; for other users it returns null instead of
+   * nulling the entire parent query.
    */
-  availableKeys: Array<Scalars['String']['output']>;
+  availableKeys?: Maybe<Array<Scalars['String']['output']>>;
   /** Regions available for project data residency */
   regions: Array<ServerRegionItem>;
 };
@@ -6253,6 +6263,7 @@ export type UpdateVersionInput = {
 
 export type UpgradePlanInput = {
   billingInterval: BillingInterval;
+  planAddOn?: InputMaybe<PlanAddOn>;
   workspacePlan: PaidWorkspacePlans;
   workspaceSlug: Scalars['String']['input'];
 };
@@ -6262,6 +6273,7 @@ export type UpgradeToPaidlPlanInput = {
   billingDetails: BillingDetails;
   billingInterval: BillingInterval;
   paymentMethod: PaymentMethod;
+  planAddOn?: InputMaybe<PlanAddOn>;
   taxIdData?: InputMaybe<TaxIdData>;
   workspacePlan: PaidWorkspacePlans;
   workspaceSlug: Scalars['String']['input'];
@@ -7209,6 +7221,7 @@ export enum WorkspaceFeatureName {
   EmbedPrivateProjects = 'embedPrivateProjects',
   ExclusiveMembership = 'exclusiveMembership',
   Frontend3 = 'frontend3',
+  HelpCenter = 'helpCenter',
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
@@ -7557,7 +7570,8 @@ export type WorkspaceMutationsUpdateSsoProviderArgs = {
 export type WorkspacePaidPlanPrices = {
   __typename?: 'WorkspacePaidPlanPrices';
   business: WorkspacePlanPrice;
-  legacy: WorkspacePlanPrice;
+  /** Price of a single Business plan add-on pack (grants extra projects and versions). */
+  businessAddOn: WorkspacePlanPrice;
 };
 
 export enum WorkspacePaymentMethod {
@@ -7570,6 +7584,8 @@ export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
   canAcceptJoinRequest: PermissionCheckResult;
   canAccessDashboards: PermissionCheckResult;
+  /** Whether the current user can access the help center for this workspace, eg. support chats, etc */
+  canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
@@ -7668,6 +7684,8 @@ export type WorkspacePlan = {
   paymentMethod: WorkspacePaymentMethod;
   status: WorkspacePlanStatuses;
   usage: WorkspacePlanUsage;
+  /** Set when status is Trial. Indicates when the trial expires. */
+  validUntil?: Maybe<Scalars['DateTime']['output']>;
 };
 
 export type WorkspacePlanPrice = {
@@ -7912,12 +7930,22 @@ export type WorkspaceSsoSession = {
 
 export type WorkspaceSubscription = {
   __typename?: 'WorkspaceSubscription';
+  addOn: WorkspaceSubscriptionAddOn;
   billingInterval: BillingInterval;
   createdAt: Scalars['DateTime']['output'];
   currency: Currency;
   currentBillingCycleEnd: Scalars['DateTime']['output'];
   seats: WorkspaceSubscriptionSeats;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type WorkspaceSubscriptionAddOn = {
+  __typename?: 'WorkspaceSubscriptionAddOn';
+  /**
+   * Total number of add-on packs currently purchased for the workspace (0 if none).
+   * Each pack grants a fixed amount of extra projects and versions.
+   */
+  currentQuantity: Scalars['Int']['output'];
 };
 
 export type WorkspaceSubscriptionSeatCount = {
