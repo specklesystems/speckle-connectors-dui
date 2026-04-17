@@ -265,7 +265,7 @@ const addModel = async () => {
   model.workspaceSlug = selectedProject?.value?.workspace?.slug as string
   model.sendFilter = filter.value as ISendFilter
   model.sendFilter.idMap = {} // do not let it null from the beginning otherwise we will end up with null state on Revit...
-  model.settings = settings.value
+  model.settings = settings.value ?? (hostAppStore.sendSettings ? [...hostAppStore.sendSettings] : undefined)
   model.expired = false
 
   emit('close')
