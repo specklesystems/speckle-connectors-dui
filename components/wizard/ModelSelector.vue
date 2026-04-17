@@ -14,6 +14,7 @@
           color="foundation"
         />
         <div
+          v-if="isSender"
           v-tippy="
             canCreateModelResult?.project.permissions.canCreateModel.authorized
               ? 'Create new model'
@@ -83,6 +84,7 @@
           v-if="
             models?.length === 0 &&
             !!searchText &&
+            isSender &&
             canCreateModelResult?.project.permissions.canCreateModel?.authorized
           "
           full-width
@@ -104,6 +106,7 @@
       </div>
     </div>
     <CommonDialog
+      v-if="isSender"
       v-model:open="showNewModelDialog"
       title="Create new model"
       fullscreen="none"
@@ -163,10 +166,9 @@ const props = withDefaults(
     workspaceId?: string
     workspaceSlug?: string
     accountId: string
-    showNewModel?: boolean
     isSender?: boolean
   }>(),
-  { showNewModel: true, isSender: false }
+  { isSender: false }
 )
 
 const accountStore = useAccountStore()
@@ -196,8 +198,7 @@ const handleModelSelect = (model: ModelListModelItemFragment) => {
   if (existingModelProblem.value) {
     existingModelName.value = model.name
   }
-  hasNonZeroVersionsProblem.value =
-    model.versions.totalCount !== 0 && props.showNewModel // NOTE: we're using the showNewModel prop as a giveaway of whether we're in the send wizard - we do not need this extra check in the receive wizard
+  hasNonZeroVersionsProblem.value = model.versions.totalCount !== 0 && props.isSender
 
   if (!existingModelProblem.value && !hasNonZeroVersionsProblem.value) {
     return emit('next', model)
