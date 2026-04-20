@@ -1,4 +1,4 @@
-import { watch, computed, ref } from 'vue'
+import { watch, computed, ref, type ComputedRef } from 'vue'
 import Intercom, {
   shutdown,
   show,
@@ -25,15 +25,19 @@ export const useIntercom = () => {
   const { isDistributedBySpeckle } = storeToRefs(hostAppStore)
   const { userSelectedWorkspaceId } = storeToRefs(configStore)
 
-  const isInitialized = ref(false)
-  const hasIntercomAccess = ref(false)
+  const isInitialized = ref<boolean>(false)
+  const hasIntercomAccess = ref<boolean>(false)
 
   const isRouteBlacklisted = computed(() => {
     return disabledRoutes.some((disabledRoute) => route.path.includes(disabledRoute))
   })
 
-  const shouldEnableIntercom = computed(() => {
-    return !isRouteBlacklisted.value && hasIntercomAccess.value
+  const shouldEnableIntercom: ComputedRef<boolean> = computed(() => {
+    return (
+      !isRouteBlacklisted.value &&
+      hasIntercomAccess.value &&
+      isDistributedBySpeckle.value
+    )
   })
 
   const bootIntercom = () => {
@@ -54,6 +58,7 @@ export const useIntercom = () => {
   const showIntercom = () => {
     if (isInitialized.value) show()
   }
+
   const hideIntercom = () => {
     if (isInitialized.value) hide()
   }
@@ -111,6 +116,7 @@ export const useIntercom = () => {
   // we listen to changes in the host app distribution status that fetched on updateConnector composable after the intercom is initialized, we cant simply rely on activeAccount watcher
   watch(isDistributedBySpeckle, (newValue) => {
     if (!newValue) shutdownIntercom()
+    else bootIntercom()
   })
 
   watch(
