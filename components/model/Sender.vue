@@ -133,7 +133,8 @@ import {
   useMutation,
   useSubscription
 } from '@vue/apollo-composable'
-import { useAccountStore, type DUIAccount } from '~/store/accounts'
+import { useAccountStore } from '~/store/accounts'
+import type { ApolloClient } from '@apollo/client/core'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
 import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
@@ -152,10 +153,10 @@ const props = defineProps<{
   canEdit: boolean
 }>()
 
-const account = accountStore.accounts.find(
-  (acc) => acc.accountInfo.id === props.project.accountId
-) as DUIAccount
-const clientId = account.accountInfo.id
+const projectAccount = computed(() =>
+  accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
+)
+const clientId = computed(() => projectAccount.value?.accountInfo.id)
 
 const openFilterDialog = ref(false)
 app.$baseBinding?.on('documentChanged', () => {
@@ -189,7 +190,7 @@ const { onResult: onWorkspacePlanUsageUpdated } = useSubscription(
       workspaceId: props.modelCard.workspaceId as string
     }
   }),
-  () => ({ clientId })
+  () => ({ clientId: clientId.value })
 )
 
 onWorkspacePlanUsageUpdated(() => {
@@ -253,7 +254,9 @@ const setVersionMessage = async (message: string) => {
   })
 
   isUpdatingVersionMessage.value = true
-  const { mutate } = provideApolloClient(account.client)(() =>
+  const client = projectAccount.value?.client as ApolloClient<unknown> | undefined
+  if (!client) return
+  const { mutate } = provideApolloClient(client)(() =>
     useMutation(setVersionMessageMutation)
   )
 
