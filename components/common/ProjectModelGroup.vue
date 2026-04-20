@@ -83,22 +83,35 @@
       @dismiss="askDismissProjectQuestionDialog = true"
     >
       <template #title>
-        Whoops - project
-        <code>{{ project.projectId }}</code>
-        is inaccessible.
+        <span v-if="inaccessibleReason === 'no-account'">
+          <!-- no local account matches this project's server — query was never attempted -->
+          No account found for
+          <code>{{ project.serverUrl }}</code>
+        </span>
+        <span v-else>
+          <!-- project query threw — server will throw for any reason the account can't see
+               the project (deleted, private, auth failure, stale token). model card level
+               permission errors e.g. role changes surface separately on the card itself -->
+          Project
+          <code>{{ project.projectId }}</code>
+          is not accessible on
+          <code>{{ project.serverUrl }}</code>
+        </span>
       </template>
     </CommonAlert>
     <CommonDialog v-model:open="askDismissProjectQuestionDialog" fullscreen="none">
       <template #header>Remove Project</template>
       <div class="text-xs mb-4">Do you want to remove the project from this file?</div>
       <div class="flex justify-between center py-2 space-x-3">
-        <FormButton size="sm" full-width @click="removeProjectModels">Yes</FormButton>
+        <FormButton size="sm" full-width @click="removeProjectModels">
+          Remove
+        </FormButton>
         <FormButton
           size="sm"
           full-width
           @click="askDismissProjectQuestionDialog = false"
         >
-          Hide error
+          Cancel
         </FormButton>
       </div>
     </CommonDialog>
@@ -131,6 +144,7 @@ const showModels = ref(true)
 const askDismissProjectQuestionDialog = ref(false)
 const writeAccessRequested = ref(false)
 const projectIsAccesible = ref<boolean | undefined>(undefined)
+const inaccessibleReason = ref<'no-account' | 'error' | undefined>(undefined)
 
 const projectAccount = computed(() =>
   accountStore.accountWithFallback(props.project.accountId, props.project.serverUrl)
@@ -143,13 +157,22 @@ const projectNavigatorTippy = computed(() =>
     : 'Open project in browser'
 )
 
-const clientId = projectAccount.value.accountInfo.id
+const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase()
 
-const accountExists = accountStore.isAccountExistsById(props.project.accountId)
+// match by account ID first, then fall back to server URL
+// normalized to avoid trailing-slash / casing mismatches (can that even be a thing??)
+const accountExists = computed(() => {
+  const byId = accountStore.isAccountExistsById(props.project.accountId)
+  const byServer = accountStore.accounts.some(
+    (acc) =>
+      normalizeUrl(acc.accountInfo.serverInfo.url) ===
+      normalizeUrl(props.project.serverUrl)
+  )
+  return byId || byServer
+})
 
-if (!accountExists) {
-  projectIsAccesible.value = false
-}
+// reactive so it re-derives if accounts change after mount (e.g. user adds the missing account)
+const clientId = computed(() => projectAccount.value.accountInfo.id)
 
 const {
   result: projectDetailsResult,
@@ -159,12 +182,25 @@ const {
   projectDetailsQuery,
   () => ({ projectId: props.project.projectId }),
   () => ({
-    clientId,
+    clientId: clientId.value,
     debounce: 500,
     fetchPolicy: 'network-only',
-    enabled: accountExists
+    enabled: accountExists.value
   })
 )
+
+// re-run the query when the resolved account changes (account added) or
+// when accountExists flips back to true (account re-added after removal)
+watch([clientId, accountExists], ([, exists], [, prevExists]) => {
+  if (exists) {
+    if (!prevExists) {
+      // accountExists just recovered — reset accessible state so we don't
+      // show stale inaccessible UI while the query is in flight
+      projectIsAccesible.value = undefined
+    }
+    void refetchProjectDetails()
+  }
+})
 
 const removeProjectModels = async () => {
   await hostAppStore.removeProjectModels(props.project.projectId)
@@ -173,12 +209,54 @@ const removeProjectModels = async () => {
 
 const projectDetails = computed(() => projectDetailsResult.value?.project)
 
-watch(projectDetails, (newValue) => {
-  projectIsAccesible.value = newValue !== undefined
+watch(
+  [projectDetails, accountExists],
+  ([details, exists]) => {
+    if (!exists) {
+      // account not present on this machine at all
+      console.warn('[ProjectModelGroup] inaccessible: no matching account', {
+        projectId: props.project.projectId,
+        storedAccountId: props.project.accountId,
+        storedServerUrl: props.project.serverUrl,
+        localAccounts: accountStore.accounts.map((a) => ({
+          id: a.accountInfo.id,
+          serverUrl: a.accountInfo.serverInfo.url
+        }))
+      })
+      inaccessibleReason.value = 'no-account'
+      projectIsAccesible.value = false
+    } else if (details !== undefined) {
+      // query returned real data — project is accessible
+      inaccessibleReason.value = undefined
+      projectIsAccesible.value = true
+    }
+    // undefined means the query is still loading; don't update state yet
+  },
+  { immediate: true }
+)
+
+onProjectDetailsError((error) => {
+  // the project query throws for any reason the account can't see the project —
+  // deleted, private, auth failure, network error. all cases show the same message.
+  console.warn('[ProjectModelGroup] inaccessible: project query errored', {
+    projectId: props.project.projectId,
+    accountId: props.project.accountId,
+    error: error.message
+  })
+  inaccessibleReason.value = 'error'
+  projectIsAccesible.value = false
 })
 
-onProjectDetailsError(() => {
-  projectIsAccesible.value = false
+// when the account's validity changes (e.g. SSO session deleted externally), refetch
+// so the query hits the server and picks up the new auth state
+const accountIsValid = computed(
+  () => accountStore.accounts.find((a) => a.accountInfo.id === clientId.value)?.isValid
+)
+
+watch(accountIsValid, (isValid, wasValid) => {
+  if (wasValid !== undefined && isValid !== wasValid) {
+    void refetchProjectDetails()
+  }
 })
 
 const canLoad = computed(() => !!projectDetails.value?.permissions.canLoad.authorized)
@@ -213,13 +291,13 @@ const isWorkspaceReadOnly = computed(() => {
 const { onResult: userProjectsUpdated } = useSubscription(
   userProjectsUpdatedSubscription,
   () => ({}),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 const { onResult: projectUpdated } = useSubscription(
   projectUpdatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 // to catch changes on visibility of project
@@ -238,14 +316,14 @@ userProjectsUpdated((res) => {
 })
 
 const projectUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId)
+  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/projects/${
     props.project.projectId
   }`
 })
 
 const workspaceUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId)
+  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/workspaces/${
     projectDetails.value?.workspace?.slug
   }`
@@ -255,7 +333,7 @@ const workspaceUrl = computed(() => {
 const { onResult } = useSubscription(
   versionCreatedSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId, enabled: accountExists })
+  () => ({ clientId: clientId.value, enabled: accountExists.value })
 )
 
 onResult((res) => {
