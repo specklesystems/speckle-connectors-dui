@@ -116,7 +116,6 @@ export const useIntercom = () => {
   // we listen to changes in the host app distribution status that fetched on updateConnector composable after the intercom is initialized, we cant simply rely on activeAccount watcher
   watch(isDistributedBySpeckle, (newValue) => {
     if (!newValue) shutdownIntercom()
-    else bootIntercom()
   })
 
   watch(
