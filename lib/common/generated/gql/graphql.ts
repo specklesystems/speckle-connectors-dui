@@ -1245,6 +1245,13 @@ export type CreateCommentReplyInput = {
   threadId: Scalars['String']['input'];
 };
 
+export type CreateDashboardShareTokenInput = {
+  dashboardId: Scalars['String']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateDashboardTokenReturn = {
   __typename?: 'CreateDashboardTokenReturn';
   token: Scalars['String']['output'];
@@ -1317,6 +1324,14 @@ export type CreateModelInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   projectId: Scalars['ID']['input'];
+};
+
+export type CreatePresentationShareTokenInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  savedViewGroupId: Scalars['String']['input'];
 };
 
 export type CreateResourceMetaInput = {
@@ -1395,6 +1410,7 @@ export type Dashboard = {
   name: Scalars['String']['output'];
   permissions: DashboardPermissionChecks;
   projects: Array<LimitedProject>;
+  /** @deprecated Use Project.shareTokens with sourceType: dashboard. Field will be deleted on November 1st, 2026. */
   shareLink?: Maybe<DashboardShareLink>;
   /** If null, this is a new dashboard and should be initialized by the client */
   state?: Maybe<Scalars['String']['output']>;
@@ -1419,10 +1435,14 @@ export type DashboardMutations = {
   create: Dashboard;
   createToken: CreateDashboardTokenReturn;
   delete: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   deleteShare: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   disableShare: DashboardShareLink;
   duplicate: Dashboard;
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   enableShare: DashboardShareLink;
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   share: DashboardShareLink;
   update: Dashboard;
 };
@@ -4469,6 +4489,7 @@ export type ProjectPermissionChecks = {
   canReadSettings: PermissionCheckResult;
   canReadWebhooks: PermissionCheckResult;
   canRequestRender: PermissionCheckResult;
+  canRevokeAllShareTokens: PermissionCheckResult;
   /** @deprecated Part of the old API surface and will be removed in the future. Use canRevoke on ShareToken. Field will be deleted on October 1st, 2026. */
   canRevokeEmbedTokens: PermissionCheckResult;
   canUnarchive: PermissionCheckResult;
@@ -4649,6 +4670,14 @@ export type PropagationResult = {
   updated: Scalars['Int']['output'];
 };
 
+export type PublicShareTokenInfo = {
+  __typename?: 'PublicShareTokenInfo';
+  hasPassword: Scalars['Boolean']['output'];
+  id: Scalars['String']['output'];
+  sourceId: Scalars['String']['output'];
+  sourceType: ShareSourceType;
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Stare into the void. */
@@ -4716,6 +4745,12 @@ export type Query = {
   serverInviteByToken?: Maybe<ServerInvite>;
   /** @deprecated use admin.serverStatistics instead */
   serverStats: ServerStats;
+  /**
+   * Auth-less preflight: check if a share token exists and whether it requires a password.
+   * Returns null for unknown, revoked, or expired tokens — a non-null response means the token is valid.
+   * No authentication required.
+   */
+  shareTokenInfo?: Maybe<PublicShareTokenInfo>;
   /**
    * Returns a specific stream. Will throw an authorization error if active user isn't authorized
    * to see it, for example, if a stream isn't public and the user doesn't have the appropriate rights.
@@ -4886,6 +4921,11 @@ export type QueryResourceMetaSearchArgs = {
 
 export type QueryServerInviteByTokenArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryShareTokenInfoArgs = {
+  token: Scalars['String']['input'];
 };
 
 
@@ -5123,6 +5163,7 @@ export type SavedViewGroup = {
   projectId: Scalars['ID']['output'];
   /** Resources that were used to find this group */
   resourceIds: Array<Scalars['String']['output']>;
+  /** @deprecated Use Project.shareTokens with sourceType: savedViewGroup. Field will be deleted on November 1st, 2026. */
   shareLink?: Maybe<SavedViewGroupShareLink>;
   title: Scalars['String']['output'];
   views: SavedViewCollection;
@@ -5202,10 +5243,14 @@ export type SavedViewMutations = {
   createGroup: SavedViewGroup;
   createView: SavedView;
   deleteGroup: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   deleteShare: Scalars['Boolean']['output'];
   deleteView: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   disableShare: SavedViewGroupShareLink;
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   enableShare: SavedViewGroupShareLink;
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   share: SavedViewGroupShareLink;
   updateGroup: SavedViewGroup;
   updateView: SavedView;
@@ -5574,10 +5619,17 @@ export type ShareTokenPermissionChecks = {
 
 export type SharingMutations = {
   __typename?: 'SharingMutations';
+  createDashboardShareToken: ShareToken;
   createEmbedShareToken: ShareToken;
+  createPresentationShareToken: ShareToken;
   revokeProjectShareTokens: Scalars['Boolean']['output'];
   revokeShareToken: Scalars['Boolean']['output'];
   updateShareToken: ShareToken;
+};
+
+
+export type SharingMutationsCreateDashboardShareTokenArgs = {
+  input: CreateDashboardShareTokenInput;
 };
 
 
@@ -5586,9 +5638,14 @@ export type SharingMutationsCreateEmbedShareTokenArgs = {
 };
 
 
+export type SharingMutationsCreatePresentationShareTokenArgs = {
+  input: CreatePresentationShareTokenInput;
+};
+
+
 export type SharingMutationsRevokeProjectShareTokensArgs = {
   projectId: Scalars['String']['input'];
-  sourceType: ShareSourceType;
+  sourceType?: InputMaybe<ShareSourceType>;
 };
 
 
@@ -7234,6 +7291,7 @@ export enum WorkspaceFeatureName {
   ProjectArchival = 'projectArchival',
   ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
+  Viewer3 = 'viewer3',
   ViewerTable = 'viewerTable',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
 }
@@ -7587,6 +7645,7 @@ export type WorkspacePermissionChecks = {
   /** Whether the current user can access the help center for this workspace, eg. support chats, etc */
   canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
+  canAccessViewer3: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
