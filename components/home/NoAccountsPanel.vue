@@ -11,15 +11,22 @@
           v-model="customServerUrl"
           name="Server to sign in"
           :show-label="false"
-          placeholder="https://app.speckle.systems"
+          :placeholder="defaultServerUrl"
           color="foundation"
           autocomplete="off"
           show-clear
         />
         <div class="space-y-2">
-          <AccountsSignInFlow :server-url="customServerUrl" />
-          <AccountsExchangeTokenSignInFlow :server-url="customServerUrl" />
-          <AccountsLegacySignInFlow :server-url="customServerUrl" />
+          <AccountsSignInFlow
+            :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
+          />
+          <AccountsExchangeTokenSignInFlow
+            :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
+          />
+          <AccountsLegacySignInFlow
+            v-if="!canStartAuthAccount"
+            :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
+          />
         </div>
       </div>
     </div>
@@ -53,13 +60,20 @@
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { BaseBridge } from '~/lib/bridge/base'
+import { useHostAppStore } from '~/store/hostApp'
 
 const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
 
-const customServerUrl = ref<string>('https://app.speckle.systems')
+const hostAppStore = useHostAppStore()
+const customServerUrl = ref<string>(hostAppStore.defaultSpeckleServerUrl)
+const defaultServerUrl = hostAppStore.defaultSpeckleServerUrl
 
 const { $accountBinding } = useNuxtApp()
+const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
+  (name) =>
+    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+)
 const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
   ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
 )

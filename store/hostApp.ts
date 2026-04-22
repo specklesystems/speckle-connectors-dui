@@ -74,6 +74,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const navisworksAvailableSavedSets = ref<ISendFilterSelectItem[]>()
 
   const isUpdateNotificationDisabled = ref(false)
+  const defaultSpeckleServerUrl = ref('https://app.speckle.systems')
 
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
@@ -711,6 +712,9 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       const globalConfig = await app.$configBinding.getGlobalConfig()
       if (globalConfig) {
         isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
+        if (globalConfig.defaultSpeckleServerUrl) {
+          defaultSpeckleServerUrl.value = globalConfig.defaultSpeckleServerUrl
+        }
       }
     }
 
@@ -931,6 +935,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     availableSelectSendFilters,
     isDistributedBySpeckle,
     isUpdateNotificationDisabled,
+    defaultSpeckleServerUrl,
     setIsDistributedBySpeckle,
     setNotification,
     setModelError,
