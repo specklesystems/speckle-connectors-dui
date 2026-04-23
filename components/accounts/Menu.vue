@@ -44,17 +44,21 @@
                 v-model="customServerUrl"
                 name="Server to sign in"
                 show-label
-                placeholder="https://app.speckle.systems"
+                :placeholder="defaultServerUrl"
                 color="foundation"
                 autocomplete="off"
                 show-clear
               />
               <div class="space-y-2">
-                <AccountsSignInFlow :server-url="customServerUrl" />
-                <AccountsExchangeTokenSignInFlow :server-url="customServerUrl" />
+                <AccountsSignInFlow
+                  :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
+                />
+                <AccountsExchangeTokenSignInFlow
+                  :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
+                />
                 <AccountsLegacySignInFlow
                   v-if="!canStartAuthAccount"
-                  :server-url="customServerUrl"
+                  :server-url="customServerUrl ? customServerUrl : defaultServerUrl"
                 />
               </div>
             </div>
@@ -73,6 +77,7 @@ import { useAccountStore } from '~/store/accounts'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { BaseBridge } from '~/lib/bridge/base'
+import { useHostAppStore } from '~/store/hostApp'
 
 const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
@@ -83,7 +88,9 @@ const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
     ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
 )
 
-const customServerUrl = ref<string>('https://app.speckle.systems')
+const hostAppStore = useHostAppStore()
+const customServerUrl = ref<string>(hostAppStore.defaultSpeckleServerUrl)
+const defaultServerUrl = hostAppStore.defaultSpeckleServerUrl
 
 const props = withDefaults(
   defineProps<{

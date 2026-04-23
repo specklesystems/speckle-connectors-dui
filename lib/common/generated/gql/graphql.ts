@@ -435,6 +435,7 @@ export type AdminUpdateEmailVerificationInput = {
 export type AdminUpdateWorkspacePlanInput = {
   plan: WorkspacePlans;
   status: WorkspacePlanStatuses;
+  validUntil?: InputMaybe<Scalars['DateTime']['input']>;
   workspaceId: Scalars['ID']['input'];
 };
 
@@ -1244,6 +1245,13 @@ export type CreateCommentReplyInput = {
   threadId: Scalars['String']['input'];
 };
 
+export type CreateDashboardShareTokenInput = {
+  dashboardId: Scalars['String']['input'];
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateDashboardTokenReturn = {
   __typename?: 'CreateDashboardTokenReturn';
   token: Scalars['String']['output'];
@@ -1318,6 +1326,14 @@ export type CreateModelInput = {
   projectId: Scalars['ID']['input'];
 };
 
+export type CreatePresentationShareTokenInput = {
+  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
+  label?: InputMaybe<Scalars['String']['input']>;
+  password?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  savedViewGroupId: Scalars['String']['input'];
+};
+
 export type CreateResourceMetaInput = {
   data: Scalars['JSON']['input'];
   metaType: Scalars['String']['input'];
@@ -1383,7 +1399,6 @@ export enum Currency {
 
 export type CurrencyBasedPrices = {
   __typename?: 'CurrencyBasedPrices';
-  gbp: WorkspacePaidPlanPrices;
   usd: WorkspacePaidPlanPrices;
 };
 
@@ -1395,6 +1410,7 @@ export type Dashboard = {
   name: Scalars['String']['output'];
   permissions: DashboardPermissionChecks;
   projects: Array<LimitedProject>;
+  /** @deprecated Use Project.shareTokens with sourceType: dashboard. Field will be deleted on November 1st, 2026. */
   shareLink?: Maybe<DashboardShareLink>;
   /** If null, this is a new dashboard and should be initialized by the client */
   state?: Maybe<Scalars['String']['output']>;
@@ -1419,10 +1435,14 @@ export type DashboardMutations = {
   create: Dashboard;
   createToken: CreateDashboardTokenReturn;
   delete: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   deleteShare: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   disableShare: DashboardShareLink;
   duplicate: Dashboard;
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   enableShare: DashboardShareLink;
+  /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   share: DashboardShareLink;
   update: Dashboard;
 };
@@ -3379,8 +3399,7 @@ export type OnboardingCompletionInput = {
 };
 
 export enum PaidWorkspacePlans {
-  Business = 'business',
-  Legacy = 'legacy'
+  Business = 'business'
 }
 
 export type PasswordStrengthCheckFeedback = {
@@ -3470,6 +3489,10 @@ export type PermissionCheckResult = {
   errorMessage?: Maybe<Scalars['String']['output']>;
   message: Scalars['String']['output'];
   payload?: Maybe<Scalars['JSONObject']['output']>;
+};
+
+export type PlanAddOn = {
+  quantity: Scalars['Int']['input'];
 };
 
 export type PowerToolsMutations = {
@@ -4466,6 +4489,7 @@ export type ProjectPermissionChecks = {
   canReadSettings: PermissionCheckResult;
   canReadWebhooks: PermissionCheckResult;
   canRequestRender: PermissionCheckResult;
+  canRevokeAllShareTokens: PermissionCheckResult;
   /** @deprecated Part of the old API surface and will be removed in the future. Use canRevoke on ShareToken. Field will be deleted on October 1st, 2026. */
   canRevokeEmbedTokens: PermissionCheckResult;
   canUnarchive: PermissionCheckResult;
@@ -4646,6 +4670,14 @@ export type PropagationResult = {
   updated: Scalars['Int']['output'];
 };
 
+export type PublicShareTokenInfo = {
+  __typename?: 'PublicShareTokenInfo';
+  hasPassword: Scalars['Boolean']['output'];
+  id: Scalars['String']['output'];
+  sourceId: Scalars['String']['output'];
+  sourceType: ShareSourceType;
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Stare into the void. */
@@ -4713,6 +4745,12 @@ export type Query = {
   serverInviteByToken?: Maybe<ServerInvite>;
   /** @deprecated use admin.serverStatistics instead */
   serverStats: ServerStats;
+  /**
+   * Auth-less preflight: check if a share token exists and whether it requires a password.
+   * Returns null for unknown, revoked, or expired tokens — a non-null response means the token is valid.
+   * No authentication required.
+   */
+  shareTokenInfo?: Maybe<PublicShareTokenInfo>;
   /**
    * Returns a specific stream. Will throw an authorization error if active user isn't authorized
    * to see it, for example, if a stream isn't public and the user doesn't have the appropriate rights.
@@ -4883,6 +4921,11 @@ export type QueryResourceMetaSearchArgs = {
 
 export type QueryServerInviteByTokenArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryShareTokenInfoArgs = {
+  token: Scalars['String']['input'];
 };
 
 
@@ -5057,9 +5100,14 @@ export type Role = {
 
 export type RootPermissionChecks = {
   __typename?: 'RootPermissionChecks';
+  canAccessServerAdminPanel: PermissionCheckResult;
   canCreatePersonalProject: PermissionCheckResult;
   canCreateWorkspace: PermissionCheckResult;
+  canManageServerRegions: PermissionCheckResult;
+  canManageServerUsers: PermissionCheckResult;
   canManageServerWorkspaces: PermissionCheckResult;
+  canSupportServerUsers: PermissionCheckResult;
+  canUpdateServerSettings: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
 };
 
@@ -5115,6 +5163,7 @@ export type SavedViewGroup = {
   projectId: Scalars['ID']['output'];
   /** Resources that were used to find this group */
   resourceIds: Array<Scalars['String']['output']>;
+  /** @deprecated Use Project.shareTokens with sourceType: savedViewGroup. Field will be deleted on November 1st, 2026. */
   shareLink?: Maybe<SavedViewGroupShareLink>;
   title: Scalars['String']['output'];
   views: SavedViewCollection;
@@ -5194,10 +5243,14 @@ export type SavedViewMutations = {
   createGroup: SavedViewGroup;
   createView: SavedView;
   deleteGroup: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   deleteShare: Scalars['Boolean']['output'];
   deleteView: Scalars['Boolean']['output'];
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   disableShare: SavedViewGroupShareLink;
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   enableShare: SavedViewGroupShareLink;
+  /** @deprecated Use sharingMutations.createPresentationShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   share: SavedViewGroupShareLink;
   updateGroup: SavedViewGroup;
   updateView: SavedView;
@@ -5438,9 +5491,11 @@ export type ServerMultiRegionConfiguration = {
   __typename?: 'ServerMultiRegionConfiguration';
   /**
    * Keys of available regions defined in the multi region config file. Used keys will
-   * be filtered out from the result.
+   * be filtered out from the result. Nullable because the field is only resolvable for
+   * users that can manage server regions; for other users it returns null instead of
+   * nulling the entire parent query.
    */
-  availableKeys: Array<Scalars['String']['output']>;
+  availableKeys?: Maybe<Array<Scalars['String']['output']>>;
   /** Regions available for project data residency */
   regions: Array<ServerRegionItem>;
 };
@@ -5564,10 +5619,17 @@ export type ShareTokenPermissionChecks = {
 
 export type SharingMutations = {
   __typename?: 'SharingMutations';
+  createDashboardShareToken: ShareToken;
   createEmbedShareToken: ShareToken;
+  createPresentationShareToken: ShareToken;
   revokeProjectShareTokens: Scalars['Boolean']['output'];
   revokeShareToken: Scalars['Boolean']['output'];
   updateShareToken: ShareToken;
+};
+
+
+export type SharingMutationsCreateDashboardShareTokenArgs = {
+  input: CreateDashboardShareTokenInput;
 };
 
 
@@ -5576,9 +5638,14 @@ export type SharingMutationsCreateEmbedShareTokenArgs = {
 };
 
 
+export type SharingMutationsCreatePresentationShareTokenArgs = {
+  input: CreatePresentationShareTokenInput;
+};
+
+
 export type SharingMutationsRevokeProjectShareTokensArgs = {
   projectId: Scalars['String']['input'];
-  sourceType: ShareSourceType;
+  sourceType?: InputMaybe<ShareSourceType>;
 };
 
 
@@ -6253,6 +6320,7 @@ export type UpdateVersionInput = {
 
 export type UpgradePlanInput = {
   billingInterval: BillingInterval;
+  planAddOn?: InputMaybe<PlanAddOn>;
   workspacePlan: PaidWorkspacePlans;
   workspaceSlug: Scalars['String']['input'];
 };
@@ -6262,6 +6330,7 @@ export type UpgradeToPaidlPlanInput = {
   billingDetails: BillingDetails;
   billingInterval: BillingInterval;
   paymentMethod: PaymentMethod;
+  planAddOn?: InputMaybe<PlanAddOn>;
   taxIdData?: InputMaybe<TaxIdData>;
   workspacePlan: PaidWorkspacePlans;
   workspaceSlug: Scalars['String']['input'];
@@ -7209,6 +7278,7 @@ export enum WorkspaceFeatureName {
   EmbedPrivateProjects = 'embedPrivateProjects',
   ExclusiveMembership = 'exclusiveMembership',
   Frontend3 = 'frontend3',
+  HelpCenter = 'helpCenter',
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
@@ -7221,6 +7291,7 @@ export enum WorkspaceFeatureName {
   ProjectArchival = 'projectArchival',
   ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
+  Viewer3 = 'viewer3',
   ViewerTable = 'viewerTable',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
 }
@@ -7557,7 +7628,8 @@ export type WorkspaceMutationsUpdateSsoProviderArgs = {
 export type WorkspacePaidPlanPrices = {
   __typename?: 'WorkspacePaidPlanPrices';
   business: WorkspacePlanPrice;
-  legacy: WorkspacePlanPrice;
+  /** Price of a single Business plan add-on pack (grants extra projects and versions). */
+  businessAddOn: WorkspacePlanPrice;
 };
 
 export enum WorkspacePaymentMethod {
@@ -7570,7 +7642,10 @@ export type WorkspacePermissionChecks = {
   __typename?: 'WorkspacePermissionChecks';
   canAcceptJoinRequest: PermissionCheckResult;
   canAccessDashboards: PermissionCheckResult;
+  /** Whether the current user can access the help center for this workspace, eg. support chats, etc */
+  canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
+  canAccessViewer3: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
@@ -7668,6 +7743,8 @@ export type WorkspacePlan = {
   paymentMethod: WorkspacePaymentMethod;
   status: WorkspacePlanStatuses;
   usage: WorkspacePlanUsage;
+  /** Set when status is Trial. Indicates when the trial expires. */
+  validUntil?: Maybe<Scalars['DateTime']['output']>;
 };
 
 export type WorkspacePlanPrice = {
@@ -7912,12 +7989,22 @@ export type WorkspaceSsoSession = {
 
 export type WorkspaceSubscription = {
   __typename?: 'WorkspaceSubscription';
+  addOn: WorkspaceSubscriptionAddOn;
   billingInterval: BillingInterval;
   createdAt: Scalars['DateTime']['output'];
   currency: Currency;
   currentBillingCycleEnd: Scalars['DateTime']['output'];
   seats: WorkspaceSubscriptionSeats;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type WorkspaceSubscriptionAddOn = {
+  __typename?: 'WorkspaceSubscriptionAddOn';
+  /**
+   * Total number of add-on packs currently purchased for the workspace (0 if none).
+   * Each pack grants a fixed amount of extra projects and versions.
+   */
+  currentQuantity: Scalars['Int']['output'];
 };
 
 export type WorkspaceSubscriptionSeatCount = {

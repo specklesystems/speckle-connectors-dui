@@ -29,9 +29,7 @@ const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
 const { generateChallenge } = useAuthManager()
 
 const logIn = async () => {
-  const serverUrl = props.serverUrl
-    ? new URL(props.serverUrl).origin
-    : 'https://app.speckle.systems'
+  const serverUrl = new URL(props.serverUrl).origin
   if (canStartAuthAccount) {
     const acc = await $accountBinding.authenticateAccount(serverUrl)
     if (acc.token) {

@@ -103,7 +103,7 @@ const showHelp = ref(false)
 const hidden = ref(false)
 
 const checkServerSupport = async (url: string) => {
-  const serverUrl = url ? new URL(url).origin : 'https://app.speckle.systems'
+  const serverUrl = new URL(url).origin
   hidden.value = !(await supportsOAuthToken(serverUrl))
 }
 
@@ -123,9 +123,7 @@ let currentCodeChallenge = ''
 let currentServerUrl = ''
 
 const openBrowserAuth = async () => {
-  currentServerUrl = props.serverUrl
-    ? new URL(props.serverUrl).origin
-    : 'https://app.speckle.systems'
+  currentServerUrl = new URL(props.serverUrl).origin
 
   const { codeVerifier, codeChallenge } = await generateLocalChallenge()
   currentCodeVerifier = codeVerifier
