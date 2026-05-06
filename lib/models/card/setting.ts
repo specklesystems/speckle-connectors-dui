@@ -6,6 +6,7 @@ export interface CardSetting extends IDiscriminatedObject {
   title: string
   value: CardSettingValue
   enum?: string[]
+  description?: string
 }
 
 export type CardSettingValue = string | number | boolean

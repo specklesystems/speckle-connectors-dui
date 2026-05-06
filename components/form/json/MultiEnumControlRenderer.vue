@@ -18,7 +18,6 @@
         :search="true"
         :search-placeholder="'Search'"
         :filter-predicate="searchFilterPredicate"
-        :help="control.description"
         :allow-unset="false"
         by="value"
         button-style="tinted"

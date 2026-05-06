@@ -824,19 +824,33 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     modelCards.forEach(async (modelCard) => {
       const idsToUpgrade = [] as string[]
       const idsToDrop = [] as string[]
+      let structuralFieldsChanged = false
 
       settingIds?.forEach((id) => {
         const existingSetting = modelCard.settings?.find((s) => s.id === id)
+        const defaultSetting = settings.find((s) => s.id === id)
 
         if (!existingSetting) {
           // If the setting does not exist, it's a new one to upgrade
           idsToUpgrade.push(id)
-        } else if (existingSetting.type === 'string' && existingSetting.enum) {
-          // Check if existing setting's enum needs upgrading
-          const currentEnum = sendSettings.value?.find((s) => s.id === id)?.enum
-          if (currentEnum && existingSetting.enum.length !== currentEnum.length) {
-            idsToUpgrade.push(id)
-          }
+          return
+        }
+
+        if (!defaultSetting) return
+
+        // Refresh title, description etc fields from the connector default while preserving
+        // the user's chosen value.
+        if (
+          existingSetting.title !== defaultSetting.title ||
+          existingSetting.description !== defaultSetting.description ||
+          existingSetting.type !== defaultSetting.type ||
+          !arraysEqual(existingSetting.enum, defaultSetting.enum)
+        ) {
+          existingSetting.title = defaultSetting.title
+          existingSetting.description = defaultSetting.description
+          existingSetting.type = defaultSetting.type
+          existingSetting.enum = defaultSetting.enum
+          structuralFieldsChanged = true
         }
       })
 
@@ -847,7 +861,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         }
       })
 
-      if (idsToUpgrade.length !== 0 || idsToDrop.length !== 0) {
+      if (
+        idsToUpgrade.length !== 0 ||
+        idsToDrop.length !== 0 ||
+        structuralFieldsChanged
+      ) {
         // Prepare new settings by filtering the old ones and adding upgraded ones
         const newSettings = modelCard.settings?.filter(
           (setting) => !idsToDrop.includes(setting.id)
@@ -866,6 +884,13 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         })
       }
     })
+  }
+
+  const arraysEqual = (a: string[] | undefined, b: string[] | undefined): boolean => {
+    if (a === b) return true
+    if (!a || !b) return false
+    if (a.length !== b.length) return false
+    return a.every((v, i) => v === b[i])
   }
 
   app.$baseBinding?.on(
