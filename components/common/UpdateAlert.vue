@@ -7,7 +7,7 @@
       !hasDismissedAlert &&
       !store.isUpdateNotificationDisabled
     "
-    class="flex items-center gap-2.5 mx-2.5 mt-2 px-2.5 py-2 bg-foundation border border-outline-2 rounded-md shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+    class="flex items-center gap-2.5 mx-2.5 mt-2 mb-2 px-2.5 py-2 bg-foundation border border-outline-2 rounded-md shadow-[0_1px_0_rgba(15,23,42,0.02)]"
     role="status"
   >
     <div
