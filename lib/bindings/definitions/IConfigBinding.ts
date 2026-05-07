@@ -26,7 +26,8 @@ export interface IConfigBinding extends IBinding<IConfigBindingEvents> {
 export interface IConfigBindingEvents extends IBindingSharedEvents {}
 
 export type GlobalConfig = {
-  isUpdateNotificationDisabled: boolean
+  readonly isUpdateNotificationDisabled: boolean
+  readonly defaultSpeckleServerUrl: string | null
 }
 
 export type ConnectorConfig = {
@@ -52,8 +53,11 @@ export class MockedConfigBinding implements IConfigBinding {
     return await { darkTheme: false, disableCache: false }
   }
 
-  public async getGlobalConfig() {
-    return await { isUpdateNotificationDisabled: true }
+  public async getGlobalConfig(): Promise<GlobalConfig> {
+    return await {
+      isUpdateNotificationDisabled: true,
+      defaultSpeckleServerUrl: null
+    }
   }
 
   public async updateConfig() {
