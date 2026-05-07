@@ -33,6 +33,7 @@ import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
 import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
+import { arraysEqual } from '~/lib/common/helpers/array'
 
 export type ProjectModelGroup = {
   projectId: string
@@ -884,13 +885,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         })
       }
     })
-  }
-
-  const arraysEqual = (a: string[] | undefined, b: string[] | undefined): boolean => {
-    if (a === b) return true
-    if (!a || !b) return false
-    if (a.length !== b.length) return false
-    return a.every((v, i) => v === b[i])
   }
 
   app.$baseBinding?.on(
