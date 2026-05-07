@@ -1,7 +1,7 @@
 <template>
   <div>
     <div v-if="(store.hostAppName && app.$isRunningOnConnector) || app.$isDev">
-      <div v-if="!config.isDevMode" class="px-1">
+      <div v-if="!config.isDevMode">
         <CommonUpdateAlert />
       </div>
       <!-- IMPORTANT CHECK!! otherwise host app communication corrputed for many different reasons -->
