@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="text-foreground-2 text-body-2xs mb-1 pl-1">{{ control.label }}</div>
+    <FormJsonControlLabel :label="control.label" :description="control.description" />
     <FormSwitch
       :name="fieldName"
       :disabled="!control.enabled"

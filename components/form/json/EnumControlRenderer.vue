@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div class="text-foreground-2 text-body-2xs mb-1 pl-1">{{ control.label }}</div>
+    <FormJsonControlLabel :label="control.label" :description="control.description" />
     <FormSelectBase
       :model-value="modelValue"
       :name="fieldName"
@@ -8,7 +8,6 @@
       :label="control.label"
       :items="control.options"
       :multiple="multiple"
-      :help="control.description"
       :allow-unset="false"
       by="value"
       button-style="tinted"
