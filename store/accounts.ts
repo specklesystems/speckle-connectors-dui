@@ -54,10 +54,17 @@ export const useAccountStore = defineStore('accountStore', () => {
   const userSelectedAccount = ref<DUIAccount>()
 
   /**
-   * Returns either the default account or the last account the user has selected.
+   * Returns the user's selected account if it still exists, otherwise falls back to the first account.
    */
   const activeAccount = computed(() => {
-    return userSelectedAccount.value || accounts.value[0]
+    const selected = userSelectedAccount.value
+    if (
+      selected &&
+      accounts.value.some((a) => a.accountInfo.id === selected.accountInfo.id)
+    ) {
+      return selected
+    }
+    return accounts.value[0]
   })
 
   const removeAccount = async (acc: DUIAccount) => {
