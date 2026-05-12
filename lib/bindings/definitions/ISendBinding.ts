@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Mock binding: async methods satisfy the Promise-returning interface
+// signatures but have nothing to actually await.
 import type { ISendFilter } from '~~/lib/models/card/send'
 import type {
   IBinding,
@@ -42,27 +45,27 @@ export interface ISendBindingEvents
 
 export class MockedSendBinding implements ISendBinding {
   public async getSendFilters() {
-    return await []
+    return []
   }
 
   public async getSendSettings() {
-    return await []
+    return []
   }
 
   public async send(_modelCardId: string) {
-    return await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async cancelSend(_modelCardId: string) {
-    return await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async showDevTools() {
-    await console.log('No way dude')
+    console.log('No way dude')
   }
 
   public async openUrl(url: string) {
-    await window.open(url)
+    window.open(url)
   }
 
   public on() {
