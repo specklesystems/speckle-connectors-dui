@@ -1,11 +1,14 @@
 <!-- CommonTiptapViewer.vue -->
 <template>
-  <!-- read-only output -->
+  <!-- read-only output. Safe to use v-html here: renderNode escapes all text
+       via escapeHtml and only emits a fixed set of hardcoded tags (<p>, <br />). -->
+  <!-- eslint-disable vue/no-v-html -->
   <div
     v-if="html"
     class="p-1 pl-3 group w-full whitespace-pre-wrap break-words"
     v-html="html"
   />
+  <!-- eslint-enable vue/no-v-html -->
 </template>
 
 <script setup lang="ts">
