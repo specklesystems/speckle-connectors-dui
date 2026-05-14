@@ -14,7 +14,7 @@
         <FormButton
           class="w-full justify-center"
           :disabled="isApplying || isResolved"
-          @click="applyChanges"
+          @click="openConfirmDialog = true"
         >
           {{
             isApplying ? 'Applying...' : isResolved ? 'Issue resolved' : 'Apply changes'
@@ -92,15 +92,58 @@
         </div>
       </div>
     </div>
+
+    <!--
+      Apply change requests confirmation.
+      This is a destructive action (deletes the record, resolves the issue,
+      and is not transactional with the model write) so we gate it behind an
+      explicit YES/NO before touching anything.
+    -->
+    <CommonDialog
+      v-model:open="openConfirmDialog"
+      title="Apply change requests"
+      max-width="md"
+      fullscreen="none"
+    >
+      <div class="mx-1">
+        <p class="text-body-xs mb-2">
+          Applying these change requests will update the model, close the linked issue
+          and permanently delete the record of changes.
+        </p>
+        <p class="text-body-xs text-foreground-2">
+          This cannot be undone. Do you want to continue?
+        </p>
+      </div>
+      <template #buttons>
+        <FormButton
+          full-width
+          size="sm"
+          text
+          :disabled="isApplying"
+          @click="openConfirmDialog = false"
+        >
+          No
+        </FormButton>
+        <FormButton full-width size="sm" :disabled="isApplying" @click="confirmApply">
+          {{ isApplying ? 'Applying...' : 'Yes' }}
+        </FormButton>
+      </template>
+    </CommonDialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useQuery } from '@vue/apollo-composable'
+import { ToastNotificationType } from '@speckle/ui-components'
 import { ResourceMetaType, IssueStatus } from '~/lib/common/generated/gql/graphql'
 import { issueResourceMetaSearchQuery } from '~/lib/issues/graphql/queries'
-import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
+import { useApplyChangeRequests } from '~/lib/issues/composables/useApplyChangeRequests'
+import { useHostAppStore } from '~/store/hostApp'
+import type {
+  IssuesItemFragment,
+  IssueResourceMetaSearchQuery
+} from '~/lib/common/generated/gql/graphql'
 import type { IModelCard } from '~/lib/models/card'
 import dayjs from 'dayjs'
 import { Calendar } from 'lucide-vue-next'
@@ -111,7 +154,11 @@ const props = defineProps<{
 }>()
 
 const app = useNuxtApp()
+const hostAppStore = useHostAppStore()
+const { applyChangeRequests } = useApplyChangeRequests()
+
 const isApplying = ref(false)
+const openConfirmDialog = ref(false)
 
 const isResolved = computed(() => {
   return props.issue.status === IssueStatus.Resolved
@@ -138,38 +185,31 @@ const { result: resourceMetaResult } = useQuery(
 )
 
 const hasObjectDeltas = computed<boolean>(() => {
-  const metadata = resourceMetaResult.value?.resourceMetaSearch
+  const data = resourceMetaResult.value as IssueResourceMetaSearchQuery | undefined
+  const metadata = data?.resourceMetaSearch
   return Array.isArray(metadata) && metadata.length > 0
 })
 
-const objectDeltasPayload = computed<unknown>(() => {
-  if (!hasObjectDeltas.value) return null
-  const metadata = resourceMetaResult.value?.resourceMetaSearch
-
-  if (Array.isArray(metadata) && metadata.length > 0) {
-    return metadata[0]?.data as unknown
-  }
-
-  return null
-})
-
-const applyChanges = async () => {
-  if (!objectDeltasPayload.value) return
+const confirmApply = async () => {
+  if (isApplying.value) return
 
   isApplying.value = true
   try {
-    const payload =
-      typeof objectDeltasPayload.value === 'string'
-        ? objectDeltasPayload.value
-        : JSON.stringify(objectDeltasPayload.value)
-
-    if (app.$parametersBinding) {
-      await app.$parametersBinding.update(payload)
-    } else {
-      console.warn('IParametersBinding not available in this host app')
-    }
+    await applyChangeRequests(props.issue, props.modelCard)
+    openConfirmDialog.value = false
+    hostAppStore.setNotification({
+      type: ToastNotificationType.Success,
+      title: 'Change requests applied',
+      description: 'The model has been updated and the issue resolved.'
+    })
   } catch (error) {
-    console.error('Failed to apply changes:', error)
+    const message = error instanceof Error ? error.message : 'Unknown error'
+    console.error('Failed to apply change requests:', error)
+    hostAppStore.setNotification({
+      type: ToastNotificationType.Danger,
+      title: 'Failed to apply change requests',
+      description: message
+    })
   } finally {
     isApplying.value = false
   }
