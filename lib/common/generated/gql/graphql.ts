@@ -95,11 +95,6 @@ export type AccItem = {
   id: Scalars['ID']['output'];
   latestVersion: AccItemVersion;
   name: Scalars['String']['output'];
-  /**
-   * Size of the latest version in bytes, when reported by ACC. Sourced from the
-   * tip version sideloaded in the folder-contents response — one API call.
-   */
-  sizeBytes?: Maybe<Scalars['Int']['output']>;
 };
 
 export type AccItemCollection = {
@@ -136,10 +131,6 @@ export type AccProjectCollection = {
   items: Array<AccProject>;
 };
 
-/**
- * Deprecated: use the generic `Sync` type instead. Retained to avoid
- * breaking existing clients (CLI, connectors, older frontend builds).
- */
 export type AccSyncItem = {
   __typename?: 'AccSyncItem';
   accFileExtension: Scalars['String']['output'];
@@ -172,11 +163,8 @@ export type AccSyncItemCollection = {
 
 export type AccSyncItemMutations = {
   __typename?: 'AccSyncItemMutations';
-  /** @deprecated Use syncMutations.create instead, we will be removing this in the 6 months. */
   create: AccSyncItem;
-  /** @deprecated Use syncMutations.delete instead, we will be removing this in the 6 months. */
   delete: Scalars['Boolean']['output'];
-  /** @deprecated Use syncMutations.update instead, we will be removing this in the 6 months. */
   update: AccSyncItem;
 };
 
@@ -251,13 +239,6 @@ export type ActivityCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type AddAdminToSupportSessionInput = {
-  /** The server admin (server:admin or server:support) being added to the session. */
-  userId: Scalars['ID']['input'];
-  /** Workspace the inviting admin currently holds an active support session for. */
-  workspaceId: Scalars['ID']['input'];
-};
-
 export type AddDomainToWorkspaceInput = {
   domain: Scalars['String']['input'];
   workspaceId: Scalars['ID']['input'];
@@ -309,13 +290,6 @@ export type AdminInviteList = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type AdminLinkWorkspaceSubscriptionInput = {
-  billingInterval: BillingInterval;
-  subscriptionId: Scalars['String']['input'];
-  userId: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
 export type AdminMutations = {
   __typename?: 'AdminMutations';
   /**
@@ -324,7 +298,6 @@ export type AdminMutations = {
    */
   addWorkspaceDomain: WorkspaceDomain;
   grantWorkspaceFeature: Scalars['Boolean']['output'];
-  linkWorkspaceSubscription: Scalars['Boolean']['output'];
   /**
    * Remove a domain from a workspace. Admin-only operation that bypasses
    * normal role requirements.
@@ -352,11 +325,6 @@ export type AdminMutationsAddWorkspaceDomainArgs = {
 
 export type AdminMutationsGrantWorkspaceFeatureArgs = {
   input: WorkspaceFeatureGrantUpdateInput;
-};
-
-
-export type AdminMutationsLinkWorkspaceSubscriptionArgs = {
-  input: AdminLinkWorkspaceSubscriptionInput;
 };
 
 
@@ -444,7 +412,6 @@ export type AdminQueriesUserListArgs = {
   limit?: Scalars['Int']['input'];
   query?: InputMaybe<Scalars['String']['input']>;
   role?: InputMaybe<ServerRole>;
-  roles?: InputMaybe<Array<ServerRole>>;
 };
 
 
@@ -511,228 +478,6 @@ export type AdminUsersListItem = {
 
 export type AdminWorkspaceJoinRequestFilter = {
   status?: InputMaybe<WorkspaceJoinRequestStatus>;
-};
-
-export type AiChatMutations = {
-  __typename?: 'AiChatMutations';
-  create: AiConversation;
-  delete: Scalars['Boolean']['output'];
-  /**
-   * Record a single AI model call's token usage for an authenticated
-   * workspace user. Called fire-and-forget by frontend-3 Nitro after each
-   * `streamText` / `generateText` resolves (3 sites: agent loop turns,
-   * tool-result summarisation, title generation).
-   *
-   * The resolver enforces that `input.workspaceId` and `input.userId`
-   * match the authenticated caller's context — Nitro can't impersonate.
-   * Returns `true` on insert success.
-   */
-  recordTokenEvent: Scalars['Boolean']['output'];
-  update: AiConversation;
-};
-
-
-export type AiChatMutationsCreateArgs = {
-  input: AiConversationCreateInput;
-};
-
-
-export type AiChatMutationsDeleteArgs = {
-  input: AiConversationDeleteInput;
-};
-
-
-export type AiChatMutationsRecordTokenEventArgs = {
-  input: AiTokenEventInput;
-};
-
-
-export type AiChatMutationsUpdateArgs = {
-  input: AiConversationUpdateInput;
-};
-
-export type AiChatPublicMutations = {
-  __typename?: 'AiChatPublicMutations';
-  /**
-   * Record a token event for an anonymous turn. Input MUST carry only
-   * `anonUserHash` (no workspaceId/userId). The resolver rejects any
-   * payload that looks like a workspace event — that path goes through
-   * `aiChatMutations.recordTokenEvent` with auth.
-   */
-  recordAnonTokenEvent: Scalars['Boolean']['output'];
-  /**
-   * Release the parallelism lock acquired by `startAnonTurn`. Idempotent
-   * — safe after lock TTL expiry (no-op).
-   */
-  releaseAnonTurn: Scalars['Boolean']['output'];
-  /**
-   * Pre-turn gate for anonymous AI chat. Atomically checks the rolling
-   * 24h token cap and acquires a Redis SET-NX parallelism lock keyed on
-   * the anon user hash.
-   *
-   * Failure modes:
-   *  * `ANON_QUOTA_EXCEEDED` — daily cap burned. Extensions carry
-   *    `tokensUsedWindow` and `windowResetsAt`.
-   *  * `ANON_TURN_IN_FLIGHT` — another turn is currently running for
-   *    this hash. UX: "you can only run one at a time, sign up for more".
-   *
-   * Caller must pass the returned `lockToken` to `releaseAnonTurn` in
-   * its `finally`. The Redis lock has a 5-minute TTL backstop, so a
-   * crashed Nitro process can't permanently lock a hash.
-   */
-  startAnonTurn: StartAnonTurnResult;
-};
-
-
-export type AiChatPublicMutationsRecordAnonTokenEventArgs = {
-  input: AiTokenEventInput;
-};
-
-
-export type AiChatPublicMutationsReleaseAnonTurnArgs = {
-  input: ReleaseAnonTurnInput;
-};
-
-
-export type AiChatPublicMutationsStartAnonTurnArgs = {
-  input: StartAnonTurnInput;
-};
-
-export type AiConversation = {
-  __typename?: 'AiConversation';
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['ID']['output'];
-  messageCount: Scalars['Int']['output'];
-  /**
-   * Null on list/summary queries; populated when fetched by ID.
-   * Each element is an Anthropic-shaped message: { role, content }.
-   */
-  messages?: Maybe<Array<Scalars['JSONObject']['output']>>;
-  metadata: Scalars['JSONObject']['output'];
-  preview?: Maybe<Scalars['String']['output']>;
-  projectId?: Maybe<Scalars['String']['output']>;
-  /**
-   * Which UI surface the conversation belongs to. `widget` = the Ask AI
-   * widget on the model-versions page; `magic` = the dedicated
-   * /projects/:id/magic page. Surfaces have isolated history.
-   */
-  surface: Scalars['String']['output'];
-  title: Scalars['String']['output'];
-  /**
-   * Cumulative model-call token usage for this conversation. Aggregated on
-   * demand from `ai_token_events`; returns zeros if the FF is off or the
-   * conversation predates token tracking.
-   */
-  tokenUsage: AiConversationTokenUsage;
-  updatedAt: Scalars['DateTime']['output'];
-  userId: Scalars['String']['output'];
-  workspaceId?: Maybe<Scalars['String']['output']>;
-};
-
-export type AiConversationCollection = {
-  __typename?: 'AiConversationCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<AiConversation>;
-};
-
-export type AiConversationCreateInput = {
-  messages?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Project this conversation is bound to. When set, the project must
-   * belong to the given workspace.
-   */
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  /** UI surface this conversation belongs to. Defaults to `widget`. */
-  surface?: InputMaybe<Scalars['String']['input']>;
-  title: Scalars['String']['input'];
-  /**
-   * Workspace this conversation belongs to. Required for region routing
-   * and authorization.
-   */
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationDeleteInput = {
-  id: Scalars['ID']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationTokenUsage = {
-  __typename?: 'AiConversationTokenUsage';
-  callCount: Scalars['Int']['output'];
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  totalTokens: Scalars['Int']['output'];
-};
-
-export type AiConversationUpdateInput = {
-  id: Scalars['ID']['input'];
-  messages?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Project scope. Must match how the conversation was originally created
-   * (or be omitted for workspace-only conversations).
-   */
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
-  /** Workspace scope. Must match how the conversation was originally created. */
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiTokenEventInput = {
-  /**
-   * Stable hash identifying an anonymous user. NULL for workspace calls.
-   * Composed server-side from FingerprintJS visitorId + IP + UA.
-   */
-  anonUserHash?: InputMaybe<Scalars['String']['input']>;
-  cacheReadTokens?: InputMaybe<Scalars['Int']['input']>;
-  cacheWriteTokens?: InputMaybe<Scalars['Int']['input']>;
-  /** Call type: 'turn' | 'tool_summarise' | 'title_gen'. */
-  callType: Scalars['String']['input'];
-  /**
-   * Conversation this call belongs to. Required even for anonymous calls
-   * (synthetic Nitro-side UUID for those).
-   */
-  conversationId: Scalars['String']['input'];
-  inputTokens: Scalars['Int']['input'];
-  /**
-   * True if the model call errored after prefill. `inputTokens` still
-   * reflects what the provider billed us; `outputTokens` may be 0.
-   */
-  isError: Scalars['Boolean']['input'];
-  modelId: Scalars['String']['input'];
-  outputTokens: Scalars['Int']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  provider: Scalars['String']['input'];
-  reasoningTokens?: InputMaybe<Scalars['Int']['input']>;
-  /** Agent-loop tier: 'fast' | 'reasoning' | 'reasoning-escalated'. */
-  tier: Scalars['String']['input'];
-  /**
-   * User this call is attributed to. NULL for anonymous calls.
-   * Must be paired with `workspaceId`.
-   */
-  userId?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Workspace this call is attributed to. NULL for anonymous calls.
-   * Must be paired with `userId`.
-   */
-  workspaceId?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type AiTokenMonthlyRow = {
-  __typename?: 'AiTokenMonthlyRow';
-  cacheReadTokens?: Maybe<Scalars['Int']['output']>;
-  cacheWriteTokens?: Maybe<Scalars['Int']['output']>;
-  callCount: Scalars['Int']['output'];
-  inputTokens: Scalars['Int']['output'];
-  modelId: Scalars['String']['output'];
-  month: Scalars['DateTime']['output'];
-  outputTokens: Scalars['Int']['output'];
-  provider: Scalars['String']['output'];
-  reasoningTokens?: Maybe<Scalars['Int']['output']>;
-  workspaceId: Scalars['String']['output'];
 };
 
 export type ApiToken = {
@@ -927,12 +672,17 @@ export type AutomateFunctionRunStatusReportInput = {
 
 export type AutomateFunctionTemplate = {
   __typename?: 'AutomateFunctionTemplate';
-  id: Scalars['String']['output'];
-  language: Scalars['String']['output'];
+  id: AutomateFunctionTemplateLanguage;
   logo: Scalars['String']['output'];
   title: Scalars['String']['output'];
   url: Scalars['String']['output'];
 };
+
+export enum AutomateFunctionTemplateLanguage {
+  DotNet = 'DOT_NET',
+  Python = 'PYTHON',
+  Typescript = 'TYPESCRIPT'
+}
 
 export type AutomateFunctionToken = {
   __typename?: 'AutomateFunctionToken';
@@ -1468,7 +1218,7 @@ export type CreateAutomateFunctionInput = {
   /** SourceAppNames values from @speckle/shared */
   supportedSourceApps: Array<Scalars['String']['input']>;
   tags: Array<Scalars['String']['input']>;
-  template: Scalars['String']['input'];
+  template: AutomateFunctionTemplateLanguage;
 };
 
 export type CreateAutomateFunctionWithoutVersionInput = {
@@ -1584,16 +1334,6 @@ export type CreatePresentationShareTokenInput = {
   savedViewGroupId: Scalars['String']['input'];
 };
 
-export type CreateProjectLabelInput = {
-  description?: InputMaybe<Scalars['String']['input']>;
-  /** Omit to create a group (no color) */
-  hexColor?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  /** Omit for a top-level label or group */
-  parentLabelId?: InputMaybe<Scalars['ID']['input']>;
-  workspaceId: Scalars['ID']['input'];
-};
-
 export type CreateResourceMetaInput = {
   data: Scalars['JSON']['input'];
   metaType: Scalars['String']['input'];
@@ -1636,17 +1376,6 @@ export type CreateServerRegionInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   key: Scalars['String']['input'];
   name: Scalars['String']['input'];
-};
-
-export type CreateSyncInput = {
-  context?: InputMaybe<Scalars['JSONObject']['input']>;
-  fileExtension: Scalars['String']['input'];
-  fileFolderPath?: InputMaybe<Array<Scalars['String']['input']>>;
-  fileId: Scalars['String']['input'];
-  fileName: Scalars['String']['input'];
-  fileParentFolderId?: InputMaybe<Scalars['String']['input']>;
-  integration: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
 };
 
 export type CreateUserEmailInput = {
@@ -1864,17 +1593,6 @@ export type DeleteModelInput = {
   projectId: Scalars['ID']['input'];
 };
 
-export type DeleteProjectLabelInput = {
-  labelId: Scalars['ID']['input'];
-  workspaceId: Scalars['ID']['input'];
-};
-
-export type DeleteResourceMetaInput = {
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  resourceMetaId: Scalars['ID']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
 export type DeleteSavedViewGroupInput = {
   groupId: Scalars['ID']['input'];
   projectId: Scalars['ID']['input'];
@@ -1883,11 +1601,6 @@ export type DeleteSavedViewGroupInput = {
 export type DeleteSavedViewInput = {
   id: Scalars['ID']['input'];
   projectId: Scalars['ID']['input'];
-};
-
-export type DeleteSyncInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
 };
 
 export type DeleteUserEmailInput = {
@@ -1950,10 +1663,6 @@ export type EmbedTokenCreateInput = {
   resourceIdString: Scalars['String']['input'];
 };
 
-export type EnableWorkspaceScimInput = {
-  workspaceId: Scalars['String']['input'];
-};
-
 export type ExecuteQueryInput = {
   dataSources?: InputMaybe<Array<DataSourceRefInput>>;
   modelIds: Array<Scalars['String']['input']>;
@@ -1968,7 +1677,6 @@ export type ExecuteQueryResult = {
 };
 
 export type ExecuteVersionQueryInput = {
-  dataSources?: InputMaybe<Array<DataSourceRefInput>>;
   modelId: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
   query: Scalars['JSONObject']['input'];
@@ -2186,8 +1894,6 @@ export type Insight = {
   createdBy: Scalars['String']['output'];
   customized: Scalars['Boolean']['output'];
   dataSources: Array<InsightDataSourceLink>;
-  /** For rulesets: count of packages created from this ruleset. Returns 0 for non-rulesets. */
-  derivedPackageCount: Scalars['Int']['output'];
   /** Version history (previous snapshots) */
   history: Array<InsightVersion>;
   id: Scalars['String']['output'];
@@ -2200,8 +1906,6 @@ export type Insight = {
   name: Scalars['String']['output'];
   projectId: Scalars['String']['output'];
   query: Scalars['JSONObject']['output'];
-  /** For packages: the project ruleset this was created from (null if ad-hoc or ruleset deleted) */
-  sourceRuleset?: Maybe<Insight>;
   /** The template this insight was created from (null if ad-hoc or template deleted) */
   template?: Maybe<InsightTemplate>;
   /** Which template version was snapshotted at creation/last sync */
@@ -2448,15 +2152,6 @@ export type InsightVersion = {
   updatedAt: Scalars['DateTime']['output'];
   updatedBy?: Maybe<Scalars['String']['output']>;
   version: Scalars['Int']['output'];
-};
-
-/** Integration info resolved from static config */
-export type Integration = {
-  __typename?: 'Integration';
-  description?: Maybe<Scalars['String']['output']>;
-  logo?: Maybe<Scalars['String']['output']>;
-  name: Scalars['String']['output'];
-  slug: Scalars['ID']['output'];
 };
 
 export type InvitableCollaboratorsFilter = {
@@ -2955,25 +2650,8 @@ export type MarkReceivedVersionInput = {
   withSharedToken?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type MigrateLegacySyncInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-export type MigrateProjectInput = {
-  /** Optional cap on the number of versions to enqueue. Server-side max is 5000. */
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  projectId: Scalars['ID']['input'];
-};
-
-export type MigrateVersionInput = {
-  projectId: Scalars['ID']['input'];
-  versionId: Scalars['ID']['input'];
-};
-
 export type Model = {
   __typename?: 'Model';
-  /** @deprecated Use Model.sync instead. */
   accSyncItem?: Maybe<AccSyncItem>;
   author?: Maybe<LimitedUser>;
   automationsStatus?: Maybe<TriggeredAutomationsStatus>;
@@ -3002,7 +2680,6 @@ export type Model = {
   projectId: Scalars['String']['output'];
   /** The resourceIdString to use when building links to this model in the viewer. Takes home view settings into account. */
   resourceIdString: Scalars['String']['output'];
-  sync?: Maybe<Sync>;
   updatedAt: Scalars['DateTime']['output'];
   /** Get all file uploads ever done in this model */
   uploads: FileUploadCollection;
@@ -3142,8 +2819,7 @@ export enum ModelIngestionHandlerType {
   AutomateFileUpload = 'automateFileUpload',
   ClientSide = 'clientSide',
   DataUpload = 'dataUpload',
-  FileUpload = 'fileUpload',
-  ProjectWise = 'projectWise'
+  FileUpload = 'fileUpload'
 }
 
 export type ModelIngestionHistory = {
@@ -3151,20 +2827,6 @@ export type ModelIngestionHistory = {
   cursor?: Maybe<Scalars['String']['output']>;
   items: Array<ModelIngestion>;
   totalCount: Scalars['Int']['output'];
-};
-
-export type ModelIngestionInvalidInput = {
-  ingestionId: Scalars['ID']['input'];
-  projectId: Scalars['ID']['input'];
-  validationMessage: Scalars['String']['input'];
-  validationOptions?: InputMaybe<Scalars['JSONObject']['input']>;
-};
-
-export type ModelIngestionInvalidStatus = HasModelIngestionStatus & {
-  __typename?: 'ModelIngestionInvalidStatus';
-  status: ModelIngestionStatus;
-  validationMessage: Scalars['String']['output'];
-  validationOptions?: Maybe<Scalars['JSONObject']['output']>;
 };
 
 export type ModelIngestionProcessingStatus = HasModelIngestionStatus & HasProgressMessage & {
@@ -3207,14 +2869,12 @@ export type ModelIngestionStartProcessingInput = {
 export enum ModelIngestionStatus {
   Cancelled = 'cancelled',
   Failed = 'failed',
-  InvalidInput = 'invalidInput',
   Processing = 'processing',
   Queued = 'queued',
-  Success = 'success',
-  Timeout = 'timeout'
+  Success = 'success'
 }
 
-export type ModelIngestionStatusData = ModelIngestionCancelledStatus | ModelIngestionFailedStatus | ModelIngestionInvalidStatus | ModelIngestionProcessingStatus | ModelIngestionQueuedStatus | ModelIngestionSuccessStatus;
+export type ModelIngestionStatusData = ModelIngestionCancelledStatus | ModelIngestionFailedStatus | ModelIngestionProcessingStatus | ModelIngestionQueuedStatus | ModelIngestionSuccessStatus;
 
 export type ModelIngestionSuccessInput = {
   ingestionId: Scalars['ID']['input'];
@@ -3308,23 +2968,11 @@ export type Mutation = {
   __typename?: 'Mutation';
   /** The void stares back. */
   _?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use Mutation.syncMutations instead. */
   accSyncItemMutations: AccSyncItemMutations;
   /** Various Active User oriented mutations */
   activeUserMutations: ActiveUserMutations;
   admin: AdminMutations;
   adminDeleteUser: Scalars['Boolean']['output'];
-  aiChatMutations: AiChatMutations;
-  /**
-   * Mutations callable without authentication, scoped to anonymous AI
-   * chat: pre-turn quota gate, parallelism lock release, and token-event
-   * recording for anonymous turns.
-   *
-   * This container exists separately from `aiChatMutations` (which is
-   * guarded by `@hasServerRole(SERVER_GUEST)`) because anonymous users
-   * have no auth token by definition.
-   */
-  aiChatPublicMutations: AiChatPublicMutations;
   /** Creates an personal api token. */
   apiTokenCreate: Scalars['String']['output'];
   /** Revokes (deletes) an personal api token/app token. */
@@ -3432,7 +3080,6 @@ export type Mutation = {
    * @deprecated Part of the old API surface and will be removed in the future. Use ProjectMutations.update instead.
    */
   streamUpdate: Scalars['Boolean']['output'];
-  syncMutations: SyncMutations;
   /** Delete a user's account. */
   userDelete: Scalars['Boolean']['output'];
   userNotificationPreferencesUpdate?: Maybe<Scalars['Boolean']['output']>;
@@ -3862,9 +3509,7 @@ export type Price = {
 
 export type Project = {
   __typename?: 'Project';
-  /** @deprecated Use Project.sync instead. */
   accSyncItem: AccSyncItem;
-  /** @deprecated Use Project.syncs instead. The generic syncs API supersedes the ACC-specific sync-items surface. */
   accSyncItems: AccSyncItemCollection;
   allowPublicComments: Scalars['Boolean']['output'];
   /** List of allowed assignees for this issue */
@@ -3910,8 +3555,6 @@ export type Project = {
   issuePrefix: Scalars['String']['output'];
   /** List issues for this project */
   issues: IssueCollection;
-  /** Project labels assigned to this project */
-  labels: Array<WorkspaceProjectLabel>;
   /** Limited workspace records that exposes public data projects workspaces. */
   limitedWorkspace?: Maybe<LimitedWorkspace>;
   /** Returns a specific model by its ID */
@@ -3947,8 +3590,6 @@ export type Project = {
   shareTokens: ShareTokenCollection;
   /** Source apps used in any models of this project */
   sourceApps: Array<Scalars['String']['output']>;
-  sync: Sync;
-  syncs: SyncCollection;
   team: Array<ProjectCollaborator>;
   ungroupedViewGroup: SavedViewGroup;
   updatedAt: Scalars['DateTime']['output'];
@@ -4148,18 +3789,6 @@ export type ProjectShareTokensArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<ProjectShareTokensFilter>;
   limit?: Scalars['Int']['input'];
-};
-
-
-export type ProjectSyncArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type ProjectSyncsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  integration?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -4587,7 +4216,6 @@ export type ProjectModelIngestionMutations = {
   create: ModelIngestion;
   failWithCancel: ModelIngestion;
   failWithError: ModelIngestion;
-  failWithInvalid: ModelIngestion;
   requestCancellation: ModelIngestion;
   requeue: ModelIngestion;
   /**
@@ -4616,11 +4244,6 @@ export type ProjectModelIngestionMutationsFailWithCancelArgs = {
 
 export type ProjectModelIngestionMutationsFailWithErrorArgs = {
   input: ModelIngestionFailedInput;
-};
-
-
-export type ProjectModelIngestionMutationsFailWithInvalidArgs = {
-  input: ModelIngestionInvalidInput;
 };
 
 
@@ -4742,7 +4365,6 @@ export type ProjectMutations = {
   unarchive: Project;
   /** Updates an existing project */
   update: Project;
-  updateLabels: Project;
   /** Update role for a collaborator */
   updateRole: Project;
 };
@@ -4804,11 +4426,6 @@ export type ProjectMutationsUpdateArgs = {
 };
 
 
-export type ProjectMutationsUpdateLabelsArgs = {
-  input: UpdateProjectLabelsInput;
-};
-
-
 export type ProjectMutationsUpdateRoleArgs = {
   input: ProjectUpdateRoleInput;
 };
@@ -4856,7 +4473,6 @@ export type ProjectPermissionChecks = {
   canCreateResourceMeta: PermissionCheckResult;
   canCreateSavedView: PermissionCheckResult;
   canDelete: PermissionCheckResult;
-  canDeleteResourceMeta: PermissionCheckResult;
   canInvite: PermissionCheckResult;
   canLeave: PermissionCheckResult;
   canListAutomations: PermissionCheckResult;
@@ -4879,7 +4495,6 @@ export type ProjectPermissionChecks = {
   canUnarchive: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
-  canUpdateResourceMeta: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
 };
@@ -4961,19 +4576,6 @@ export type ProjectShareTokensFilter = {
   createdByUserId?: InputMaybe<Scalars['String']['input']>;
   sourceType?: InputMaybe<ShareSourceType>;
 };
-
-export type ProjectSyncsUpdatedMessage = {
-  __typename?: 'ProjectSyncsUpdatedMessage';
-  id: Scalars['String']['output'];
-  sync?: Maybe<Sync>;
-  type: ProjectSyncsUpdatedMessageType;
-};
-
-export enum ProjectSyncsUpdatedMessageType {
-  Created = 'CREATED',
-  Deleted = 'DELETED',
-  Updated = 'UPDATED'
-}
 
 export type ProjectTestAutomationCreateInput = {
   modelId: Scalars['String']['input'];
@@ -5061,170 +4663,6 @@ export enum ProjectVisibility {
   Workspace = 'WORKSPACE'
 }
 
-export type ProjectWiseFile = {
-  __typename?: 'ProjectWiseFile';
-  displayName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  lastModifiedByDisplayName?: Maybe<Scalars['String']['output']>;
-  lastModifiedDateTime?: Maybe<Scalars['String']['output']>;
-  path?: Maybe<Scalars['String']['output']>;
-  size?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ProjectWiseFileCollection = {
-  __typename?: 'ProjectWiseFileCollection';
-  items: Array<ProjectWiseFile>;
-};
-
-export type ProjectWiseFolder = {
-  __typename?: 'ProjectWiseFolder';
-  /** Sub-folders within this folder */
-  children: ProjectWiseFolderCollection;
-  displayName: Scalars['String']['output'];
-  /** Files within this folder */
-  files: ProjectWiseFileCollection;
-  id: Scalars['ID']['output'];
-  path?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectWiseFolderCollection = {
-  __typename?: 'ProjectWiseFolderCollection';
-  items: Array<ProjectWiseFolder>;
-};
-
-export type ProjectWiseIntegration = {
-  __typename?: 'ProjectWiseIntegration';
-  folder: ProjectWiseFolder;
-  iTwin: ProjectWiseiTwin;
-  iTwins: ProjectWiseiTwinCollection;
-  /**
-   * Resolve a ProjectWise Design Integration folder by id, scoped to a specific
-   * Work Area Connection (via its `url`).
-   */
-  pwdiFolder: ProjectWisePwdiFolder;
-};
-
-
-export type ProjectWiseIntegrationFolderArgs = {
-  folderId: Scalars['String']['input'];
-};
-
-
-export type ProjectWiseIntegrationITwinArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type ProjectWiseIntegrationPwdiFolderArgs = {
-  connectionUrl: Scalars['String']['input'];
-  folderId: Scalars['String']['input'];
-};
-
-export type ProjectWiseItemCollection = {
-  __typename?: 'ProjectWiseItemCollection';
-  items: Array<ProjectWiseStorageItem>;
-};
-
-export type ProjectWisePwdiFile = {
-  __typename?: 'ProjectWisePwdiFile';
-  connectionUrl: Scalars['String']['output'];
-  displayName: Scalars['String']['output'];
-  fileName?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  lastModifiedByDisplayName?: Maybe<Scalars['String']['output']>;
-  lastModifiedDateTime?: Maybe<Scalars['String']['output']>;
-  size?: Maybe<Scalars['Int']['output']>;
-};
-
-export type ProjectWisePwdiFileCollection = {
-  __typename?: 'ProjectWisePwdiFileCollection';
-  items: Array<ProjectWisePwdiFile>;
-};
-
-/**
- * A folder inside a ProjectWise Design Integration work area (browsed via WSG).
- * Mirrors `ProjectWiseFolder` but keyed to a specific Work Area Connection url.
- */
-export type ProjectWisePwdiFolder = {
-  __typename?: 'ProjectWisePwdiFolder';
-  children: ProjectWisePwdiFolderCollection;
-  connectionUrl: Scalars['String']['output'];
-  displayName: Scalars['String']['output'];
-  files: ProjectWisePwdiFileCollection;
-  id: Scalars['ID']['output'];
-};
-
-export type ProjectWisePwdiFolderCollection = {
-  __typename?: 'ProjectWisePwdiFolderCollection';
-  items: Array<ProjectWisePwdiFolder>;
-};
-
-/** Mixed collection of folders and files (used for top-level iTwin contents) */
-export type ProjectWiseStorageItem = {
-  __typename?: 'ProjectWiseStorageItem';
-  displayName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  lastModifiedDateTime?: Maybe<Scalars['String']['output']>;
-  path?: Maybe<Scalars['String']['output']>;
-  size?: Maybe<Scalars['Int']['output']>;
-  type: Scalars['String']['output'];
-};
-
-export type ProjectWiseWorkAreaConnection = {
-  __typename?: 'ProjectWiseWorkAreaConnection';
-  description?: Maybe<Scalars['String']['output']>;
-  displayName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  /**
-   * Root folder for a Pwdi connection. Null for Documents connections (use the
-   * iTwin's `items` field for Documents browsing).
-   */
-  rootFolder?: Maybe<ProjectWisePwdiFolder>;
-  type: ProjectWiseWorkAreaConnectionType;
-  /**
-   * Backend URL for this connection. For Pwdi, this is the WSG endpoint used to
-   * browse folders/files within the work area.
-   */
-  url: Scalars['String']['output'];
-  workAreaName?: Maybe<Scalars['String']['output']>;
-};
-
-export type ProjectWiseWorkAreaConnectionCollection = {
-  __typename?: 'ProjectWiseWorkAreaConnectionCollection';
-  items: Array<ProjectWiseWorkAreaConnection>;
-};
-
-/**
- * The backing storage for a Work Area Connection.
- * - Documents: iTwin Storage (the "Share" panel)
- * - Pwdi: ProjectWise Design Integration work area (the "ProjectWise Web" panel)
- */
-export enum ProjectWiseWorkAreaConnectionType {
-  Documents = 'Documents',
-  Pwdi = 'Pwdi'
-}
-
-export type ProjectWiseiTwin = {
-  __typename?: 'ProjectWiseiTwin';
-  displayName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  /** Top-level folders and files for this iTwin project (iTwin Storage / "Share") */
-  items: ProjectWiseItemCollection;
-  number?: Maybe<Scalars['String']['output']>;
-  status?: Maybe<Scalars['String']['output']>;
-  /**
-   * ProjectWise Work Area Connections linked to this iTwin. Each connection exposes
-   * either iTwin Storage ("Documents" type, same backing store as `items`) or a
-   * ProjectWise Design Integration work area ("Pwdi" type, browsed via WSG).
-   */
-  workAreaConnections: ProjectWiseWorkAreaConnectionCollection;
-};
-
-export type ProjectWiseiTwinCollection = {
-  __typename?: 'ProjectWiseiTwinCollection';
-  items: Array<ProjectWiseiTwin>;
-};
-
 export type PropagationResult = {
   __typename?: 'PropagationResult';
   failed: Scalars['Int']['output'];
@@ -5258,17 +4696,6 @@ export type Query = {
    * @deprecated use admin.UserList instead
    */
   adminUsers?: Maybe<AdminUsersListCollection>;
-  /**
-   * Get a single AI chat conversation by ID. Only accessible to its owner.
-   * Returns full message content. `workspaceId` is required for region routing
-   * and authorization; `projectId` narrows when the conversation is project-bound.
-   */
-  aiConversation?: Maybe<AiConversation>;
-  /**
-   * Workspace × month × model token usage rollup. Tokens only — caller
-   * computes USD via the in-code pricing book. Admin-only.
-   */
-  aiTokenWorkspaceMonthly: Array<AiTokenMonthlyRow>;
   /** Gets a specific app from the server. */
   app?: Maybe<ServerApp>;
   /**
@@ -5296,13 +4723,6 @@ export type Query = {
   insightTemplate?: Maybe<InsightTemplate>;
   /** List all insights tracking a specific model */
   modelInsights: Array<Insight>;
-  /**
-   * List the current user's AI chat conversations within a workspace (and
-   * optionally a project). Returns summary rows (no `messages` payload) for
-   * cheap history rendering. Pass the cursor from the previous response to
-   * page further back.
-   */
-  myAiConversations: AiConversationCollection;
   /** Get the (limited) profile information of another server user */
   otherUser?: Maybe<LimitedUser>;
   permissions: RootPermissionChecks;
@@ -5325,11 +4745,6 @@ export type Query = {
   serverInviteByToken?: Maybe<ServerInvite>;
   /** @deprecated use admin.serverStatistics instead */
   serverStats: ServerStats;
-  /**
-   * Look up a share token by its ID (not its raw token value). Throws if the caller
-   * cannot view it or if the token doesn't exist.
-   */
-  shareTokenById: ShareToken;
   /**
    * Auth-less preflight: check if a share token exists and whether it requires a password.
    * Returns null for unknown, revoked, or expired tokens — a non-null response means the token is valid.
@@ -5414,20 +4829,6 @@ export type QueryAdminUsersArgs = {
 };
 
 
-export type QueryAiConversationArgs = {
-  id: Scalars['ID']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type QueryAiTokenWorkspaceMonthlyArgs = {
-  fromMonth?: InputMaybe<Scalars['DateTime']['input']>;
-  toMonth?: InputMaybe<Scalars['DateTime']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-
 export type QueryAppArgs = {
   id: Scalars['String']['input'];
 };
@@ -5480,15 +4881,6 @@ export type QueryModelInsightsArgs = {
 };
 
 
-export type QueryMyAiConversationsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  surface?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-
 export type QueryOtherUserArgs = {
   id: Scalars['String']['input'];
 };
@@ -5529,11 +4921,6 @@ export type QueryResourceMetaSearchArgs = {
 
 export type QueryServerInviteByTokenArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryShareTokenByIdArgs = {
-  id: Scalars['String']['input'];
 };
 
 
@@ -5626,11 +5013,6 @@ export type QueryWorkspaceSsoByEmailArgs = {
   email: Scalars['String']['input'];
 };
 
-export type ReleaseAnonTurnInput = {
-  anonUserHash: Scalars['String']['input'];
-  lockToken: Scalars['String']['input'];
-};
-
 export type RemoveWorkspaceDomainInput = {
   domainId: Scalars['ID']['input'];
   workspaceId: Scalars['ID']['input'];
@@ -5645,7 +5027,6 @@ export type RequestWorkspaceSupportAccessInput = {
 export type ResourceAccessRule = {
   __typename?: 'ResourceAccessRule';
   modelId?: Maybe<Scalars['String']['output']>;
-  project?: Maybe<Project>;
   projectId?: Maybe<Scalars['String']['output']>;
   type: ResourceAccessRuleType;
   versionId?: Maybe<Scalars['String']['output']>;
@@ -5682,23 +5063,11 @@ export type ResourceMeta = {
 export type ResourceMetaMutations = {
   __typename?: 'ResourceMetaMutations';
   create: ResourceMeta;
-  delete: Scalars['Boolean']['output'];
-  update: ResourceMeta;
 };
 
 
 export type ResourceMetaMutationsCreateArgs = {
   input: CreateResourceMetaInput;
-};
-
-
-export type ResourceMetaMutationsDeleteArgs = {
-  input: DeleteResourceMetaInput;
-};
-
-
-export type ResourceMetaMutationsUpdateArgs = {
-  input: UpdateResourceMetaInput;
 };
 
 export enum ResourceMetaType {
@@ -6212,21 +5581,6 @@ export type SetPrimaryUserEmailInput = {
   id: Scalars['ID']['input'];
 };
 
-export type SetSyncActiveInput = {
-  active: Scalars['Boolean']['input'];
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-export type SetWorkspaceSsoMinimumRoleInput = {
-  /**
-   * Raw workspace role value, e.g. "workspace:member". Members at or above this role (by
-   * weight) are forced to maintain an active SSO session.
-   */
-  minimumSsoRole: Scalars['String']['input'];
-  workspaceId: Scalars['ID']['input'];
-};
-
 export enum ShareSourceType {
   Dashboard = 'dashboard',
   Embed = 'embed',
@@ -6242,8 +5596,6 @@ export type ShareToken = {
   id: Scalars['String']['output'];
   label?: Maybe<Scalars['String']['output']>;
   lastUsed?: Maybe<Scalars['DateTime']['output']>;
-  /** Version-load activity attributed to this token. */
-  loadActivity: ShareTokenLoadActivity;
   permissions: ShareTokenPermissionChecks;
   resourceAccessRules: Array<ResourceAccessRule>;
   sourceId: Scalars['String']['output'];
@@ -6259,38 +5611,6 @@ export type ShareTokenCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/**
- * Version-load activity scoped to a single share token. Wraps a paginated list
- * of generic `VersionLoad` events plus a time-bucketed timeline of counts.
- */
-export type ShareTokenLoadActivity = {
-  __typename?: 'ShareTokenLoadActivity';
-  loads: VersionLoadCollection;
-  /**
-   * Time-bucketed load counts for this token. Currently returns daily buckets
-   * for the last 30 days; future iterations may parameterize range/granularity.
-   * Days with zero loads are omitted — clients should backfill zeros for
-   * visualization.
-   */
-  timeline: Array<ShareTokenLoadBucket>;
-};
-
-
-/**
- * Version-load activity scoped to a single share token. Wraps a paginated list
- * of generic `VersionLoad` events plus a time-bucketed timeline of counts.
- */
-export type ShareTokenLoadActivityLoadsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: Scalars['Int']['input'];
-};
-
-export type ShareTokenLoadBucket = {
-  __typename?: 'ShareTokenLoadBucket';
-  count: Scalars['Int']['output'];
-  day: Scalars['DateTime']['output'];
-};
-
 export type ShareTokenPermissionChecks = {
   __typename?: 'ShareTokenPermissionChecks';
   canRevoke: PermissionCheckResult;
@@ -6304,7 +5624,6 @@ export type SharingMutations = {
   createPresentationShareToken: ShareToken;
   revokeProjectShareTokens: Scalars['Boolean']['output'];
   revokeShareToken: Scalars['Boolean']['output'];
-  revokeWorkspaceShareTokens: Scalars['Boolean']['output'];
   updateShareToken: ShareToken;
 };
 
@@ -6332,12 +5651,6 @@ export type SharingMutationsRevokeProjectShareTokensArgs = {
 
 export type SharingMutationsRevokeShareTokenArgs = {
   tokenId: Scalars['String']['input'];
-};
-
-
-export type SharingMutationsRevokeWorkspaceShareTokensArgs = {
-  sourceType?: InputMaybe<ShareSourceType>;
-  workspaceId: Scalars['String']['input'];
 };
 
 
@@ -6386,18 +5699,6 @@ export type SourceDataInput = {
   fileSizeBytes?: InputMaybe<Scalars['BigInt']['input']>;
   sourceApplicationSlug: Scalars['String']['input'];
   sourceApplicationVersion: Scalars['String']['input'];
-};
-
-export type StartAnonTurnInput = {
-  anonUserHash: Scalars['String']['input'];
-};
-
-export type StartAnonTurnResult = {
-  __typename?: 'StartAnonTurnResult';
-  lockToken: Scalars['String']['output'];
-  tokensRemaining: Scalars['Int']['output'];
-  tokensUsedWindow: Scalars['Int']['output'];
-  windowResetsAt: Scalars['DateTime']['output'];
 };
 
 export type StartFileImportInput = {
@@ -6635,10 +5936,7 @@ export type Subscription = {
    * Note: Only works in test environment
    */
   ping: Scalars['String']['output'];
-  /**
-   * Subscribe to changes to a project's sync items. Optionally specify lineage urns to subscribe to.
-   * @deprecated Use Subscription.projectSyncsUpdated instead. Covers every integration, not just ACC.
-   */
+  /** Subscribe to changes to a project's sync items. Optionally specify lineage urns to subscribe to. */
   projectAccSyncItemsUpdated: ProjectAccSyncItemsUpdatedMessage;
   /** Subscribe to updates to automations in the project */
   projectAutomationsUpdated: ProjectAutomationsUpdatedMessage;
@@ -6666,8 +5964,6 @@ export type Subscription = {
   projectSavedViewGroupsUpdated: ProjectSavedViewGroupsUpdatedMessage;
   /** Subscribe to changes to a project's saved views. */
   projectSavedViewsUpdated: ProjectSavedViewsUpdatedMessage;
-  /** Subscribe to changes to a project's syncs. */
-  projectSyncsUpdated: ProjectSyncsUpdatedMessage;
   /** Subscribe to updates to any triggered automations statuses in the project */
   projectTriggeredAutomationsStatusUpdated: ProjectTriggeredAutomationsStatusUpdatedMessage;
   /** Track updates to a specific project */
@@ -6813,12 +6109,6 @@ export type SubscriptionProjectSavedViewsUpdatedArgs = {
 };
 
 
-export type SubscriptionProjectSyncsUpdatedArgs = {
-  id: Scalars['String']['input'];
-  itemIds?: InputMaybe<Array<Scalars['String']['input']>>;
-};
-
-
 export type SubscriptionProjectTriggeredAutomationsStatusUpdatedArgs = {
   projectId: Scalars['String']['input'];
 };
@@ -6874,139 +6164,6 @@ export type SubscriptionWorkspaceSupportSessionUpdatedArgs = {
 export type SubscriptionWorkspaceUpdatedArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
   workspaceSlug?: InputMaybe<Scalars['String']['input']>;
-};
-
-/**
- * A Sync subscribes a CDE file to a Speckle model. Executions (runs) of a Sync
- * are represented by the SyncItem type; `latestItem` and `history` expose them.
- * `latestItemContext` and `modelIngestion` are convenience proxies for the
- * latest execution — prefer reading via `latestItem` for new code.
- */
-export type Sync = {
-  __typename?: 'Sync';
-  /**
-   * Whether this sync is active. When false, new executions are not triggered
-   * on file changes. Toggled by pause/resume mutations.
-   */
-  active: Scalars['Boolean']['output'];
-  author?: Maybe<LimitedUser>;
-  /** Static CDE config (region, hubId, lineageUrn, etc.) */
-  context?: Maybe<Scalars['JSONObject']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  fileExtension: Scalars['String']['output'];
-  fileFolderPath?: Maybe<Array<Scalars['String']['output']>>;
-  fileId: Scalars['String']['output'];
-  fileName: Scalars['String']['output'];
-  fileParentFolderId?: Maybe<Scalars['String']['output']>;
-  /** Paginated history of sync executions (newest first) */
-  history: SyncItemCollection;
-  id: Scalars['ID']['output'];
-  integration: Integration;
-  /** Latest sync execution (same row surfaced via proxy fields above) */
-  latestItem?: Maybe<SyncItem>;
-  /** Version-specific context from the latest sync execution */
-  latestItemContext?: Maybe<Scalars['JSONObject']['output']>;
-  model: Model;
-  /**
-   * Model ingestion record for the latest sync execution, if any.
-   * Exposes queued/processing/success/failed/cancelled status with progress.
-   */
-  modelIngestion?: Maybe<ModelIngestion>;
-  project: Project;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-
-/**
- * A Sync subscribes a CDE file to a Speckle model. Executions (runs) of a Sync
- * are represented by the SyncItem type; `latestItem` and `history` expose them.
- * `latestItemContext` and `modelIngestion` are convenience proxies for the
- * latest execution — prefer reading via `latestItem` for new code.
- */
-export type SyncHistoryArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-export type SyncCollection = {
-  __typename?: 'SyncCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<Sync>;
-  totalCount: Scalars['Int']['output'];
-};
-
-/**
- * A single sync execution — one run that downloads a file version from the CDE
- * and ingests it into Speckle. Executions accumulate per Sync and form its history.
- */
-export type SyncItem = {
-  __typename?: 'SyncItem';
-  blobId?: Maybe<Scalars['String']['output']>;
-  /** Version-specific context captured at execution time (fileAuthorName, versionNumber, etc.) */
-  context?: Maybe<Scalars['JSONObject']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['ID']['output'];
-  /**
-   * Model ingestion record for this execution, if any. Use this for the
-   * authoritative execution state — the sync-item row itself no longer
-   * carries a status.
-   */
-  modelIngestion?: Maybe<ModelIngestion>;
-  modelIngestionId: Scalars['String']['output'];
-  syncId: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type SyncItemCollection = {
-  __typename?: 'SyncItemCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<SyncItem>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type SyncMutations = {
-  __typename?: 'SyncMutations';
-  create: Sync;
-  delete: Scalars['Boolean']['output'];
-  /**
-   * Promote a legacy ACC sync (still in `acc_sync_items`) into the new `syncs`
-   * schema. Surfaced as a user-facing button so people don't have to wait for
-   * the next ACC webhook for trigger-now / pause / edit to work. The lazy
-   * migration that fires on real webhooks does the same job; this is just the
-   * explicit version. Syncs already in the new schema return as-is.
-   */
-  migrateLegacy: Sync;
-  /**
-   * Pause or resume a sync. Paused syncs skip polling/webhook-driven executions
-   * and reject `update(..., triggerNow: true)`. In-flight executions finish.
-   */
-  setActive: Sync;
-  update: Sync;
-};
-
-
-export type SyncMutationsCreateArgs = {
-  input: CreateSyncInput;
-};
-
-
-export type SyncMutationsDeleteArgs = {
-  input: DeleteSyncInput;
-};
-
-
-export type SyncMutationsMigrateLegacyArgs = {
-  input: MigrateLegacySyncInput;
-};
-
-
-export type SyncMutationsSetActiveArgs = {
-  input: SetSyncActiveInput;
-};
-
-
-export type SyncMutationsUpdateArgs = {
-  input: UpdateSyncInput;
 };
 
 export type TaxIdData = {
@@ -7111,32 +6268,6 @@ export type UpdateModelInput = {
   projectId: Scalars['ID']['input'];
 };
 
-export type UpdateProjectLabelInput = {
-  description?: InputMaybe<Scalars['String']['input']>;
-  /** Set to null to convert a label into a group */
-  hexColor?: InputMaybe<Scalars['String']['input']>;
-  labelId: Scalars['ID']['input'];
-  name?: InputMaybe<Scalars['String']['input']>;
-  /** Set to null to ungroup a label */
-  parentLabelId?: InputMaybe<Scalars['ID']['input']>;
-  workspaceId: Scalars['ID']['input'];
-};
-
-export type UpdateProjectLabelsInput = {
-  labelIds: Array<Scalars['ID']['input']>;
-  projectId: Scalars['ID']['input'];
-};
-
-export type UpdateResourceMetaInput = {
-  data?: InputMaybe<Scalars['JSON']['input']>;
-  metaType?: InputMaybe<Scalars['String']['input']>;
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  resourceId?: InputMaybe<Scalars['String']['input']>;
-  resourceMetaId: Scalars['ID']['input'];
-  resourceType?: InputMaybe<ResourceMetaType>;
-  workspaceId: Scalars['String']['input'];
-};
-
 export type UpdateSavedViewGroupInput = {
   groupId: Scalars['ID']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
@@ -7178,13 +6309,6 @@ export type UpdateShareTokenInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   label?: InputMaybe<Scalars['String']['input']>;
   password?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type UpdateSyncInput = {
-  context?: InputMaybe<Scalars['JSONObject']['input']>;
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-  triggerNow?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 /** Only non-null values will be updated */
@@ -7684,65 +6808,11 @@ export type VersionCreatedTriggerDefinition = {
   type: AutomateRunTriggerType;
 };
 
-/**
- * A single version-load event — `markVersionReceived` in the API. Generic
- * payload shape; reused across different scoped activity surfaces (e.g.
- * `ShareTokenLoadActivity` today, future per-project / per-workspace surfaces).
- */
-export type VersionLoad = {
-  __typename?: 'VersionLoad';
-  id: Scalars['String']['output'];
-  isEmbed?: Maybe<Scalars['Boolean']['output']>;
-  loadedAt: Scalars['DateTime']['output'];
-  project?: Maybe<Project>;
-  projectId: Scalars['String']['output'];
-  sourceApplication?: Maybe<Scalars['String']['output']>;
-  /**
-   * The user who triggered the load, when the request was authenticated by a
-   * regular session. Null for loads authenticated via a share token — see
-   * `withSharedToken`.
-   */
-  user?: Maybe<LimitedUser>;
-  version?: Maybe<Version>;
-  versionId: Scalars['String']['output'];
-  /**
-   * True when this load was authenticated by a share token (as opposed to a
-   * regular authenticated session). When true, `user` is null because the
-   * actual loader is anonymous — the request was authenticated as the share
-   * token's owner, not as the loader.
-   */
-  withSharedToken?: Maybe<Scalars['Boolean']['output']>;
-};
-
-/**
- * Paginated collection of `VersionLoad` events. Returned by scope-specific
- * activity wrappers (e.g. `ShareTokenLoadActivity.loads`).
- */
-export type VersionLoadCollection = {
-  __typename?: 'VersionLoadCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<VersionLoad>;
-  totalCount: Scalars['Int']['output'];
-};
-
 export type VersionMutations = {
   __typename?: 'VersionMutations';
   create: Version;
   delete: Scalars['Boolean']['output'];
   markReceived: Scalars['Boolean']['output'];
-  /**
-   * Re-enqueue a legacy version for packfile/EAV migration. Idempotent: returns
-   * true even if the version is already migrated. Requires contributor-level
-   * access on the project.
-   */
-  migrate: Scalars['Boolean']['output'];
-  /**
-   * Re-enqueue all unmigrated legacy versions in a project for packfile/EAV
-   * migration, newest first. Returns the number of jobs enqueued. Capped at 5000
-   * per call (use the CLI for larger batches). Requires owner-level access on
-   * the project.
-   */
-  migrateProject: Scalars['Int']['output'];
   moveToModel: Model;
   update: Version;
 };
@@ -7760,16 +6830,6 @@ export type VersionMutationsDeleteArgs = {
 
 export type VersionMutationsMarkReceivedArgs = {
   input: MarkReceivedVersionInput;
-};
-
-
-export type VersionMutationsMigrateArgs = {
-  input: MigrateVersionInput;
-};
-
-
-export type VersionMutationsMigrateProjectArgs = {
-  input: MigrateProjectInput;
 };
 
 
@@ -8013,14 +7073,11 @@ export type Workspace = {
    * Internal API — may change without notice.
    */
   projectActivityTimeline?: Maybe<WorkspaceProjectActivityTimelineResult>;
-  /** List all project labels defined for this workspace */
-  projectLabels: WorkspaceProjectLabelCollection;
   projects: ProjectCollection;
   /** A Workspace is marked as readOnly if its trial period is finished or a paid plan is subscribed but payment has failed */
   readOnly: Scalars['Boolean']['output'];
   /** Active user's role for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   role?: Maybe<Scalars['String']['output']>;
-  scim?: Maybe<WorkspaceScimConfig>;
   /** Active user's seat type for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   seatType?: Maybe<WorkspaceSeatType>;
   seats?: Maybe<WorkspaceSubscriptionSeats>;
@@ -8079,11 +7136,6 @@ export type WorkspaceIssueLabelsArgs = {
 
 export type WorkspaceProjectActivityTimelineArgs = {
   input: WorkspaceProjectActivityTimelineInput;
-};
-
-
-export type WorkspaceProjectLabelsArgs = {
-  input: WorkspaceProjectLabelsInput;
 };
 
 
@@ -8217,9 +7269,7 @@ export type WorkspaceFeatureGrantUpdateInput = {
 
 export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
-  AiChat = 'aiChat',
   Automate = 'automate',
-  BentleyIntegration = 'bentleyIntegration',
   /** @deprecated Use projectDashboards instead. Value will be dropped after July 19, 2026. */
   Dashboards = 'dashboards',
   DashboardsExperimental = 'dashboardsExperimental',
@@ -8241,7 +7291,6 @@ export enum WorkspaceFeatureName {
   ProjectArchival = 'projectArchival',
   ProjectDashboards = 'projectDashboards',
   SavedViews = 'savedViews',
-  Scim2Provisioning = 'scim2Provisioning',
   Viewer3 = 'viewer3',
   ViewerTable = 'viewerTable',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
@@ -8261,16 +7310,10 @@ export type WorkspaceIdentifier = {
 export type WorkspaceIntegrations = {
   __typename?: 'WorkspaceIntegrations';
   acc?: Maybe<AccIntegration>;
-  projectWise?: Maybe<ProjectWiseIntegration>;
 };
 
 
 export type WorkspaceIntegrationsAccArgs = {
-  token?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type WorkspaceIntegrationsProjectWiseArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -8479,25 +7522,15 @@ export type WorkspaceMutations = {
   deleteSsoProvider: Scalars['Boolean']['output'];
   /** Revoke the SSO session for a specific user in a workspace. Only workspace admins can perform this action. */
   deleteSsoSession: Scalars['Boolean']['output'];
-  disableScim: Scalars['Boolean']['output'];
   /** Dismiss a workspace from the discoverable list, behind the scene a join request is created with the status "dismissed" */
   dismiss: Scalars['Boolean']['output'];
-  enableScim: WorkspaceScimTokenResult;
   invites: WorkspaceInviteMutations;
   issueLabels: WorkspaceIssueLabelMutations;
   leave: Scalars['Boolean']['output'];
-  projectLabels: WorkspaceProjectLabelMutations;
   projects: WorkspaceProjectMutations;
-  regenerateScimToken: WorkspaceScimTokenResult;
   requestToJoin: Scalars['Boolean']['output'];
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
-  /**
-   * Set the minimum workspace role (by weight) at or above which an active SSO session is
-   * forced. Accepts a raw workspace role value (e.g. "workspace:member"). Requires an SSO
-   * provider to already be configured for the workspace.
-   */
-  setWorkspaceSsoMinimumRole: Scalars['Boolean']['output'];
   /** Support session management mutations */
   support: WorkspaceSupportMutations;
   update: Workspace;
@@ -8542,28 +7575,13 @@ export type WorkspaceMutationsDeleteSsoSessionArgs = {
 };
 
 
-export type WorkspaceMutationsDisableScimArgs = {
-  workspaceId: Scalars['String']['input'];
-};
-
-
 export type WorkspaceMutationsDismissArgs = {
   input: WorkspaceDismissInput;
 };
 
 
-export type WorkspaceMutationsEnableScimArgs = {
-  input: EnableWorkspaceScimInput;
-};
-
-
 export type WorkspaceMutationsLeaveArgs = {
   id: Scalars['ID']['input'];
-};
-
-
-export type WorkspaceMutationsRegenerateScimTokenArgs = {
-  workspaceId: Scalars['String']['input'];
 };
 
 
@@ -8575,11 +7593,6 @@ export type WorkspaceMutationsRequestToJoinArgs = {
 export type WorkspaceMutationsSetDefaultRegionArgs = {
   regionKey: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceMutationsSetWorkspaceSsoMinimumRoleArgs = {
-  input: SetWorkspaceSsoMinimumRoleInput;
 };
 
 
@@ -8633,8 +7646,6 @@ export type WorkspacePermissionChecks = {
   canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
   canAccessViewer3: PermissionCheckResult;
-  /** Whether the current user can add additional server admins to their currently-active support session in this workspace. */
-  canAddAdminToSupportSession: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
@@ -8643,7 +7654,6 @@ export type WorkspacePermissionChecks = {
   canDeleteSsoSession: PermissionCheckResult;
   canEditEmbedOptions: PermissionCheckResult;
   canEditWorkspaceIssueLabels: PermissionCheckResult;
-  canEditWorkspaceProjectLabels: PermissionCheckResult;
   canInvite: PermissionCheckResult;
   canLeave: PermissionCheckResult;
   canListDashboards: PermissionCheckResult;
@@ -8652,11 +7662,9 @@ export type WorkspacePermissionChecks = {
   canManageDomainBasedSecurityPolicies: PermissionCheckResult;
   canManageInvites: PermissionCheckResult;
   canManageJoinRequests: PermissionCheckResult;
-  canManageScim: PermissionCheckResult;
   canManageSso: PermissionCheckResult;
   /** Whether the current user can approve/manage support sessions (workspace admins only) */
   canManageSupportSessions: PermissionCheckResult;
-  canManageVerifiedDomains: PermissionCheckResult;
   canMoveProjectToWorkspace: PermissionCheckResult;
   canReadAutomateFunctions: PermissionCheckResult;
   canReadAutomateSettings: PermissionCheckResult;
@@ -8671,34 +7679,15 @@ export type WorkspacePermissionChecks = {
   /** Whether the current user can read/list support sessions for this workspace */
   canReadSupportSessions: PermissionCheckResult;
   canReadWorkspaceIssueLabels: PermissionCheckResult;
-  canReadWorkspaceProjectLabels: PermissionCheckResult;
   canRejectJoinRequest: PermissionCheckResult;
   canRemoveUser: PermissionCheckResult;
   /** Whether the current user can request support access to this workspace (server admins only) */
   canRequestSupportAccess: PermissionCheckResult;
   canResendInvite: PermissionCheckResult;
-  canRevokeAllShareTokens: PermissionCheckResult;
-  /**
-   * Whether the current user can revoke a support session in this workspace from the workspace-admin perspective.
-   * Per-session ownership-based revoke (where the session owner self-revokes) is evaluated server-side at mutation time.
-   */
-  canRevokeSupportSession: PermissionCheckResult;
   canSendJoinRequest: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
   canUpgradePlan: PermissionCheckResult;
-  /**
-   * Whether the current user can use the AI chat feature in this workspace.
-   * Two gates compose:
-   *   - Workspace membership (any role from Guest upward) with a valid SSO
-   *     session and write-mode policy semantics.
-   *   - The workspace's plan grants `aiChat`. Default off — operators grant
-   *     per workspace until the public plan story is finalised.
-   * Frontend hides the sidebar entry and `/magic` page when this returns
-   * `authorized: false`. Resolvers in this module gate every operation on
-   * the same policy.
-   */
-  canUseAiChat: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
@@ -8857,77 +7846,6 @@ export type WorkspaceProjectInviteCreateInput = {
   workspaceRole?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type WorkspaceProjectLabel = {
-  __typename?: 'WorkspaceProjectLabel';
-  /** Child labels belonging to this group */
-  children: Array<WorkspaceProjectLabel>;
-  createdAt: Scalars['DateTime']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  /** Null when this row is a group (no color) */
-  hexColor?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  lastUsedAt?: Maybe<Scalars['DateTime']['output']>;
-  name: Scalars['String']['output'];
-  /** Parent group label, null for top-level labels and groups */
-  parent?: Maybe<WorkspaceProjectLabel>;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type WorkspaceProjectLabelCollection = {
-  __typename?: 'WorkspaceProjectLabelCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<WorkspaceProjectLabel>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type WorkspaceProjectLabelMutations = {
-  __typename?: 'WorkspaceProjectLabelMutations';
-  createProjectLabel: WorkspaceProjectLabel;
-  deleteProjectLabel: Scalars['Boolean']['output'];
-  updateProjectLabel: WorkspaceProjectLabel;
-};
-
-
-export type WorkspaceProjectLabelMutationsCreateProjectLabelArgs = {
-  input: CreateProjectLabelInput;
-};
-
-
-export type WorkspaceProjectLabelMutationsDeleteProjectLabelArgs = {
-  input: DeleteProjectLabelInput;
-};
-
-
-export type WorkspaceProjectLabelMutationsUpdateProjectLabelArgs = {
-  input: UpdateProjectLabelInput;
-};
-
-export enum WorkspaceProjectLabelSortBy {
-  LastUsedAt = 'lastUsedAt',
-  Name = 'name'
-}
-
-export type WorkspaceProjectLabelsInput = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Maximum 100
-   * Default: 25
-   */
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  /** Filter by name */
-  search?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Specify the field to sort by.
-   * Default: lastUsedAt
-   */
-  sortBy?: InputMaybe<WorkspaceProjectLabelSortBy>;
-  /**
-   * Specify the sort direction.
-   * Default: desc
-   */
-  sortDirection?: InputMaybe<SortOrder>;
-};
-
 export type WorkspaceProjectMutations = {
   __typename?: 'WorkspaceProjectMutations';
   create: Project;
@@ -8967,8 +7885,6 @@ export type WorkspaceProjectMutationsUpdateRoleArgs = {
 export type WorkspaceProjectsFilter = {
   /** Include archived projects in results. Only respected for workspace admins; silently ignored for non-admins. */
   includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Filter projects by label ids (OR logic — returns projects that have any of the given labels) */
-  labelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Filter out projects by name */
   search?: InputMaybe<Scalars['String']['input']>;
   /** Only return workspace projects that the active user has an explicit project role in */
@@ -9019,20 +7935,6 @@ export type WorkspaceRoleUpdateInput = {
   workspaceId: Scalars['String']['input'];
 };
 
-export type WorkspaceScimConfig = {
-  __typename?: 'WorkspaceScimConfig';
-  baseUrl: Scalars['String']['output'];
-  provisionedUserCount: Scalars['Int']['output'];
-  tokenCreatedAt: Scalars['DateTime']['output'];
-  tokenLastUsedAt?: Maybe<Scalars['DateTime']['output']>;
-};
-
-export type WorkspaceScimTokenResult = {
-  __typename?: 'WorkspaceScimTokenResult';
-  config: WorkspaceScimConfig;
-  token: Scalars['String']['output'];
-};
-
 export type WorkspaceSeatCollection = {
   __typename?: 'WorkspaceSeatCollection';
   totalCount: Scalars['Int']['output'];
@@ -9057,12 +7959,6 @@ export type WorkspaceShareTokensFilter = {
 
 export type WorkspaceSso = {
   __typename?: 'WorkspaceSso';
-  /**
-   * Minimum workspace role (by weight) at or above which an active SSO session is forced.
-   * Raw workspace role value (e.g. "workspace:member"). Defaults to "workspace:member"
-   * (guests bypass SSO).
-   */
-  minimumSsoRole: Scalars['String']['output'];
   /** If null, the workspace does not have SSO configured */
   provider?: Maybe<WorkspaceSsoProvider>;
   session?: Maybe<WorkspaceSsoSession>;
@@ -9128,12 +8024,6 @@ export type WorkspaceSubscriptionSeats = {
 export type WorkspaceSupportMutations = {
   __typename?: 'WorkspaceSupportMutations';
   /**
-   * Add another server admin to the inviter's currently active support session. The new session
-   * is created already active, inherits the inviter's validUntil, and has approvedBy set to the
-   * inviter. Independent of the inviter's session — revoking the inviter does not cascade.
-   */
-  addAdmin: WorkspaceSupportSession;
-  /**
    * Approve a pending support access request. Only workspace admins can approve.
    * Activates the session and notifies the requesting server admin.
    */
@@ -9148,11 +8038,6 @@ export type WorkspaceSupportMutations = {
    * Can be called by the requesting server admin or a workspace admin.
    */
   revokeAccess: WorkspaceSupportSession;
-};
-
-
-export type WorkspaceSupportMutationsAddAdminArgs = {
-  input: AddAdminToSupportSessionInput;
 };
 
 
@@ -9596,7 +8481,7 @@ export type CompleteModelIngestionWithVersionMutationVariables = Exact<{
 }>;
 
 
-export type CompleteModelIngestionWithVersionMutation = { __typename?: 'Mutation', projectMutations: { __typename?: 'ProjectMutations', modelIngestionMutations: { __typename?: 'ProjectModelIngestionMutations', completeWithVersion: { __typename?: 'ModelIngestion', id: string, statusData: { __typename: 'ModelIngestionCancelledStatus', cancellationMessage: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionFailedStatus', errorStacktrace?: string | null, errorReason: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionInvalidStatus' } | { __typename: 'ModelIngestionProcessingStatus', status: ModelIngestionStatus, progressMessage: string, progress?: number | null } | { __typename: 'ModelIngestionQueuedStatus', progressMessage: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionSuccessStatus', status: ModelIngestionStatus, versionId: string } } } } };
+export type CompleteModelIngestionWithVersionMutation = { __typename?: 'Mutation', projectMutations: { __typename?: 'ProjectMutations', modelIngestionMutations: { __typename?: 'ProjectModelIngestionMutations', completeWithVersion: { __typename?: 'ModelIngestion', id: string, statusData: { __typename: 'ModelIngestionCancelledStatus', cancellationMessage: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionFailedStatus', errorStacktrace?: string | null, errorReason: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionProcessingStatus', status: ModelIngestionStatus, progressMessage: string, progress?: number | null } | { __typename: 'ModelIngestionQueuedStatus', progressMessage: string, status: ModelIngestionStatus } | { __typename: 'ModelIngestionSuccessStatus', status: ModelIngestionStatus, versionId: string } } } } };
 
 export type FailModelIngestionWithErrorMutationVariables = Exact<{
   input: ModelIngestionFailedInput;
@@ -9625,7 +8510,7 @@ export type ProjectModelIngestionUpdatedSubscriptionVariables = Exact<{
 }>;
 
 
-export type ProjectModelIngestionUpdatedSubscription = { __typename?: 'Subscription', projectModelIngestionUpdated: { __typename?: 'ProjectModelIngestionUpdatedMessage', type: ProjectModelIngestionUpdatedMessageType, modelIngestion: { __typename?: 'ModelIngestion', id: string, statusData: { __typename: 'ModelIngestionCancelledStatus', status: ModelIngestionStatus, cancellationMessage: string } | { __typename: 'ModelIngestionFailedStatus', status: ModelIngestionStatus, errorReason: string } | { __typename: 'ModelIngestionInvalidStatus' } | { __typename: 'ModelIngestionProcessingStatus', status: ModelIngestionStatus, progressMessage: string, progress?: number | null } | { __typename: 'ModelIngestionQueuedStatus', status: ModelIngestionStatus, progressMessage: string } | { __typename: 'ModelIngestionSuccessStatus', status: ModelIngestionStatus, versionId: string } } } };
+export type ProjectModelIngestionUpdatedSubscription = { __typename?: 'Subscription', projectModelIngestionUpdated: { __typename?: 'ProjectModelIngestionUpdatedMessage', type: ProjectModelIngestionUpdatedMessageType, modelIngestion: { __typename?: 'ModelIngestion', id: string, statusData: { __typename: 'ModelIngestionCancelledStatus', status: ModelIngestionStatus, cancellationMessage: string } | { __typename: 'ModelIngestionFailedStatus', status: ModelIngestionStatus, errorReason: string } | { __typename: 'ModelIngestionProcessingStatus', status: ModelIngestionStatus, progressMessage: string, progress?: number | null } | { __typename: 'ModelIngestionQueuedStatus', status: ModelIngestionStatus, progressMessage: string } | { __typename: 'ModelIngestionSuccessStatus', status: ModelIngestionStatus, versionId: string } } } };
 
 export type IssuesItemFragment = { __typename?: 'Issue', id: string, status: IssueStatus, title?: string | null, priority: IssuePriority, viewerState?: {} | null, identifier: string, resourceIdString?: string | null, dueDate?: string | null, activities?: { __typename?: 'IssueActivityCollection', totalCount: number, items: Array<{ __typename?: 'IssueActivity', eventType: IssueActivityEventType, createdAt: string, actor?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', name: string, id: string, avatar?: string | null } } | null }> } | null, replies: { __typename?: 'IssueReplyCollection', totalCount: number, items: Array<{ __typename?: 'IssueReply', id: string, createdAt: string, author?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', name: string, id: string, avatar?: string | null } } | null, description?: { __typename?: 'SmartTextEditorValue', doc?: {} | null } | null }> }, description?: { __typename?: 'SmartTextEditorValue', doc?: {} | null } | null, labels: Array<{ __typename?: 'AssignedLabel', hexColor: string, id: string, name: string }>, author?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, name: string, avatar?: string | null } } | null, assignee?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, avatar?: string | null, name: string } } | null };
 
