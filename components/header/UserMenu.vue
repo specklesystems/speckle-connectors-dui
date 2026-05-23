@@ -1,6 +1,7 @@
 <template>
   <div>
     <AccountsMenu v-model:open="showAccountsDialog" just-dialog />
+    <FeedbackDialog v-model:open="showFeedbackDialog" />
     <Menu as="div" class="flex items-center z-100">
       <MenuButton v-slot="{ open }">
         <span class="sr-only">Open user menu</span>
@@ -86,6 +87,38 @@
             </MenuItem>
           </div>
           <div class="border-t border-outline-3 mt-1">
+            <MenuItem
+              v-if="hostAppStore.isDistributedBySpeckle"
+              v-slot="{ active }"
+              @click="
+                $openUrl(
+                  `https://docs.speckle.systems/connectors/${hostAppStore.hostAppName}?utm=dui`
+                )
+              "
+            >
+              <div
+                :class="[
+                  active ? 'bg-highlight-1' : '',
+                  'my-1 text-body-2xs flex px-2 py-1 text-foreground cursor-pointer transition mx-1 rounded'
+                ]"
+              >
+                Documentation
+              </div>
+            </MenuItem>
+            <MenuItem
+              v-if="hostAppStore.isDistributedBySpeckle"
+              v-slot="{ active }"
+              @click="openFeedbackDialog()"
+            >
+              <div
+                :class="[
+                  active ? 'bg-highlight-1' : '',
+                  'my-1 text-body-2xs flex px-2 py-1 text-foreground cursor-pointer transition mx-1 rounded'
+                ]"
+              >
+                Send us feedback
+              </div>
+            </MenuItem>
             <MenuItem
               v-slot="{ active }"
               @click="$openUrl(`https://www.speckle.systems?utm=dui`)"
@@ -173,6 +206,20 @@ const isDisableCacheSupported = computed(() => {
   )
 })
 
-const { $showDevTools, $openUrl } = useNuxtApp()
+const { $showDevTools, $openUrl, $intercom } = useNuxtApp()
 const showAccountsDialog = ref(false)
+const showFeedbackDialog = ref(false)
+
+const openFeedbackDialog = () => {
+  if (
+    hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
+    hostAppStore.hostAppVersion?.includes('2022')
+  ) {
+    showFeedbackDialog.value = true
+  } else if ($intercom.shouldEnableIntercom.value) {
+    $intercom.show()
+  } else {
+    $openUrl('https://speckle.community')
+  }
+}
 </script>

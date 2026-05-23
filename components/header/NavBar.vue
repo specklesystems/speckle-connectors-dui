@@ -112,32 +112,9 @@
         >
           <CommonBadge color="secondary">Partner</CommonBadge>
         </div>
-        <HeaderButton
-          v-if="hostAppStore.isDistributedBySpeckle"
-          v-tippy="'Documentation and help'"
-          @click="
-            app.$openUrl(
-              `https://docs.speckle.systems/connectors/${hostAppStore.hostAppName}?utm=dui`
-            )
-          "
-        >
-          <QuestionMarkCircleIcon
-            class="w-4 text-foreground-disabled group-hover:text-foreground-2"
-          />
-        </HeaderButton>
-        <HeaderButton
-          v-if="hostAppStore.isDistributedBySpeckle"
-          v-tippy="'Send us feedback'"
-          @click="openFeedbackDialog()"
-        >
-          <ChatBubbleLeftIcon
-            class="w-4 text-foreground-disabled group-hover:text-foreground-2"
-          />
-        </HeaderButton>
         <HeaderUserMenu />
       </div>
     </div>
-    <FeedbackDialog v-model:open="showFeedbackDialog" />
     <SendWizard v-model:open="showSendDialog" @close="showSendDialog = false" />
     <ReceiveWizard
       v-model:open="showReceiveDialog"
@@ -146,13 +123,7 @@
   </nav>
 </template>
 <script setup lang="ts">
-import {
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
-  PlusIcon,
-  QuestionMarkCircleIcon,
-  ChatBubbleLeftIcon
-} from '@heroicons/vue/24/solid'
+import { ArrowUpTrayIcon, ArrowDownTrayIcon, PlusIcon } from '@heroicons/vue/24/solid'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 
 import { useHostAppStore } from '~/store/hostApp'
@@ -162,7 +133,6 @@ const hasNoModelCards = computed(() => hostAppStore.projectModelGroups.length ==
 const canPublish = computed(() => !!app.$sendBinding)
 const canLoad = computed(() => !!app.$receiveBinding)
 const hasBothActions = computed(() => canPublish.value && canLoad.value)
-const showFeedbackDialog = ref<boolean>(false)
 const showSendDialog = ref<boolean>(false)
 const showReceiveDialog = ref<boolean>(false)
 
@@ -170,21 +140,4 @@ app.$baseBinding?.on('documentChanged', () => {
   showSendDialog.value = false
   showReceiveDialog.value = false
 })
-
-const { $intercom } = useNuxtApp()
-
-const openFeedbackDialog = () => {
-  if (
-    (hostAppStore.hostAppName?.toLowerCase() === 'revit' &&
-      hostAppStore.hostAppVersion?.includes('2022')) ||
-    !hostAppStore.isDistributedBySpeckle
-  ) {
-    showFeedbackDialog.value = true
-  } else if ($intercom.shouldEnableIntercom.value) {
-    $intercom.show()
-  } else {
-    // community forum fallback
-    app.$openUrl('https://speckle.community')
-  }
-}
 </script>
