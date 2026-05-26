@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Mock binding: async methods satisfy the Promise-returning interface
+// signatures but have nothing to actually await.
 import type {
   IBinding,
   IBindingSharedEvents
@@ -46,50 +49,50 @@ export type WorkspacesConfig = {
 // Useless, but will do for now :)
 export class MockedConfigBinding implements IConfigBinding {
   public async getIsDevMode() {
-    return await true
+    return true
   }
 
   public async getConfig() {
-    return await { darkTheme: false, disableCache: false }
+    return { darkTheme: false, disableCache: false }
   }
 
   public async getGlobalConfig(): Promise<GlobalConfig> {
-    return await {
+    return {
       isUpdateNotificationDisabled: true,
       defaultSpeckleServerUrl: null
     }
   }
 
   public async updateConfig() {
-    return await console.log('')
+    console.log('')
   }
 
   public async setUserSelectedAccountId(accountId: string) {
-    return await console.log(accountId)
+    console.log(accountId)
   }
 
   public async setUserSelectedWorkspaceId(workspaceId: string) {
-    return await console.log(workspaceId)
+    console.log(workspaceId)
   }
 
   public async getAccountsConfig() {
-    return (await { userSelectedAccountId: 'whatever' }) as AccountsConfig
+    return { userSelectedAccountId: 'whatever' } as AccountsConfig
   }
 
   public async getWorkspacesConfig() {
-    return (await { userSelectedWorkspaceId: 'whatever' }) as WorkspacesConfig
+    return { userSelectedWorkspaceId: 'whatever' } as WorkspacesConfig
   }
 
   public async getUserSelectedAccountId() {
-    return (await { userSelectedAccountId: 'whatever' }) as AccountsConfig
+    return { userSelectedAccountId: 'whatever' } as AccountsConfig
   }
 
   public async showDevTools() {
-    await console.log('No way dude')
+    console.log('No way dude')
   }
 
   public async openUrl(url: string) {
-    await window.open(url)
+    window.open(url)
   }
 
   public on() {
