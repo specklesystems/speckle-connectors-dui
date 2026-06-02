@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Mock binding: async methods satisfy the Promise-returning interface
+// signatures but have nothing to actually await.
 import type {
   IBinding,
   IBindingSharedEvents
@@ -38,7 +41,7 @@ export interface IAccountBindingEvents extends IBindingSharedEvents {}
 export class MockedAccountBinding implements IAccountBinding {
   public async getAccounts() {
     const config = useRuntimeConfig()
-    return (await [
+    return [
       {
         id: 'whatever',
         isDefault: true,
@@ -54,16 +57,16 @@ export class MockedAccountBinding implements IAccountBinding {
           email: ''
         }
       }
-    ]) as Account[]
+    ] as Account[]
   }
 
   public async addAccount(accountId: string, account: Account) {
-    return await console.log('no way dude', accountId, account)
+    console.log('no way dude', accountId, account)
   }
 
   public async authenticateAccount(serverUrl: string) {
     const config = useRuntimeConfig()
-    return (await {
+    return {
       id: 'whatever',
       isDefault: true,
       token: config.public.speckleToken,
@@ -77,19 +80,19 @@ export class MockedAccountBinding implements IAccountBinding {
         avatar: 'whatever',
         email: ''
       }
-    }) as Account
+    } as Account
   }
 
   public async removeAccount(accountId: string) {
-    return await console.log('no way dude', accountId)
+    console.log('no way dude', accountId)
   }
 
   public async showDevTools() {
-    await console.log('No way dude')
+    console.log('No way dude')
   }
 
   public async openUrl(url: string) {
-    await window.open(url)
+    window.open(url)
   }
 
   public on() {
