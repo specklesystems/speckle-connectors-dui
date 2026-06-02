@@ -60,7 +60,8 @@ export function useUpdateConnector() {
       }
 
       const data = (await response.json()) as unknown as Versions
-      const sortedVersions = data.Versions.sort(function (a: Version, b: Version) {
+      const stable = data.Versions.filter((v) => v.Prerelease !== true)
+      const sortedVersions = [...stable].sort(function (a: Version, b: Version) {
         return new Date(b.Date).getTime() - new Date(a.Date).getTime()
       })
       versions.value = sortedVersions
