@@ -1,5 +1,5 @@
 <template>
-  <CommonAlert
+  <div
     v-if="
       store.isDistributedBySpeckle &&
       store.latestAvailableVersion &&
@@ -7,40 +7,39 @@
       !hasDismissedAlert &&
       !store.isUpdateNotificationDisabled
     "
-    v-tippy="
-      'Version: ' + store.latestAvailableVersion?.Number + ', released ' + createdAgo
-    "
-    color="neutral"
-    size="xs"
-    hide-icon
-    class="mt-1"
+    class="flex items-center gap-2.5 mx-2.5 mt-2 mb-2 px-2.5 py-2 bg-foundation border border-outline-2 rounded-md shadow-[0_1px_0_rgba(15,23,42,0.02)]"
+    role="status"
   >
-    <template #description>
-      <div class="flex items-center">
-        <div class="text-body-3xs truncate line-clamp-1 min-w-0">Update available</div>
-        <div class="inline-flex justify-end -mr-3 grow">
-          <FormButton size="sm" color="outline" @click="store.downloadLatestVersion()">
-            Download
-          </FormButton>
-          <FormButton
-            size="sm"
-            color="subtle"
-            hide-text
-            :icon-left="XMarkIcon"
-            @click="hasDismissedAlert = true"
-          />
-        </div>
+    <div
+      class="w-[26px] h-[26px] rounded flex items-center justify-center flex-shrink-0 bg-violet-100 text-violet-600 dark:bg-violet-900/20 dark:text-violet-400"
+    >
+      <SparklesIcon class="w-[15px] h-[15px]" style="stroke-width: 1.75" />
+    </div>
+    <div class="flex-1 min-w-0">
+      <div class="text-body-2xs font-bold text-foreground leading-tight">
+        Update available
       </div>
-    </template>
-  </CommonAlert>
+      <div class="flex items-baseline gap-1 text-body-3xs">
+        <span class="text-foreground-2">v{{ store.connectorVersion }}</span>
+        <span class="text-foreground-2">→</span>
+        <span class="font-semibold text-foreground">
+          v{{ store.latestAvailableVersion?.Number }}
+        </span>
+      </div>
+    </div>
+    <FormButton size="sm" @click="store.downloadLatestVersion()">Update</FormButton>
+    <FormButton
+      size="sm"
+      color="subtle"
+      hide-text
+      :icon-left="XMarkIcon"
+      @click="hasDismissedAlert = true"
+    />
+  </div>
 </template>
 <script setup lang="ts">
-import dayjs from 'dayjs'
-import { XMarkIcon } from '@heroicons/vue/24/outline'
+import { SparklesIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { useHostAppStore } from '~~/store/hostApp'
 const store = useHostAppStore()
 const hasDismissedAlert = ref(false)
-const createdAgo = computed(() => {
-  return dayjs(store.latestAvailableVersion?.Date).from(dayjs())
-})
 </script>
