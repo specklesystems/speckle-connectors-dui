@@ -516,6 +516,15 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       })
   })
 
+  app.$receiveBinding?.on('setModelsExpired', (modelCardIds) => {
+    documentModelStore.value.models
+      .filter((m) => modelCardIds.includes(m.modelCardId))
+      .forEach((model) => {
+        model.error = undefined
+        model.expired = true
+      })
+  })
+
   const setModelSendResult = (args: {
     modelCardId: string
     versionId: string
@@ -565,6 +574,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
     model.report = undefined
     model.error = undefined
+    model.expired = false
     model.displayReceiveComplete = false
     model.hasDismissedUpdateWarning = true
     model.progress = { status: 'Starting to receive...' }
