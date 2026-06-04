@@ -29,6 +29,7 @@ export const issueResourceMetaSearchQuery = graphql(`
       projectId: $projectId
       metaType: $metaType
     ) {
+      id
       data
     }
   }
