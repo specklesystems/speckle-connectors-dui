@@ -108,7 +108,8 @@
       <div class="mx-1">
         <p class="text-body-xs mb-2">
           Applying these change requests will update the model, close the linked issue
-          and permanently delete the record of changes.
+          and permanently delete the record of changes. You'll need to publish the model
+          afterwards to share the updated version.
         </p>
         <p class="text-body-xs text-foreground-2">
           This cannot be undone. Do you want to continue?
