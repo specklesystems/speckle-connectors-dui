@@ -28,10 +28,19 @@ export default defineNuxtConfig({
       speckleUrl: process.env.SPECKLE_URL,
       speckleSampleProjectId: process.env.SPECKLE_SAMPLE_PROJECT_ID,
       speckleSampleModelId: process.env.SPECKLE_SAMPLE_MODEL_ID,
-      intercomAppId: ''
+      intercomAppId: '',
+      // Browser OpenTelemetry (HyperDX RUM) — baked at build time, same config shape as the server/frontend-3
+      hyperdxEnabled: process.env.NUXT_PUBLIC_HYPERDX_ENABLED === 'true',
+      hyperdxCollectorUrl: process.env.NUXT_PUBLIC_HYPERDX_COLLECTOR_URL || '',
+      hyperdxIngestionKey: process.env.NUXT_PUBLIC_HYPERDX_INGESTION_KEY || '',
+      hyperdxOtelResourceAttributes:
+        process.env.NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES || ''
     }
   },
   vite: {
+    optimizeDeps: {
+      include: ['@hyperdx/browser']
+    },
     resolve: {
       alias: [{ find: /^lodash(?!(-es|\/fp|\.))/, replacement: 'lodash-es' }]
     },

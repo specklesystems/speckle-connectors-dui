@@ -34,6 +34,7 @@
     "@apollo/client": "^3.7.14",
     "@headlessui/vue": "^1.7.13",
     "@heroicons/vue": "^2.0.12",
+    "@hyperdx/browser": "^0.24.0",
     "@intercom/messenger-js-sdk": "^0.0.14",
     "@jsonforms/core": "3.1.0",
     "@jsonforms/vue": "3.1.0",
