@@ -60,6 +60,22 @@ export interface LayerOption {
 
 // Mock implementation for dev/testing
 export class MockedMapperBinding implements IRevitMapperBinding {
+  public availableMethodNames: string[] = [
+    'assignObjectsToCategory',
+    'getAvailableLayers',
+    'clearObjectsCategoryAssignment',
+    'clearAllObjectsCategoryAssignments',
+    'getCurrentObjectsMappings',
+    'assignLayerToCategory',
+    'clearLayerCategoryAssignment',
+    'clearAllLayerCategoryAssignments',
+    'getCurrentLayerMappings',
+    'getEffectiveObjectsForLayerMapping',
+    'getCategoryMappingsForObjects',
+    'getCategoryMappingsForLayers',
+    'showDevTools',
+    'openUrl'
+  ]
   private mockMappings: CategoryMapping[] = []
 
   public assignObjectsToCategory(

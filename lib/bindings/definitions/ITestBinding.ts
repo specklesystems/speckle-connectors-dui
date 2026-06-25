@@ -37,6 +37,14 @@ export type ComplexType = {
 }
 
 export class MockedTestBinding implements ITestBinding {
+  public availableMethodNames: string[] = [
+    'goAway',
+    'getComplexType',
+    'shouldThrow',
+    'triggerEvent',
+    'showDevTools',
+    'openUrl'
+  ]
   public async sayHi(name: string, count: number, sayHelloNotHi: boolean) {
     return [
       `Hello from mocked bindings. Args: name = ${name}, count = ${count}, sayHelloNotHi = ${sayHelloNotHi.toString()}.`

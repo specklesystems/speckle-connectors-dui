@@ -41,6 +41,14 @@ export interface ISendBindingEvents
 }
 
 export class MockedSendBinding implements ISendBinding {
+  public availableMethodNames: string[] = [
+    'getSendFilters',
+    'getSendSettings',
+    'send',
+    'cancelSend',
+    'showDevTools',
+    'openUrl'
+  ]
   public async getSendFilters() {
     return await []
   }
