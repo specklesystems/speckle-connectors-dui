@@ -39,6 +39,14 @@ export type Account = {
 export interface IAccountBindingEvents extends IBindingSharedEvents {}
 
 export class MockedAccountBinding implements IAccountBinding {
+  public availableMethodNames: string[] = [
+    'getAccounts',
+    'addAccount',
+    'authenticateAccount',
+    'removeAccount',
+    'showDevTools',
+    'openUrl'
+  ]
   public async getAccounts() {
     const config = useRuntimeConfig()
     return [
@@ -52,9 +60,9 @@ export class MockedAccountBinding implements IAccountBinding {
           frontend2: true
         },
         userInfo: {
-          id: 'whatever',
+          id: config.public.speckleUserId,
           avatar: 'whatever',
-          email: ''
+          email: config.public.speckleUserEmail
         }
       }
     ] as Account[]

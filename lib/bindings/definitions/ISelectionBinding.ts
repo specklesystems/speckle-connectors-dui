@@ -22,6 +22,7 @@ export type SelectionInfo = {
 }
 
 export class MockedSelectionBinding implements ISelectionBinding {
+  public availableMethodNames: string[] = ['getSelection', 'showDevTools', 'openUrl']
   public async getSelection() {
     return {
       summary: '2 objects selected over mock binding',
