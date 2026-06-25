@@ -30,6 +30,14 @@ export interface IReceiveBindingEvents
 }
 
 export class MockedReceiveBinding implements IReceiveBinding {
+  public availableMethodNames: string[] = [
+    'getReceiveSettings',
+    'receive',
+    'cancelReceive',
+    'showDevTools',
+    'openUrl'
+  ]
+
   public async getReceiveSettings() {
     return []
   }

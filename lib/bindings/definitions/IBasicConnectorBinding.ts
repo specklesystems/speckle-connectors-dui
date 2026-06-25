@@ -63,6 +63,22 @@ export type ToastAction = {
 }
 
 export class MockedBaseBinding implements IBasicConnectorBinding {
+  public availableMethodNames: string[] = [
+    'getSourceApplicationName',
+    'getSourceApplicationVersion',
+    'getConnectorVersion',
+    'getDocumentInfo',
+    'getDocumentState',
+    'addModel',
+    'removeModel',
+    'removeModels',
+    'updateModel',
+    'highlightModel',
+    'highlightObjects',
+    'updateParameters',
+    'showDevTools',
+    'openUrl'
+  ]
   public async getSourceApplicationName() {
     return 'headless'
   }

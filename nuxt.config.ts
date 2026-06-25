@@ -22,9 +22,9 @@ export default defineNuxtConfig({
     public: {
       mixpanelApiHost: 'UNDEFINED',
       mixpanelTokenId: 'UNDEFINED',
-      speckleAccountId: process.env.SPECKLE_ACCOUNT_ID,
       speckleToken: process.env.SPECKLE_TOKEN,
       speckleUserId: process.env.SPECKLE_USER_ID,
+      speckleUserEmail: process.env.SPECKLE_USER_EMAIL,
       speckleUrl: process.env.SPECKLE_URL,
       speckleSampleProjectId: process.env.SPECKLE_SAMPLE_PROJECT_ID,
       speckleSampleModelId: process.env.SPECKLE_SAMPLE_MODEL_ID,
