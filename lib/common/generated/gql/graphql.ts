@@ -251,13 +251,6 @@ export type ActivityCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type AddAdminToSupportSessionInput = {
-  /** The server admin (server:admin or server:support) being added to the session. */
-  userId: Scalars['ID']['input'];
-  /** Workspace the inviting admin currently holds an active support session for. */
-  workspaceId: Scalars['ID']['input'];
-};
-
 export type AddDomainToWorkspaceInput = {
   domain: Scalars['String']['input'];
   workspaceId: Scalars['ID']['input'];
@@ -444,7 +437,6 @@ export type AdminQueriesUserListArgs = {
   limit?: Scalars['Int']['input'];
   query?: InputMaybe<Scalars['String']['input']>;
   role?: InputMaybe<ServerRole>;
-  roles?: InputMaybe<Array<ServerRole>>;
 };
 
 
@@ -511,660 +503,6 @@ export type AdminUsersListItem = {
 
 export type AdminWorkspaceJoinRequestFilter = {
   status?: InputMaybe<WorkspaceJoinRequestStatus>;
-};
-
-export type AiChatMutations = {
-  __typename?: 'AiChatMutations';
-  /**
-   * Attach an external data source (uploaded in this chat, or picked from the
-   * workspace library) to this conversation. Idempotent — re-attaching the
-   * same data source is a no-op. Returns the updated conversation.
-   */
-  attachDataSource: AiConversation;
-  create: AiConversation;
-  /**
-   * Create a public share link for a conversation. Owner-only; requires a
-   * project-scoped conversation. The token's resource access is scoped at the
-   * version level to exactly the supplied referenced versions, so a leaked link
-   * can read only those versions' packfiles — nothing else in the project. The
-   * returned ShareToken carries the raw `token` string ONCE; it is never readable
-   * again.
-   */
-  createShareLink: ShareToken;
-  delete: Scalars['Boolean']['output'];
-  /** Remove an attached data source from this conversation. Idempotent. */
-  detachDataSource: AiConversation;
-  /**
-   * Record a single AI model call's token usage for an authenticated
-   * workspace user. Called fire-and-forget by frontend-3 Nitro after each
-   * `streamText` / `generateText` resolves (3 sites: agent loop turns,
-   * tool-result summarisation, title generation).
-   *
-   * The resolver enforces that `input.workspaceId` and `input.userId`
-   * match the authenticated caller's context — Nitro can't impersonate.
-   * Returns `true` on insert success.
-   */
-  recordTokenEvent: Scalars['Boolean']['output'];
-  /**
-   * Toggle mode #1 sharing (share with project members). Owner-only. Requires a
-   * project-scoped conversation. Returns the updated conversation.
-   */
-  setShareWithProject: AiConversation;
-  update: AiConversation;
-};
-
-
-export type AiChatMutationsAttachDataSourceArgs = {
-  input: AiConversationAttachDataSourceInput;
-};
-
-
-export type AiChatMutationsCreateArgs = {
-  input: AiConversationCreateInput;
-};
-
-
-export type AiChatMutationsCreateShareLinkArgs = {
-  input: AiConversationCreateShareLinkInput;
-};
-
-
-export type AiChatMutationsDeleteArgs = {
-  input: AiConversationDeleteInput;
-};
-
-
-export type AiChatMutationsDetachDataSourceArgs = {
-  input: AiConversationDetachDataSourceInput;
-};
-
-
-export type AiChatMutationsRecordTokenEventArgs = {
-  input: AiTokenEventInput;
-};
-
-
-export type AiChatMutationsSetShareWithProjectArgs = {
-  input: AiConversationSetShareWithProjectInput;
-};
-
-
-export type AiChatMutationsUpdateArgs = {
-  input: AiConversationUpdateInput;
-};
-
-export type AiChatPublicMutations = {
-  __typename?: 'AiChatPublicMutations';
-  /**
-   * Record a token event for an anonymous turn. Input MUST carry only
-   * `anonUserHash` (no workspaceId/userId). The resolver rejects any
-   * payload that looks like a workspace event — that path goes through
-   * `aiChatMutations.recordTokenEvent` with auth.
-   */
-  recordAnonTokenEvent: Scalars['Boolean']['output'];
-  /**
-   * Release the parallelism lock acquired by `startAnonTurn`. Idempotent
-   * — safe after lock TTL expiry (no-op).
-   */
-  releaseAnonTurn: Scalars['Boolean']['output'];
-  /**
-   * Pre-turn gate for anonymous AI chat. Atomically checks the rolling
-   * 24h token cap and acquires a Redis SET-NX parallelism lock keyed on
-   * the anon user hash.
-   *
-   * Failure modes:
-   *  * `ANON_QUOTA_EXCEEDED` — daily cap burned. Extensions carry
-   *    `tokensUsedWindow` and `windowResetsAt`.
-   *  * `ANON_TURN_IN_FLIGHT` — another turn is currently running for
-   *    this hash. UX: "you can only run one at a time, sign up for more".
-   *
-   * Caller must pass the returned `lockToken` to `releaseAnonTurn` in
-   * its `finally`. The Redis lock has a 5-minute TTL backstop, so a
-   * crashed Nitro process can't permanently lock a hash.
-   */
-  startAnonTurn: StartAnonTurnResult;
-};
-
-
-export type AiChatPublicMutationsRecordAnonTokenEventArgs = {
-  input: AiTokenEventInput;
-};
-
-
-export type AiChatPublicMutationsReleaseAnonTurnArgs = {
-  input: ReleaseAnonTurnInput;
-};
-
-
-export type AiChatPublicMutationsStartAnonTurnArgs = {
-  input: StartAnonTurnInput;
-};
-
-export type AiConversation = {
-  __typename?: 'AiConversation';
-  /**
-   * The conversation's currently-active skill (sticky `/skill-name` invocation).
-   * Null when no skill is active or the referenced skill was deleted. Read on
-   * load to rehydrate the active skill in the composer.
-   */
-  activeSkillId?: Maybe<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  /**
-   * External data sources attached to this conversation — chat-uploaded files
-   * and picks from the workspace library. Newest-attached first.
-   */
-  dataSources: Array<ExternalDataSource>;
-  /**
-   * Bounded provider-diagnostics trail (`{ turns: [...] }`). Null until a turn
-   * has provider warnings or fails. Each entry carries the served upstream,
-   * finish reason, warnings, raw error, and the OTel trace id for a HyperDX
-   * pivot — a point-debug companion to the OTel trace stream.
-   */
-  diagnostics?: Maybe<Scalars['JSONObject']['output']>;
-  id: Scalars['ID']['output'];
-  messageCount: Scalars['Int']['output'];
-  /**
-   * Null on list/summary queries; populated when fetched by ID.
-   * Each element is an Anthropic-shaped message: { role, content }.
-   */
-  messages?: Maybe<Array<Scalars['JSONObject']['output']>>;
-  metadata: Scalars['JSONObject']['output'];
-  preview?: Maybe<Scalars['String']['output']>;
-  projectId?: Maybe<Scalars['String']['output']>;
-  /**
-   * Active (non-revoked) public share links for this conversation. Owner-only —
-   * returns an empty list for non-owner viewers.
-   */
-  shareLinks: Array<ShareToken>;
-  /**
-   * Mode #1 sharing: when true, any user who can read this conversation's
-   * project may VIEW it (read-only). Continuing the conversation stays
-   * owner-only. Always false for workspace-only (no-project) conversations.
-   */
-  shareWithProject: Scalars['Boolean']['output'];
-  /**
-   * Which UI surface the conversation belongs to. `widget` = the Ask AI
-   * widget on the model-versions page; `magic` = the dedicated
-   * /projects/:id/magic page. Surfaces have isolated history.
-   */
-  surface: Scalars['String']['output'];
-  title: Scalars['String']['output'];
-  /**
-   * Cumulative model-call token usage for this conversation. Aggregated on
-   * demand from `ai_token_events`; returns zeros if the FF is off or the
-   * conversation predates token tracking.
-   */
-  tokenUsage: AiConversationTokenUsage;
-  updatedAt: Scalars['DateTime']['output'];
-  userId: Scalars['String']['output'];
-  /**
-   * Optimistic-concurrency version, bumped on every messages write. Read it on
-   * load and pass it back as `AiConversationUpdateInput.expectedVersion` so a
-   * stale save (a concurrent turn on another pod) is rejected instead of
-   * clobbering history.
-   */
-  version: Scalars['Int']['output'];
-  workspaceId?: Maybe<Scalars['String']['output']>;
-};
-
-export type AiConversationAttachDataSourceInput = {
-  conversationId: Scalars['ID']['input'];
-  dataSourceId: Scalars['String']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationCollection = {
-  __typename?: 'AiConversationCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<AiConversation>;
-};
-
-export type AiConversationCreateInput = {
-  messages?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Project this conversation is bound to. When set, the project must
-   * belong to the given workspace.
-   */
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  /** UI surface this conversation belongs to. Defaults to `widget`. */
-  surface?: InputMaybe<Scalars['String']['input']>;
-  title: Scalars['String']['input'];
-  /**
-   * Workspace this conversation belongs to. Required for region routing
-   * and authorization.
-   */
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationCreateShareLinkInput = {
-  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  password?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  /**
-   * Versions the conversation references. The share token is scoped to exactly
-   * these (version-level resource access rules). The caller must be able to read
-   * each referenced version's project.
-   */
-  versions: Array<AiConversationShareVersionInput>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationDeleteInput = {
-  id: Scalars['ID']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationDetachDataSourceInput = {
-  conversationId: Scalars['ID']['input'];
-  dataSourceId: Scalars['String']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationSetShareWithProjectInput = {
-  id: Scalars['ID']['input'];
-  /**
-   * Project scope. Required — mode #1 sharing only applies to project-scoped
-   * conversations.
-   */
-  projectId: Scalars['String']['input'];
-  shareWithProject: Scalars['Boolean']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiConversationShareVersionInput = {
-  modelId: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-  versionId: Scalars['String']['input'];
-};
-
-export type AiConversationTokenUsage = {
-  __typename?: 'AiConversationTokenUsage';
-  callCount: Scalars['Int']['output'];
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  totalTokens: Scalars['Int']['output'];
-};
-
-export type AiConversationUpdateInput = {
-  /**
-   * The conversation's active skill (sticky `/skill-name`). Set when a skill is
-   * invoked; pass null to clear. A dangling id (deleted skill) is tolerated and
-   * resolved away at chat time.
-   */
-  activeSkillId?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * A single provider-diagnostics entry to APPEND to the conversation's bounded
-   * trail (ENG-8548). Written by the chat turn only when there's something worth
-   * recording (provider warnings or a failure). Does not bump/guard version.
-   */
-  diagnosticsEntry?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Optimistic-concurrency guard for `messages` writes. Pass the `version` read
-   * when the conversation was loaded; if the row has moved on (another turn
-   * persisted in between), the update is rejected instead of clobbering history.
-   * Ignored for title/metadata-only updates.
-   */
-  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
-  id: Scalars['ID']['input'];
-  messages?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
-  metadata?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Project scope. Must match how the conversation was originally created
-   * (or be omitted for workspace-only conversations).
-   */
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  title?: InputMaybe<Scalars['String']['input']>;
-  /** Workspace scope. Must match how the conversation was originally created. */
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiSkill = {
-  __typename?: 'AiSkill';
-  conversationStarters: Array<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  description?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  /** Null on list/summary rows (Workspace.aiSkills); populated by aiSkill(id). */
-  instructions?: Maybe<Scalars['String']['output']>;
-  /**
-   * Typed data-source refs this skill pins as Knowledge. `kind` is `file`
-   * (externalDataSource upload) or `warehouse` (data warehouse table). Null on
-   * list/summary rows; populated by aiSkill(id).
-   */
-  knowledgeSources?: Maybe<Array<AiSkillKnowledgeSource>>;
-  name: Scalars['String']['output'];
-  ownerId: Scalars['String']['output'];
-  permissions: AiSkillPermissionChecks;
-  updatedAt: Scalars['DateTime']['output'];
-  /**
-   * Either `private` (only the owner sees/invokes it) or `workspace` (every
-   * member sees/invokes it).
-   */
-  visibility: Scalars['String']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-export type AiSkillCollection = {
-  __typename?: 'AiSkillCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<AiSkill>;
-};
-
-export type AiSkillCreateInput = {
-  conversationStarters?: InputMaybe<Array<Scalars['String']['input']>>;
-  description?: InputMaybe<Scalars['String']['input']>;
-  instructions?: InputMaybe<Scalars['String']['input']>;
-  knowledgeSources?: InputMaybe<Array<AiSkillKnowledgeSourceInput>>;
-  name: Scalars['String']['input'];
-  /** `private` (default) or `workspace`. */
-  visibility?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type AiSkillDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-/**
- * A data source pinned to a skill as Knowledge. `kind` discriminates which
- * collection `id` references: `file` -> a workspace external data source (upload),
- * `warehouse` -> a registered data warehouse table (Snowflake/Databricks/Fabric).
- */
-export type AiSkillKnowledgeSource = {
-  __typename?: 'AiSkillKnowledgeSource';
-  id: Scalars['String']['output'];
-  kind: Scalars['String']['output'];
-};
-
-/**
- * A data-source ref to pin as skill Knowledge. `kind` is `file` (workspace
- * externalDataSource) or `warehouse` (registered data warehouse table); `id` is
- * the corresponding source id.
- */
-export type AiSkillKnowledgeSourceInput = {
-  id: Scalars['String']['input'];
-  kind: Scalars['String']['input'];
-};
-
-export type AiSkillMutations = {
-  __typename?: 'AiSkillMutations';
-  create: AiSkill;
-  delete: Scalars['Boolean']['output'];
-  update: AiSkill;
-};
-
-
-export type AiSkillMutationsCreateArgs = {
-  input: AiSkillCreateInput;
-};
-
-
-export type AiSkillMutationsDeleteArgs = {
-  input: AiSkillDeleteInput;
-};
-
-
-export type AiSkillMutationsUpdateArgs = {
-  input: AiSkillUpdateInput;
-};
-
-export type AiSkillPermissionChecks = {
-  __typename?: 'AiSkillPermissionChecks';
-  canDelete: PermissionCheckResult;
-  canUpdate: PermissionCheckResult;
-};
-
-export type AiSkillUpdateInput = {
-  conversationStarters?: InputMaybe<Array<Scalars['String']['input']>>;
-  description?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
-  instructions?: InputMaybe<Scalars['String']['input']>;
-  knowledgeSources?: InputMaybe<Array<AiSkillKnowledgeSourceInput>>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  visibility?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type AiTokenByProject = {
-  __typename?: 'AiTokenByProject';
-  cacheReadTokens: Scalars['Int']['output'];
-  cacheWriteTokens: Scalars['Int']['output'];
-  callCount: Scalars['Int']['output'];
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  /**
-   * Null for events not bound to a specific project (workspace-level
-   * chats). Frontend renders this as "Workspace-level".
-   */
-  projectId?: Maybe<Scalars['String']['output']>;
-  /**
-   * Project display name. Null when `projectId` is null OR the project
-   * has been deleted / lives in a region not currently reachable.
-   */
-  projectName?: Maybe<Scalars['String']['output']>;
-  reasoningTokens: Scalars['Int']['output'];
-};
-
-export type AiTokenByPurpose = {
-  __typename?: 'AiTokenByPurpose';
-  cacheReadTokens: Scalars['Int']['output'];
-  cacheWriteTokens: Scalars['Int']['output'];
-  callCount: Scalars['Int']['output'];
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  /**
-   * Null for events recorded before per-task attribution; the frontend
-   * renders these as "Unattributed".
-   */
-  purpose?: Maybe<Scalars['String']['output']>;
-  reasoningTokens: Scalars['Int']['output'];
-};
-
-export type AiTokenByTool = {
-  __typename?: 'AiTokenByTool';
-  cacheReadTokens: Scalars['Int']['output'];
-  cacheWriteTokens: Scalars['Int']['output'];
-  callCount: Scalars['Int']['output'];
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  reasoningTokens: Scalars['Int']['output'];
-  tool: Scalars['String']['output'];
-};
-
-export type AiTokenByToolFootprint = {
-  __typename?: 'AiTokenByToolFootprint';
-  /**
-   * Sum of estimated raw-result tokens across every call of this tool in the
-   * window. An estimate, not a billed figure.
-   */
-  resultTokens: Scalars['Int']['output'];
-  /** Number of tool calls measured for this tool in the window. */
-  sampleCount: Scalars['Int']['output'];
-  tool: Scalars['String']['output'];
-};
-
-export type AiTokenByUser = {
-  __typename?: 'AiTokenByUser';
-  cacheReadTokens: Scalars['Int']['output'];
-  cacheWriteTokens: Scalars['Int']['output'];
-  callCount: Scalars['Int']['output'];
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  reasoningTokens: Scalars['Int']['output'];
-  /** Email, joined from `users`. Null if the user has been deleted. */
-  userEmail?: Maybe<Scalars['String']['output']>;
-  userId: Scalars['String']['output'];
-  /** Display name, joined from `users`. Null if the user has been deleted. */
-  userName?: Maybe<Scalars['String']['output']>;
-};
-
-export type AiTokenEventInput = {
-  /**
-   * Stable hash identifying an anonymous user. NULL for workspace calls.
-   * Composed server-side from FingerprintJS visitorId + IP + UA.
-   */
-  anonUserHash?: InputMaybe<Scalars['String']['input']>;
-  cacheReadTokens?: InputMaybe<Scalars['Int']['input']>;
-  cacheWriteTokens?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Call type: 'turn' | 'tool_summarise' | 'title_gen' | 'tool_result'.
-   * 'tool_result' rows are not model calls: they record the estimated size of
-   * a tool's raw result (0 billed tokens) for the per-tool footprint view.
-   */
-  callType: Scalars['String']['input'];
-  /**
-   * Conversation this call belongs to. Required even for anonymous calls
-   * (synthetic Nitro-side UUID for those).
-   */
-  conversationId: Scalars['String']['input'];
-  /**
-   * USD cost that the provider paid the upstream model host. Only
-   * populated by OpenRouter (via `costDetails.upstreamInferenceCost`).
-   * The gap to `costUsd` is the provider's margin — kept for internal
-   * pricing decisions.
-   */
-  costUpstreamUsd?: InputMaybe<Scalars['Float']['input']>;
-  /**
-   * USD cost as billed by the provider for this call. Populated today only
-   * for OpenRouter (via its usage accounting opt-in); null for other
-   * providers. Stored as a float; precision in the DB is 6 decimals.
-   */
-  costUsd?: InputMaybe<Scalars['Float']['input']>;
-  inputTokens: Scalars['Int']['input'];
-  /**
-   * True if the model call errored after prefill. `inputTokens` still
-   * reflects what the provider billed us; `outputTokens` may be 0.
-   */
-  isError: Scalars['Boolean']['input'];
-  modelId: Scalars['String']['input'];
-  outputTokens: Scalars['Int']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  provider: Scalars['String']['input'];
-  /**
-   * Finer attribution than callType: 'main_reasoning' | 'escalation_retry' |
-   * 'tool_summary' | 'title_gen' (with 'chart_gen' / 'report_patch' reserved).
-   * Null when unspecified.
-   */
-  purpose?: InputMaybe<Scalars['String']['input']>;
-  reasoningTokens?: InputMaybe<Scalars['Int']['input']>;
-  /**
-   * Estimated token size of a tool's raw result. Set only on 'tool_result'
-   * events; null on model calls. Not a billed figure.
-   */
-  resultTokens?: InputMaybe<Scalars['Int']['input']>;
-  /** Agent-loop tier: 'fast' | 'reasoning' | 'reasoning-escalated'. */
-  tier: Scalars['String']['input'];
-  /**
-   * Tool a spend is attributable to (e.g. the summarised tool on a
-   * tool_summary event, or the producing tool on a tool_result event):
-   * 'sql', 'introspect_paths', 'diff_versions', etc. Null on main turns /
-   * title gen.
-   */
-  tool?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * User this call is attributed to. NULL for anonymous calls.
-   * Must be paired with `workspaceId`.
-   */
-  userId?: InputMaybe<Scalars['String']['input']>;
-  /**
-   * Workspace this call is attributed to. NULL for anonymous calls.
-   * Must be paired with `userId`.
-   */
-  workspaceId?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type AiTokenMonthlyRow = {
-  __typename?: 'AiTokenMonthlyRow';
-  cacheReadTokens?: Maybe<Scalars['Int']['output']>;
-  cacheWriteTokens?: Maybe<Scalars['Int']['output']>;
-  callCount: Scalars['Int']['output'];
-  costUpstreamUsd?: Maybe<Scalars['Float']['output']>;
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  modelId: Scalars['String']['output'];
-  month: Scalars['DateTime']['output'];
-  outputTokens: Scalars['Int']['output'];
-  provider: Scalars['String']['output'];
-  reasoningTokens?: Maybe<Scalars['Int']['output']>;
-  workspaceId: Scalars['String']['output'];
-};
-
-export type AiTokenUsageTotals = {
-  __typename?: 'AiTokenUsageTotals';
-  cacheReadTokens: Scalars['Int']['output'];
-  cacheWriteTokens: Scalars['Int']['output'];
-  callCount: Scalars['Int']['output'];
-  costUpstreamUsd?: Maybe<Scalars['Float']['output']>;
-  /**
-   * Sum of provider-reported cost across calls where it was supplied.
-   * Null when no call in the window had a non-null `costUsd` (typical for
-   * non-OpenRouter deployments today).
-   */
-  costUsd?: Maybe<Scalars['Float']['output']>;
-  inputTokens: Scalars['Int']['output'];
-  outputTokens: Scalars['Int']['output'];
-  reasoningTokens: Scalars['Int']['output'];
-};
-
-export type AiTokenWorkspaceUsage = {
-  __typename?: 'AiTokenWorkspaceUsage';
-  /**
-   * Per-project breakdown for the last 30 days (rolling). Ordered by
-   * total tokens descending. Includes a synthetic entry with
-   * `projectId: null` for workspace-scoped (non-project) chats.
-   */
-  byProjectLastMonth: Array<AiTokenByProject>;
-  /**
-   * Per-purpose breakdown for the last 30 days (rolling). Ordered by total
-   * tokens descending. Includes a synthetic entry with `purpose: null` for
-   * events recorded before per-task attribution.
-   */
-  byPurposeLastMonth: Array<AiTokenByPurpose>;
-  /**
-   * Per-tool raw-result footprint for the last 30 days (rolling): the
-   * estimated token size each tool's results produced, across ALL tool calls.
-   * NOT a billed figure — it is the proxy for the (much larger) context cost a
-   * tool drives by occupying the model's context. Ordered by size descending,
-   * so the heaviest tools (the optimisation targets) come first.
-   */
-  byToolFootprintLastMonth: Array<AiTokenByToolFootprint>;
-  /**
-   * Per-tool breakdown for the last 30 days (rolling), restricted to
-   * tool-attributed BILLED spend (today: tool-result summarisation). Ordered
-   * by total tokens descending. Exact, but only covers tools whose results
-   * were big enough to be summarised — see `byToolFootprintLastMonth` for the
-   * raw-output size of every tool.
-   */
-  byToolLastMonth: Array<AiTokenByTool>;
-  /**
-   * Per-user breakdown for the last 30 days (rolling). Ordered by total
-   * tokens descending.
-   */
-  byUserLastMonth: Array<AiTokenByUser>;
-  /** Aggregate restricted to the current calendar month (UTC). */
-  currentMonth: AiTokenUsageTotals;
-  /**
-   * Workspace × month × model rollup. Useful for time-series charts.
-   * Defaults to the last 12 months when no range is supplied.
-   */
-  monthly: Array<AiTokenMonthlyRow>;
-  /** All-time aggregate across every call ever attributed to this workspace. */
-  totals: AiTokenUsageTotals;
-};
-
-
-export type AiTokenWorkspaceUsageMonthlyArgs = {
-  fromMonth?: InputMaybe<Scalars['DateTime']['input']>;
-  toMonth?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
 export type ApiToken = {
@@ -1634,8 +972,8 @@ export type BulkUsersRetrievalInput = {
 };
 
 export type CanUpgradePlanInput = {
-  targetInterval?: InputMaybe<BillingInterval>;
-  targetPlan?: InputMaybe<WorkspacePlans>;
+  targetInterval: BillingInterval;
+  targetPlan: WorkspacePlans;
 };
 
 export type Comment = {
@@ -2095,17 +1433,6 @@ export type CreateVersionInput = {
   totalChildrenCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type CreateWorkspaceMicrosoftFabricConnectionInput = {
-  authMode: WorkspaceMicrosoftFabricAuthMode;
-  clientId: Scalars['String']['input'];
-  database: Scalars['String']['input'];
-  encryptedCredentials: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-  server: Scalars['String']['input'];
-  tenantId: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
 export enum Currency {
   Gbp = 'gbp',
   Usd = 'usd'
@@ -2282,61 +1609,6 @@ export type DataSourceRefInput = {
   dataSourceId: Scalars['String']['input'];
 };
 
-/**
- * One table inside a converted DuckDB file: a CSV yields a single table, an
- * Excel workbook one table per sheet. `name` is the DuckDB table identifier the
- * AI agent queries.
- */
-export type DataSourceTable = {
-  __typename?: 'DataSourceTable';
-  columns: Array<DataSourceColumn>;
-  name: Scalars['String']['output'];
-  rowCount: Scalars['Int']['output'];
-};
-
-export type DataWarehouseSource = {
-  __typename?: 'DataWarehouseSource';
-  columnAllowlist: Array<Scalars['String']['output']>;
-  columns: Array<WarehouseColumn>;
-  connectionId?: Maybe<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['String']['output'];
-  kind: Scalars['String']['output'];
-  lastRefreshedAt?: Maybe<Scalars['DateTime']['output']>;
-  name: Scalars['String']['output'];
-  rowCount: Scalars['Int']['output'];
-  snapshotUrl?: Maybe<Scalars['String']['output']>;
-  status: Scalars['String']['output'];
-  statusError?: Maybe<Scalars['String']['output']>;
-  tableFqn: Scalars['String']['output'];
-  ttlSeconds?: Maybe<Scalars['Int']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-export type DatabricksColumnRef = {
-  __typename?: 'DatabricksColumnRef';
-  name: Scalars['String']['output'];
-  nullable?: Maybe<Scalars['Boolean']['output']>;
-  type: Scalars['String']['output'];
-};
-
-export type DatabricksTablePreview = {
-  __typename?: 'DatabricksTablePreview';
-  columns: Array<DatabricksColumnRef>;
-  rows: Array<Scalars['JSONObject']['output']>;
-  truncated: Scalars['Boolean']['output'];
-};
-
-export type DatabricksTableRef = {
-  __typename?: 'DatabricksTableRef';
-  catalog: Scalars['String']['output'];
-  fullyQualifiedName: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  schema: Scalars['String']['output'];
-  tableType?: Maybe<Scalars['String']['output']>;
-};
-
 export type DateIntervalFilter = {
   after?: InputMaybe<Scalars['DateTime']['input']>;
   before?: InputMaybe<Scalars['DateTime']['input']>;
@@ -2496,156 +1768,15 @@ export type ExtendedViewerResourcesRequest = {
 
 export type ExternalDataSource = {
   __typename?: 'ExternalDataSource';
-  /**
-   * Sniffed column schema of the first table — tabular data sources only; null
-   * for documents. Mirrors `tables[0].columns`; prefer `tables` for the full,
-   * multi-table (Excel) picture.
-   */
-  columns?: Maybe<Array<DataSourceColumn>>;
+  columns: Array<DataSourceColumn>;
   createdAt: Scalars['DateTime']['output'];
-  /** User id of the uploader. */
-  createdBy: Scalars['String']['output'];
-  /** Resolved user record for the uploader. Null if the user has been deleted. */
-  creator?: Maybe<LimitedUser>;
-  /**
-   * Short-lived presigned URL for downloading the raw uploaded file. Consumed by
-   * the extraction pipeline and by file download in the UI. Null if the file is
-   * not currently retrievable.
-   */
-  downloadUrl?: Maybe<Scalars['String']['output']>;
-  /**
-   * Short-lived presigned URL for downloading the converted, queryable DuckDB
-   * file. The AI chat attaches this into its DuckDB-WASM session (like a model
-   * packfile) to query the file via the `sql` tool. Tabular data sources only;
-   * null until conversion completes, for documents, and if the file is not
-   * currently retrievable.
-   */
-  duckdbDownloadUrl?: Maybe<Scalars['String']['output']>;
-  /**
-   * The plain-text extraction of a document data source — the `extracted_text`
-   * artifact written by the document-extraction pipeline (Phase 2). Null for
-   * tabular files (which have no extraction step) and for documents that
-   * haven't been extracted yet (status: `pending` / `processing` / `failed`).
-   * Read by the AI chat's `read_document` tool.
-   */
-  extractedText?: Maybe<Scalars['String']['output']>;
-  fileExtension?: Maybe<Scalars['String']['output']>;
-  /** `tabular` (CSV/Excel) or `document` (PDF/DOCX/text). */
-  fileKind: Scalars['String']['output'];
-  fileSizeBytes?: Maybe<Scalars['Int']['output']>;
   filename: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  /**
-   * Whether this data source is part of the workspace Files library — true for
-   * files uploaded directly from the Files page or chat-uploaded files that
-   * have been promoted via `externalDataSourceMutations.promoteToLibrary`.
-   * Drives the chat chip's "Save to Files" / "Saved" affordance.
-   */
-  isInLibrary: Scalars['Boolean']['output'];
-  mimeType?: Maybe<Scalars['String']['output']>;
+  id: Scalars['String']['output'];
   name: Scalars['String']['output'];
-  /**
-   * Per-action permission checks for the current viewer. Drive UI affordances
-   * (e.g. show/hide delete + rename row actions).
-   */
-  permissions: ExternalDataSourcePermissionChecks;
-  /** Set when the data source is scoped to a specific project; null otherwise. */
   projectId?: Maybe<Scalars['String']['output']>;
-  /**
-   * Row count of the first table — tabular data sources only; null for
-   * documents. Mirrors `tables[0].rowCount`.
-   */
-  rowCount?: Maybe<Scalars['Int']['output']>;
-  /** How the data source entered the system: `upload` or `chat`. */
-  source: Scalars['String']['output'];
-  /** Upload/extraction lifecycle: `pending`, `processing`, `ready` or `failed`. */
-  status: Scalars['String']['output'];
-  /** Failure detail when `status` is `failed`. */
-  statusError?: Maybe<Scalars['String']['output']>;
-  /**
-   * One-line natural-language description of the file content, generated at
-   * extraction time. Lets agents and humans disambiguate files when the
-   * filename is opaque (e.g. `file 342.pdf` → "Architectural floor plan for
-   * ground floor of Riverside Tower"). Null while extraction is pending or
-   * if summarization failed.
-   */
-  summary?: Maybe<Scalars['String']['output']>;
-  /**
-   * Per-table schema of the converted DuckDB file — one entry for a CSV, one per
-   * sheet for an Excel workbook. Tabular data sources only; null until
-   * conversion completes and for documents.
-   */
-  tables?: Maybe<Array<DataSourceTable>>;
+  rowCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   workspaceId: Scalars['String']['output'];
-};
-
-export type ExternalDataSourceCollection = {
-  __typename?: 'ExternalDataSourceCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<ExternalDataSource>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ExternalDataSourceFilter = {
-  /** Case-insensitive substring match on the data source name. */
-  search?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ExternalDataSourceMutations = {
-  __typename?: 'ExternalDataSourceMutations';
-  /** Permanently delete a data source — its stored file(s) and metadata. */
-  delete: Scalars['Boolean']['output'];
-  /** Add a conversation-scoped data source to the workspace Files library. */
-  promoteToLibrary: ExternalDataSource;
-  /**
-   * Record the outcome of extraction — persists derived content (extracted text
-   * and / or summary) and sets the data source status. Called by the extraction
-   * pipeline once a document has been processed, or by the summarize-only path
-   * for tabular files (which carry a `summary` but no `extractedText`).
-   * `status` must be `ready` or `failed`.
-   */
-  recordExtraction: ExternalDataSource;
-  rename: ExternalDataSource;
-};
-
-
-export type ExternalDataSourceMutationsDeleteArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type ExternalDataSourceMutationsPromoteToLibraryArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type ExternalDataSourceMutationsRecordExtractionArgs = {
-  extractedText?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['String']['input'];
-  status: Scalars['String']['input'];
-  statusError?: InputMaybe<Scalars['String']['input']>;
-  summary?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type ExternalDataSourceMutationsRenameArgs = {
-  id: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-};
-
-export type ExternalDataSourcePermissionChecks = {
-  __typename?: 'ExternalDataSourcePermissionChecks';
-  /**
-   * Whether the current user may delete this data source. Granted to the
-   * uploader or a workspace admin (or via admin override).
-   */
-  canDelete: PermissionCheckResult;
-  /**
-   * Whether the current user may update this data source (rename, etc.). Granted
-   * to any workspace member.
-   */
-  canUpdate: PermissionCheckResult;
 };
 
 export type FileImportResultInput = {
@@ -3594,28 +2725,6 @@ export type MarkReceivedVersionInput = {
   withSharedToken?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type MicrosoftFabricColumnRef = {
-  __typename?: 'MicrosoftFabricColumnRef';
-  name: Scalars['String']['output'];
-  nullable?: Maybe<Scalars['Boolean']['output']>;
-  type: Scalars['String']['output'];
-};
-
-export type MicrosoftFabricTablePreview = {
-  __typename?: 'MicrosoftFabricTablePreview';
-  columns: Array<MicrosoftFabricColumnRef>;
-  rows: Array<Scalars['JSONObject']['output']>;
-  truncated: Scalars['Boolean']['output'];
-};
-
-export type MicrosoftFabricTableRef = {
-  __typename?: 'MicrosoftFabricTableRef';
-  fullyQualifiedName: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  schema: Scalars['String']['output'];
-  tableType: Scalars['String']['output'];
-};
-
 export type MigrateLegacySyncInput = {
   id: Scalars['ID']['input'];
   projectId: Scalars['String']['input'];
@@ -3958,12 +3067,6 @@ export type ModelsTreeItemCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/** Field to sort a project's model tree by */
-export enum ModelsTreeSortByField {
-  Name = 'name',
-  UpdatedAt = 'updatedAt'
-}
-
 export type MoveVersionsInput = {
   projectId: Scalars['ID']['input'];
   /** If the name references a nonexistant model, it will be created */
@@ -3981,18 +3084,6 @@ export type Mutation = {
   activeUserMutations: ActiveUserMutations;
   admin: AdminMutations;
   adminDeleteUser: Scalars['Boolean']['output'];
-  aiChatMutations: AiChatMutations;
-  /**
-   * Mutations callable without authentication, scoped to anonymous AI
-   * chat: pre-turn quota gate, parallelism lock release, and token-event
-   * recording for anonymous turns.
-   *
-   * This container exists separately from `aiChatMutations` (which is
-   * guarded by `@hasServerRole(SERVER_GUEST)`) because anonymous users
-   * have no auth token by definition.
-   */
-  aiChatPublicMutations: AiChatPublicMutations;
-  aiSkillMutations: AiSkillMutations;
   /** Creates an personal api token. */
   apiTokenCreate: Scalars['String']['output'];
   /** Revokes (deletes) an personal api token/app token. */
@@ -4038,7 +3129,6 @@ export type Mutation = {
    */
   commitsMove: Scalars['Boolean']['output'];
   dashboardMutations: DashboardMutations;
-  externalDataSourceMutations: ExternalDataSourceMutations;
   fileUploadMutations: FileUploadMutations;
   insightMutations: InsightMutations;
   insightTemplateMutations: InsightTemplateMutations;
@@ -4583,12 +3673,6 @@ export type Project = {
   labels: Array<WorkspaceProjectLabel>;
   /** Limited workspace records that exposes public data projects workspaces. */
   limitedWorkspace?: Maybe<LimitedWorkspace>;
-  /**
-   * Per-project metadata values. Null when the project is non-workspaced or
-   * there are no stored values yet (a workspace can have a schema without any
-   * project filling it in).
-   */
-  metadata?: Maybe<ProjectMetadata>;
   /** Returns a specific model by its ID */
   model: Model;
   /** Retrieve a specific project model by its ID */
@@ -4611,13 +3695,6 @@ export type Project = {
   /** Returns a list models that are being created from a file import */
   pendingImportedModels: Array<FileUpload>;
   permissions: ProjectPermissionChecks;
-  /** Load a specific report by id. */
-  report?: Maybe<Report>;
-  /**
-   * Persistent reports promoted from AI chat output. Gated behind the AI chat
-   * feature.
-   */
-  reports: ReportCollection;
   /** Active user's role for this project. `null` if request is not authenticated, or the project is not explicitly shared with you. */
   role?: Maybe<Scalars['String']['output']>;
   savedView: SavedView;
@@ -4769,7 +3846,6 @@ export type ProjectModelByNameArgs = {
 
 export type ProjectModelChildrenTreeArgs = {
   fullName: Scalars['String']['input'];
-  sortBy?: InputMaybe<ProjectModelsTreeSortBy>;
 };
 
 
@@ -4784,7 +3860,6 @@ export type ProjectModelsTreeArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<ProjectModelsTreeFilter>;
   limit?: Scalars['Int']['input'];
-  sortBy?: InputMaybe<ProjectModelsTreeSortBy>;
 };
 
 
@@ -4800,18 +3875,6 @@ export type ProjectObjectArgs = {
 
 export type ProjectPendingImportedModelsArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ProjectReportArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ProjectReportsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  filter?: InputMaybe<ProjectReportsFilter>;
-  limit?: Scalars['Int']['input'];
 };
 
 
@@ -5272,17 +4335,6 @@ export enum ProjectIssuesUpdatedMessageType {
   Updated = 'updated'
 }
 
-export type ProjectMetadata = {
-  __typename?: 'ProjectMetadata';
-  updatedAt: Scalars['DateTime']['output'];
-  /**
-   * propertyKey -> value (string | number | boolean). May contain keys that are
-   * no longer present in the current workspace schema (legacy data); the FE
-   * renders only schema-known keys via JSONForms' properties-driven dispatch.
-   */
-  values: Scalars['JSONObject']['output'];
-};
-
 export type ProjectModelIngestionMutations = {
   __typename?: 'ProjectModelIngestionMutations';
   completeWithVersion: ModelIngestion;
@@ -5393,12 +4445,6 @@ export type ProjectModelsTreeFilter = {
   sourceApps?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
-/** Controls the ordering of a project's model tree (and the children of each tree item) */
-export type ProjectModelsTreeSortBy = {
-  field?: ModelsTreeSortByField;
-  order?: SortOrder;
-};
-
 export type ProjectModelsUpdatedMessage = {
   __typename?: 'ProjectModelsUpdatedMessage';
   /** Model ID */
@@ -5446,7 +4492,6 @@ export type ProjectMutations = {
   /** Leave a project. Only possible if you're not the last remaining owner. */
   leave: Scalars['Boolean']['output'];
   modelIngestionMutations: ProjectModelIngestionMutations;
-  reports: ReportMutations;
   /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
   revokeEmbedToken: Scalars['Boolean']['output'];
   /** @deprecated Part of the old API surface and will be removed in the future. Field will be deleted on October 1st, 2026. */
@@ -5457,7 +4502,6 @@ export type ProjectMutations = {
   /** Updates an existing project */
   update: Project;
   updateLabels: Project;
-  updateMetadata: Project;
   /** Update role for a collaborator */
   updateRole: Project;
 };
@@ -5524,11 +4568,6 @@ export type ProjectMutationsUpdateLabelsArgs = {
 };
 
 
-export type ProjectMutationsUpdateMetadataArgs = {
-  input: UpdateProjectMetadataInput;
-};
-
-
 export type ProjectMutationsUpdateRoleArgs = {
   input: ProjectUpdateRoleInput;
 };
@@ -5590,7 +4629,6 @@ export type ProjectPermissionChecks = {
   canReadAccIntegrationSettings: PermissionCheckResult;
   /** @deprecated Part of the old API surface and will be removed in the future. Use canListShareTokens. Field will be deleted on October 1st, 2026. */
   canReadEmbedTokens: PermissionCheckResult;
-  canReadResourceMeta: PermissionCheckResult;
   canReadSettings: PermissionCheckResult;
   canReadWebhooks: PermissionCheckResult;
   canRequestRender: PermissionCheckResult;
@@ -5600,7 +4638,6 @@ export type ProjectPermissionChecks = {
   canUnarchive: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
   canUpdateAllowPublicComments: PermissionCheckResult;
-  canUpdateMetadata: PermissionCheckResult;
   canUpdateResourceMeta: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
@@ -5620,10 +4657,6 @@ export type ProjectPermissionChecksCanUpdateRoleArgs = {
 
 export type ProjectPermissionChecksCanUseInviteArgs = {
   type?: InputMaybe<InviteUseType>;
-};
-
-export type ProjectReportsFilter = {
-  search?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ProjectRole = {
@@ -5951,60 +4984,11 @@ export type ProjectWiseiTwinCollection = {
   items: Array<ProjectWiseiTwin>;
 };
 
-/** Controls the ordering of a list of projects */
-export type ProjectsSortBy = {
-  field?: ProjectsSortByField;
-  order?: SortOrder;
-};
-
-/** Field to sort a list of projects by */
-export enum ProjectsSortByField {
-  Name = 'name',
-  UpdatedAt = 'updatedAt'
-}
-
 export type PropagationResult = {
   __typename?: 'PropagationResult';
   failed: Scalars['Int']['output'];
   skipped: Scalars['Int']['output'];
   updated: Scalars['Int']['output'];
-};
-
-/**
- * Sanitized, public-safe projection of an AI conversation. Deliberately excludes
- * `userId`, `tokenUsage`, `metadata`, and attached data sources. Built from an
- * explicit field allowlist so new `AiConversation` fields never leak by default.
- * Messages are returned verbatim.
- */
-export type PublicAiConversation = {
-  __typename?: 'PublicAiConversation';
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['ID']['output'];
-  messages: Array<Scalars['JSONObject']['output']>;
-  projectId?: Maybe<Scalars['String']['output']>;
-  surface: Scalars['String']['output'];
-  title: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId?: Maybe<Scalars['String']['output']>;
-};
-
-/**
- * Sanitized, public-safe projection of a report. Deliberately excludes
- * `createdById`, `workspaceId`, `sourceConversationId`, and `sourceMessageId`.
- * Built from an explicit field allowlist so new `Report` fields never leak by
- * default. `layout` is the hydrated layout (packfile bindings re-attached) for
- * the versions the share token grants — section data the token does NOT cover
- * will fail to render at download time, by design.
- */
-export type PublicReport = {
-  __typename?: 'PublicReport';
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['ID']['output'];
-  layout: Scalars['JSONObject']['output'];
-  name: Scalars['String']['output'];
-  projectId: Scalars['String']['output'];
-  schemaVersion: Scalars['Int']['output'];
-  updatedAt: Scalars['DateTime']['output'];
 };
 
 export type PublicShareTokenInfo = {
@@ -6033,19 +5017,6 @@ export type Query = {
    * @deprecated use admin.UserList instead
    */
   adminUsers?: Maybe<AdminUsersListCollection>;
-  /**
-   * Get a single AI chat conversation by ID. Only accessible to its owner.
-   * Returns full message content. `workspaceId` is required for region routing
-   * and authorization; `projectId` narrows when the conversation is project-bound.
-   */
-  aiConversation?: Maybe<AiConversation>;
-  /**
-   * Get a single AI skill by id, with full instructions + knowledge references.
-   * Access is gated by the skill's visibility and the caller's workspace role:
-   * owners and workspace admins see any skill; other members see workspace-shared
-   * skills; a peer's private skill resolves to not-found (its existence is hidden).
-   */
-  aiSkill?: Maybe<AiSkill>;
   /** Gets a specific app from the server. */
   app?: Maybe<ServerApp>;
   /**
@@ -6071,20 +5042,8 @@ export type Query = {
   insightResult?: Maybe<InsightResult>;
   /** Get a single insight template by ID */
   insightTemplate?: Maybe<InsightTemplate>;
-  /**
-   * True if the current request is authenticated using a share token (embed,
-   * dashboard or presentation share link) rather than a personal/login token.
-   */
-  isShareTokenSession: Scalars['Boolean']['output'];
   /** List all insights tracking a specific model */
   modelInsights: Array<Insight>;
-  /**
-   * List the current user's AI chat conversations within a workspace (and
-   * optionally a project). Returns summary rows (no `messages` payload) for
-   * cheap history rendering. Pass the cursor from the previous response to
-   * page further back.
-   */
-  myAiConversations: AiConversationCollection;
   /** Get the (limited) profile information of another server user */
   otherUser?: Maybe<LimitedUser>;
   permissions: RootPermissionChecks;
@@ -6118,23 +5077,6 @@ export type Query = {
    * No authentication required.
    */
   shareTokenInfo?: Maybe<PublicShareTokenInfo>;
-  /**
-   * Public, unauthenticated read of a conversation shared via a public link.
-   * `token` is the raw share-token string; `projectId` is the conversation's
-   * project, carried in the link URL — it is not a secret, the share token is the
-   * grant. Returns a sanitized projection (no owner id, billing, or internal
-   * metadata) with full message content. Throws on an invalid, expired, or
-   * revoked token, or a missing/incorrect password.
-   */
-  sharedAiConversation?: Maybe<PublicAiConversation>;
-  /**
-   * Public, unauthenticated read of a report shared via a public link.
-   * `token` is the raw share-token string; `projectId` is the report's
-   * project, carried in the link URL — it is not a secret, the share token is
-   * the grant. Returns a sanitized projection. Throws on an invalid, expired,
-   * or revoked token, or a missing/incorrect password.
-   */
-  sharedReport?: Maybe<PublicReport>;
   /**
    * Returns a specific stream. Will throw an authorization error if active user isn't authorized
    * to see it, for example, if a stream isn't public and the user doesn't have the appropriate rights.
@@ -6213,18 +5155,6 @@ export type QueryAdminUsersArgs = {
 };
 
 
-export type QueryAiConversationArgs = {
-  id: Scalars['ID']['input'];
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type QueryAiSkillArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
 export type QueryAppArgs = {
   id: Scalars['String']['input'];
 };
@@ -6277,15 +5207,6 @@ export type QueryModelInsightsArgs = {
 };
 
 
-export type QueryMyAiConversationsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  projectId?: InputMaybe<Scalars['String']['input']>;
-  surface?: InputMaybe<Scalars['String']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-
 export type QueryOtherUserArgs = {
   id: Scalars['String']['input'];
 };
@@ -6335,20 +5256,6 @@ export type QueryShareTokenByIdArgs = {
 
 
 export type QueryShareTokenInfoArgs = {
-  token: Scalars['String']['input'];
-};
-
-
-export type QuerySharedAiConversationArgs = {
-  password?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  token: Scalars['String']['input'];
-};
-
-
-export type QuerySharedReportArgs = {
-  password?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
   token: Scalars['String']['input'];
 };
 
@@ -6437,192 +5344,9 @@ export type QueryWorkspaceSsoByEmailArgs = {
   email: Scalars['String']['input'];
 };
 
-export type RegisterWorkspaceDatabricksTableInput = {
-  columnAllowlist: Array<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  tableFqn: Scalars['String']['input'];
-  ttlSeconds?: InputMaybe<Scalars['Int']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type RegisterWorkspaceMicrosoftFabricTableInput = {
-  columnAllowlist: Array<Scalars['String']['input']>;
-  connectionId: Scalars['String']['input'];
-  name: Scalars['String']['input'];
-  tableFqn: Scalars['String']['input'];
-  ttlSeconds?: InputMaybe<Scalars['Int']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type RegisterWorkspaceSnowflakeTableInput = {
-  columnAllowlist: Array<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  tableFqn: Scalars['String']['input'];
-  ttlSeconds?: InputMaybe<Scalars['Int']['input']>;
-  workspaceId: Scalars['String']['input'];
-};
-
-export type ReleaseAnonTurnInput = {
-  anonUserHash: Scalars['String']['input'];
-  lockToken: Scalars['String']['input'];
-};
-
 export type RemoveWorkspaceDomainInput = {
   domainId: Scalars['ID']['input'];
   workspaceId: Scalars['ID']['input'];
-};
-
-export type Report = {
-  __typename?: 'Report';
-  createdAt: Scalars['DateTime']['output'];
-  createdBy?: Maybe<LimitedUser>;
-  id: Scalars['ID']['output'];
-  /**
-   * Hydrated ReportLayout — server has re-injected per-section packfile
-   * bindings and input controls (with the saved knob values applied to
-   * `controls[i].value`). The shape matches what the frontend renderer
-   * pipeline (`renderBlocks`) expects.
-   */
-  layout: Scalars['JSONObject']['output'];
-  name: Scalars['String']['output'];
-  project: Project;
-  schemaVersion: Scalars['Int']['output'];
-  /**
-   * Active (non-revoked) public share links for this report. Owner-only —
-   * returns an empty list for non-owner viewers.
-   */
-  shareLinks: Array<ShareToken>;
-  /**
-   * Mode #1 visibility. `true` lets any user who can read the project also read
-   * this report; `false` restricts read access to the owner. Public links (mode
-   * #2) are independent and live in `shareLinks`.
-   */
-  shareWithProject: Scalars['Boolean']['output'];
-  /**
-   * Conversation the report was promoted from. Not enforced as a FK so the
-   * conversation can be deleted without cascading the report; null for reports
-   * authored outside the chat surface.
-   */
-  sourceConversationId?: Maybe<Scalars['String']['output']>;
-  sourceMessageId?: Maybe<Scalars['String']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  workspace: LimitedWorkspace;
-};
-
-export type ReportCollection = {
-  __typename?: 'ReportCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<Report>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type ReportCreateInput = {
-  /**
-   * Hydrated ReportLayout — packfiles and controls still embedded in
-   * sections. Server splits them out into the bindings columns at write
-   * time and re-injects on read.
-   */
-  layout: Scalars['JSONObject']['input'];
-  name: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-  /**
-   * Map of control id to current knob value. Persisted as
-   * `inputs[id].savedValue` so reopening the report restores the user's
-   * last-set state. Omit when no inputs are tracked.
-   */
-  savedInputValues?: InputMaybe<Scalars['JSONObject']['input']>;
-  schemaVersion: Scalars['Int']['input'];
-  sourceConversationId?: InputMaybe<Scalars['String']['input']>;
-  sourceMessageId?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ReportCreateShareLinkInput = {
-  expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  password?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-};
-
-export type ReportDeleteInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-};
-
-export type ReportMutations = {
-  __typename?: 'ReportMutations';
-  create: Report;
-  /**
-   * Create a public share link for a report. Owner-only. The token's resource
-   * access is scoped at the version level to exactly the versions the report's
-   * packfile bindings reference, so a leaked link can read only those versions'
-   * packfiles — nothing else in the project. The returned ShareToken carries
-   * the raw `token` string ONCE; it is never readable again.
-   */
-  createShareLink: ShareToken;
-  delete: Scalars['Boolean']['output'];
-  /**
-   * Toggle the project-members visibility flag. Owner-only. Independent from
-   * any public share links — flipping to `false` does NOT revoke them.
-   */
-  setShareWithProject: Report;
-  update: Report;
-};
-
-
-export type ReportMutationsCreateArgs = {
-  input: ReportCreateInput;
-};
-
-
-export type ReportMutationsCreateShareLinkArgs = {
-  input: ReportCreateShareLinkInput;
-};
-
-
-export type ReportMutationsDeleteArgs = {
-  input: ReportDeleteInput;
-};
-
-
-export type ReportMutationsSetShareWithProjectArgs = {
-  input: ReportSetShareWithProjectInput;
-};
-
-
-export type ReportMutationsUpdateArgs = {
-  input: ReportUpdateInput;
-};
-
-export type ReportSetShareWithProjectInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-  shareWithProject: Scalars['Boolean']['input'];
-};
-
-export type ReportUpdateInput = {
-  id: Scalars['ID']['input'];
-  /**
-   * Updated hydrated ReportLayout — packfiles and controls still embedded in
-   * sections, same shape as `ReportCreateInput.layout`. The server splits them
-   * into the bindings columns, mirroring create. Omit to leave the stored
-   * layout untouched (e.g. a rename-only update).
-   */
-  layout?: InputMaybe<Scalars['JSONObject']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  projectId: Scalars['String']['input'];
-  /**
-   * Map of control id to current knob value. When `layout` is provided but
-   * this is omitted, the server preserves the existing saved values for
-   * controls that still exist in the new layout (controls dropped by the new
-   * layout lose their saved value). Provide explicitly to replace them.
-   */
-  savedInputValues?: InputMaybe<Scalars['JSONObject']['input']>;
-  /**
-   * Schema version of the supplied `layout`. Only meaningful alongside
-   * `layout`; ignored when `layout` is omitted.
-   */
-  schemaVersion?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type RequestWorkspaceSupportAccessInput = {
@@ -6691,7 +5415,6 @@ export type ResourceMetaMutationsUpdateArgs = {
 };
 
 export enum ResourceMetaType {
-  Dashboard = 'dashboard',
   Issue = 'issue',
   Model = 'model',
   Object = 'object',
@@ -7055,6 +5778,8 @@ export type ServerInfo = {
    */
   configuration: ServerConfiguration;
   description?: Maybe<Scalars['String']['output']>;
+  /** Whether or not to show messaging about FE2 (banners etc.) */
+  enableNewWebUiMessaging?: Maybe<Scalars['Boolean']['output']>;
   guestModeEnabled: Scalars['Boolean']['output'];
   inviteOnly?: Maybe<Scalars['Boolean']['output']>;
   /** Server relocation / migration info */
@@ -7082,7 +5807,7 @@ export type ServerInfoUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   guestModeEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   inviteOnly?: InputMaybe<Scalars['Boolean']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
   termsOfService?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -7206,29 +5931,9 @@ export type SetSyncActiveInput = {
   projectId: Scalars['String']['input'];
 };
 
-export type SetWorkspaceProjectMetadataSchemaInput = {
-  /**
-   * A JSON Schema 2020-12 document. Server validates against the meta-schema
-   * before storing — rejects nested objects, arrays, oneOf/anyOf, etc.
-   */
-  schema: Scalars['JSONObject']['input'];
-  workspaceId: Scalars['ID']['input'];
-};
-
-export type SetWorkspaceSsoMinimumRoleInput = {
-  /**
-   * Raw workspace role value, e.g. "workspace:member". Members at or above this role (by
-   * weight) are forced to maintain an active SSO session.
-   */
-  minimumSsoRole: Scalars['String']['input'];
-  workspaceId: Scalars['ID']['input'];
-};
-
 export enum ShareSourceType {
-  AiConversation = 'aiConversation',
   Dashboard = 'dashboard',
   Embed = 'embed',
-  Report = 'report',
   SavedViewGroup = 'savedViewGroup'
 }
 
@@ -7361,29 +6066,6 @@ export type SmartTextEditorValue = {
   version: Scalars['String']['output'];
 };
 
-export type SnowflakeColumnRef = {
-  __typename?: 'SnowflakeColumnRef';
-  name: Scalars['String']['output'];
-  nullable?: Maybe<Scalars['Boolean']['output']>;
-  type: Scalars['String']['output'];
-};
-
-export type SnowflakeTablePreview = {
-  __typename?: 'SnowflakeTablePreview';
-  columns: Array<SnowflakeColumnRef>;
-  rows: Array<Scalars['JSONObject']['output']>;
-  truncated: Scalars['Boolean']['output'];
-};
-
-export type SnowflakeTableRef = {
-  __typename?: 'SnowflakeTableRef';
-  database: Scalars['String']['output'];
-  fullyQualifiedName: Scalars['String']['output'];
-  kind: Scalars['String']['output'];
-  name: Scalars['String']['output'];
-  schema: Scalars['String']['output'];
-};
-
 /** Use SortOrder instead, which has more consistent casing w/ server internals */
 export enum SortDirection {
   Asc = 'ASC',
@@ -7408,18 +6090,6 @@ export type SourceDataInput = {
   fileSizeBytes?: InputMaybe<Scalars['BigInt']['input']>;
   sourceApplicationSlug: Scalars['String']['input'];
   sourceApplicationVersion: Scalars['String']['input'];
-};
-
-export type StartAnonTurnInput = {
-  anonUserHash: Scalars['String']['input'];
-};
-
-export type StartAnonTurnResult = {
-  __typename?: 'StartAnonTurnResult';
-  lockToken: Scalars['String']['output'];
-  tokensRemaining: Scalars['Int']['output'];
-  tokensUsedWindow: Scalars['Int']['output'];
-  windowResetsAt: Scalars['DateTime']['output'];
 };
 
 export type StartFileImportInput = {
@@ -8149,15 +6819,6 @@ export type UpdateProjectLabelsInput = {
   projectId: Scalars['ID']['input'];
 };
 
-export type UpdateProjectMetadataInput = {
-  projectId: Scalars['ID']['input'];
-  /**
-   * Partial. Only the keys present here are validated and written. Pass null
-   * for a key to clear it.
-   */
-  values: Scalars['JSONObject']['input'];
-};
-
 export type UpdateResourceMetaInput = {
   data?: InputMaybe<Scalars['JSON']['input']>;
   metaType?: InputMaybe<Scalars['String']['input']>;
@@ -8225,16 +6886,6 @@ export type UpdateVersionInput = {
   versionId: Scalars['ID']['input'];
 };
 
-export type UpdateWorkspaceMicrosoftFabricConnectionInput = {
-  authMode?: InputMaybe<WorkspaceMicrosoftFabricAuthMode>;
-  clientId?: InputMaybe<Scalars['String']['input']>;
-  database?: InputMaybe<Scalars['String']['input']>;
-  encryptedCredentials?: InputMaybe<Scalars['String']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-  server?: InputMaybe<Scalars['String']['input']>;
-  tenantId?: InputMaybe<Scalars['String']['input']>;
-};
-
 export type UpgradePlanInput = {
   billingInterval: BillingInterval;
   planAddOn?: InputMaybe<PlanAddOn>;
@@ -8251,26 +6902,6 @@ export type UpgradeToPaidlPlanInput = {
   taxIdData?: InputMaybe<TaxIdData>;
   workspacePlan: PaidWorkspacePlans;
   workspaceSlug: Scalars['String']['input'];
-};
-
-export type UpsertWorkspaceDatabricksConnectionInput = {
-  authMode: WorkspaceDatabricksAuthMode;
-  encryptedCredentials: Scalars['String']['input'];
-  host: Scalars['String']['input'];
-  httpPath: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-export type UpsertWorkspaceSnowflakeConnectionInput = {
-  account: Scalars['String']['input'];
-  authMode: WorkspaceSnowflakeAuthMode;
-  database?: InputMaybe<Scalars['String']['input']>;
-  encryptedCredentials: Scalars['String']['input'];
-  role?: InputMaybe<Scalars['String']['input']>;
-  schema?: InputMaybe<Scalars['String']['input']>;
-  username: Scalars['String']['input'];
-  warehouse: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
 };
 
 /**
@@ -8938,12 +7569,6 @@ export enum ViewerUserActivityStatus {
   Viewing = 'VIEWING'
 }
 
-export type WarehouseColumn = {
-  __typename?: 'WarehouseColumn';
-  name: Scalars['String']['output'];
-  type: Scalars['String']['output'];
-};
-
 export type Webhook = {
   __typename?: 'Webhook';
   description?: Maybe<Scalars['String']['output']>;
@@ -9019,21 +7644,6 @@ export type Workspace = {
   activeSupportSession?: Maybe<WorkspaceSupportSession>;
   /** Get all join requests for all the workspaces the user is an admin of */
   adminWorkspacesJoinRequests?: Maybe<WorkspaceJoinRequestCollection>;
-  /**
-   * The AI skills available to the current user in this workspace: their own
-   * (any visibility) plus every workspace-shared skill. Summary rows — `messages`
-   * -style heavy fields (`instructions`, `knowledgeSources`) are null here and
-   * only populated by the `aiSkill(id)` query. Newest-updated first.
-   */
-  aiSkills: AiSkillCollection;
-  /**
-   * AI token usage stats for this workspace. Aggregates all model calls
-   * attributed to the workspace (turns, tool-result summaries, title
-   * generation). Gated by `canReadBillingSettings` — workspace admins
-   * only. Nullable so a gate failure scopes the error to this field
-   * rather than nulling the whole Workspace.
-   */
-  aiTokenUsage?: Maybe<AiTokenWorkspaceUsage>;
   automateFunctions: AutomateFunctionCollection;
   createdAt: Scalars['DateTime']['output'];
   /**
@@ -9043,7 +7653,6 @@ export type Workspace = {
   creationState?: Maybe<WorkspaceCreationState>;
   customerPortalUrl?: Maybe<Scalars['String']['output']>;
   dashboards: DashboardCollection;
-  dataWarehouses: WorkspaceDataWarehouses;
   /**
    * The default role workspace members will receive for workspace projects.
    * @deprecated Always the reviewer role. Will be removed in the future.
@@ -9067,17 +7676,6 @@ export type Workspace = {
   domains?: Maybe<Array<WorkspaceDomain>>;
   /** Workspace-level configuration for models in embedded viewer */
   embedOptions: WorkspaceEmbedOptions;
-  /**
-   * A single external data source by id. Returns null if it does not belong to
-   * this workspace or the caller may not read it.
-   */
-  externalDataSource?: Maybe<ExternalDataSource>;
-  /**
-   * Paginated list of the workspace's external data source library (uploaded
-   * files promoted into the library). Pass the cursor from the previous
-   * response to page further.
-   */
-  externalDataSources?: Maybe<ExternalDataSourceCollection>;
   /** @deprecated Use specific auth policies instead */
   hasAccessToFeature: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
@@ -9109,11 +7707,6 @@ export type Workspace = {
   projectActivityTimeline?: Maybe<WorkspaceProjectActivityTimelineResult>;
   /** List all project labels defined for this workspace */
   projectLabels: WorkspaceProjectLabelCollection;
-  /**
-   * Currently-configured project metadata schema. Null if workspace admin hasn't
-   * defined one yet (or if workspaces module is disabled).
-   */
-  projectMetadataSchema?: Maybe<WorkspaceProjectMetadataSchema>;
   projects: ProjectCollection;
   /** A Workspace is marked as readOnly if its trial period is finished or a paid plan is subscribed but payment has failed */
   readOnly: Scalars['Boolean']['output'];
@@ -9147,12 +7740,6 @@ export type WorkspaceAdminWorkspacesJoinRequestsArgs = {
 };
 
 
-export type WorkspaceAiSkillsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
 export type WorkspaceAutomateFunctionsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<AutomateFunctionsFilter>;
@@ -9163,18 +7750,6 @@ export type WorkspaceAutomateFunctionsArgs = {
 export type WorkspaceDashboardsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<WorkspaceDashboardsFilter>;
-  limit?: Scalars['Int']['input'];
-};
-
-
-export type WorkspaceExternalDataSourceArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type WorkspaceExternalDataSourcesArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  filter?: InputMaybe<ExternalDataSourceFilter>;
   limit?: Scalars['Int']['input'];
 };
 
@@ -9208,7 +7783,6 @@ export type WorkspaceProjectsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<WorkspaceProjectsFilter>;
   limit?: Scalars['Int']['input'];
-  sortBy?: InputMaybe<ProjectsSortBy>;
 };
 
 
@@ -9255,7 +7829,6 @@ export type WorkspaceCollaborator = {
   id: Scalars['ID']['output'];
   /** Date that the user joined the workspace. */
   joinDate: Scalars['DateTime']['output'];
-  permissions: WorkspaceCollaboratorPermissionChecks;
   projectRoles: Array<ProjectRole>;
   role: Scalars['String']['output'];
   seatType?: Maybe<WorkspaceSeatType>;
@@ -9267,35 +7840,6 @@ export type WorkspaceCollaboratorCollection = {
   cursor?: Maybe<Scalars['String']['output']>;
   items: Array<WorkspaceCollaborator>;
   totalCount: Scalars['Int']['output'];
-};
-
-/**
- * Permission checks for actions the active user can perform on this specific workspace collaborator.
- * The target user is implied by the parent collaborator.
- */
-export type WorkspaceCollaboratorPermissionChecks = {
-  __typename?: 'WorkspaceCollaboratorPermissionChecks';
-  canChangeSeatType: PermissionCheckResult;
-  canRemove: PermissionCheckResult;
-  canUpdateRole: PermissionCheckResult;
-};
-
-
-/**
- * Permission checks for actions the active user can perform on this specific workspace collaborator.
- * The target user is implied by the parent collaborator.
- */
-export type WorkspaceCollaboratorPermissionChecksCanChangeSeatTypeArgs = {
-  seatType: WorkspaceSeatType;
-};
-
-
-/**
- * Permission checks for actions the active user can perform on this specific workspace collaborator.
- * The target user is implied by the parent collaborator.
- */
-export type WorkspaceCollaboratorPermissionChecksCanUpdateRoleArgs = {
-  role: WorkspaceRole;
 };
 
 export type WorkspaceCollection = {
@@ -9332,176 +7876,6 @@ export type WorkspaceDashboardsFilter = {
   search?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type WorkspaceDataWarehouseMutations = {
-  __typename?: 'WorkspaceDataWarehouseMutations';
-  createMicrosoftFabricConnection: WorkspaceMicrosoftFabricConnection;
-  deleteDatabricksConnection: Scalars['Boolean']['output'];
-  deleteMicrosoftFabricConnection: Scalars['Boolean']['output'];
-  deleteSnowflakeConnection: Scalars['Boolean']['output'];
-  refreshSource: DataWarehouseSource;
-  registerDatabricksTableAsDataSource: DataWarehouseSource;
-  registerMicrosoftFabricTableAsDataSource: DataWarehouseSource;
-  registerSnowflakeTableAsDataSource: DataWarehouseSource;
-  testDatabricksConnection: WorkspaceDatabricksConnectionTestResult;
-  testMicrosoftFabricConnection: WorkspaceMicrosoftFabricConnectionTestResult;
-  testSnowflakeConnection: WorkspaceSnowflakeConnectionTestResult;
-  updateMicrosoftFabricConnection: WorkspaceMicrosoftFabricConnection;
-  upsertDatabricksConnection: WorkspaceDatabricksConnection;
-  upsertSnowflakeConnection: WorkspaceSnowflakeConnection;
-};
-
-
-export type WorkspaceDataWarehouseMutationsCreateMicrosoftFabricConnectionArgs = {
-  input: CreateWorkspaceMicrosoftFabricConnectionInput;
-};
-
-
-export type WorkspaceDataWarehouseMutationsDeleteDatabricksConnectionArgs = {
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsDeleteMicrosoftFabricConnectionArgs = {
-  id: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsDeleteSnowflakeConnectionArgs = {
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsRefreshSourceArgs = {
-  id: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsRegisterDatabricksTableAsDataSourceArgs = {
-  input: RegisterWorkspaceDatabricksTableInput;
-};
-
-
-export type WorkspaceDataWarehouseMutationsRegisterMicrosoftFabricTableAsDataSourceArgs = {
-  input: RegisterWorkspaceMicrosoftFabricTableInput;
-};
-
-
-export type WorkspaceDataWarehouseMutationsRegisterSnowflakeTableAsDataSourceArgs = {
-  input: RegisterWorkspaceSnowflakeTableInput;
-};
-
-
-export type WorkspaceDataWarehouseMutationsTestDatabricksConnectionArgs = {
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsTestMicrosoftFabricConnectionArgs = {
-  id: Scalars['String']['input'];
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsTestSnowflakeConnectionArgs = {
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsUpdateMicrosoftFabricConnectionArgs = {
-  id: Scalars['String']['input'];
-  input: UpdateWorkspaceMicrosoftFabricConnectionInput;
-  workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehouseMutationsUpsertDatabricksConnectionArgs = {
-  input: UpsertWorkspaceDatabricksConnectionInput;
-};
-
-
-export type WorkspaceDataWarehouseMutationsUpsertSnowflakeConnectionArgs = {
-  input: UpsertWorkspaceSnowflakeConnectionInput;
-};
-
-export type WorkspaceDataWarehouses = {
-  __typename?: 'WorkspaceDataWarehouses';
-  databricksConnections: Array<WorkspaceDatabricksConnection>;
-  encryptionPublicKey: Scalars['String']['output'];
-  microsoftFabricConnections: Array<WorkspaceMicrosoftFabricConnection>;
-  snowflakeConnections: Array<WorkspaceSnowflakeConnection>;
-  source?: Maybe<DataWarehouseSource>;
-  sources: Array<DataWarehouseSource>;
-};
-
-
-export type WorkspaceDataWarehousesSourceArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDataWarehousesSourcesArgs = {
-  projectId?: InputMaybe<Scalars['String']['input']>;
-};
-
-export enum WorkspaceDatabricksAuthMode {
-  OauthM2m = 'oauth_m2m',
-  Pat = 'pat'
-}
-
-export type WorkspaceDatabricksConnection = {
-  __typename?: 'WorkspaceDatabricksConnection';
-  authMode: WorkspaceDatabricksAuthMode;
-  catalogs: Array<Scalars['String']['output']>;
-  createdAt: Scalars['DateTime']['output'];
-  host: Scalars['String']['output'];
-  httpPath: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  lastTestError?: Maybe<Scalars['String']['output']>;
-  lastTestSucceeded?: Maybe<Scalars['Boolean']['output']>;
-  lastTestedAt?: Maybe<Scalars['DateTime']['output']>;
-  schemas: Array<Scalars['String']['output']>;
-  tableColumns: Array<DatabricksColumnRef>;
-  tablePreview: DatabricksTablePreview;
-  tables: Array<DatabricksTableRef>;
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-
-export type WorkspaceDatabricksConnectionSchemasArgs = {
-  catalog: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDatabricksConnectionTableColumnsArgs = {
-  catalog: Scalars['String']['input'];
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDatabricksConnectionTablePreviewArgs = {
-  catalog: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceDatabricksConnectionTablesArgs = {
-  catalog: Scalars['String']['input'];
-  schema: Scalars['String']['input'];
-};
-
-export type WorkspaceDatabricksConnectionTestResult = {
-  __typename?: 'WorkspaceDatabricksConnectionTestResult';
-  durationMs: Scalars['Int']['output'];
-  error?: Maybe<Scalars['String']['output']>;
-  success: Scalars['Boolean']['output'];
-};
-
 export type WorkspaceDismissInput = {
   workspaceId: Scalars['ID']['input'];
 };
@@ -9535,13 +7909,11 @@ export type WorkspaceFeatureGrantUpdateInput = {
 
 export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
-  AiChat = 'aiChat',
   Automate = 'automate',
   BentleyIntegration = 'bentleyIntegration',
   /** @deprecated Use projectDashboards instead. Value will be dropped after July 19, 2026. */
   Dashboards = 'dashboards',
   DashboardsExperimental = 'dashboardsExperimental',
-  DatabricksIntegration = 'databricksIntegration',
   DomainBasedSecurityPolicies = 'domainBasedSecurityPolicies',
   DomainDiscoverability = 'domainDiscoverability',
   EmbedPrivateProjects = 'embedPrivateProjects',
@@ -9551,7 +7923,6 @@ export enum WorkspaceFeatureName {
   HideSpeckleBranding = 'hideSpeckleBranding',
   Issues = 'issues',
   Markup = 'markup',
-  MicrosoftFabricIntegration = 'microsoftFabricIntegration',
   ModelValidation = 'modelValidation',
   OidcSso = 'oidcSso',
   PortfolioDashboards = 'portfolioDashboards',
@@ -9560,10 +7931,8 @@ export enum WorkspaceFeatureName {
   Presentations = 'presentations',
   ProjectArchival = 'projectArchival',
   ProjectDashboards = 'projectDashboards',
-  ProjectMetadata = 'projectMetadata',
   SavedViews = 'savedViews',
   Scim2Provisioning = 'scim2Provisioning',
-  SnowflakeIntegration = 'snowflakeIntegration',
   Viewer3 = 'viewer3',
   ViewerTable = 'viewerTable',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
@@ -9791,70 +8160,13 @@ export type WorkspaceLimitsUpdateInput = {
   workspaceSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
-export enum WorkspaceMicrosoftFabricAuthMode {
-  ServicePrincipal = 'service_principal'
-}
-
-export type WorkspaceMicrosoftFabricConnection = {
-  __typename?: 'WorkspaceMicrosoftFabricConnection';
-  authMode: WorkspaceMicrosoftFabricAuthMode;
-  clientId: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  database: Scalars['String']['output'];
-  id: Scalars['String']['output'];
-  lastTestError?: Maybe<Scalars['String']['output']>;
-  lastTestSucceeded?: Maybe<Scalars['Boolean']['output']>;
-  lastTestedAt?: Maybe<Scalars['DateTime']['output']>;
-  name: Scalars['String']['output'];
-  schemas: Array<Scalars['String']['output']>;
-  server: Scalars['String']['output'];
-  tableColumns: Array<MicrosoftFabricColumnRef>;
-  tablePreview: MicrosoftFabricTablePreview;
-  tables: Array<MicrosoftFabricTableRef>;
-  tenantId: Scalars['String']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-
-export type WorkspaceMicrosoftFabricConnectionTableColumnsArgs = {
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceMicrosoftFabricConnectionTablePreviewArgs = {
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceMicrosoftFabricConnectionTablesArgs = {
-  schema: Scalars['String']['input'];
-};
-
-export type WorkspaceMicrosoftFabricConnectionTestResult = {
-  __typename?: 'WorkspaceMicrosoftFabricConnectionTestResult';
-  durationMs: Scalars['Int']['output'];
-  error?: Maybe<Scalars['String']['output']>;
-  success: Scalars['Boolean']['output'];
-};
-
 export type WorkspaceMutations = {
   __typename?: 'WorkspaceMutations';
   addDomain: Workspace;
   billing: WorkspaceBillingMutations;
   create: Workspace;
-  dataWarehouses: WorkspaceDataWarehouseMutations;
   delete: Scalars['Boolean']['output'];
   deleteDomain: Workspace;
-  /**
-   * Delete the workspace project metadata schema entirely. Also permanently clears
-   * all stored per-project metadata values across the workspace (in every region).
-   * Irreversible.
-   */
-  deleteProjectMetadataSchema: Workspace;
   deleteSsoProvider: Scalars['Boolean']['output'];
   /** Revoke the SSO session for a specific user in a workspace. Only workspace admins can perform this action. */
   deleteSsoSession: Scalars['Boolean']['output'];
@@ -9871,13 +8183,6 @@ export type WorkspaceMutations = {
   requestToJoin: Scalars['Boolean']['output'];
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
-  setProjectMetadataSchema: Workspace;
-  /**
-   * Set the minimum workspace role (by weight) at or above which an active SSO session is
-   * forced. Accepts a raw workspace role value (e.g. "workspace:member"). Requires an SSO
-   * provider to already be configured for the workspace.
-   */
-  setWorkspaceSsoMinimumRole: Scalars['Boolean']['output'];
   /** Support session management mutations */
   support: WorkspaceSupportMutations;
   update: Workspace;
@@ -9908,11 +8213,6 @@ export type WorkspaceMutationsDeleteArgs = {
 
 export type WorkspaceMutationsDeleteDomainArgs = {
   input: WorkspaceDomainDeleteInput;
-};
-
-
-export type WorkspaceMutationsDeleteProjectMetadataSchemaArgs = {
-  workspaceId: Scalars['ID']['input'];
 };
 
 
@@ -9960,16 +8260,6 @@ export type WorkspaceMutationsRequestToJoinArgs = {
 export type WorkspaceMutationsSetDefaultRegionArgs = {
   regionKey: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
-};
-
-
-export type WorkspaceMutationsSetProjectMetadataSchemaArgs = {
-  input: SetWorkspaceProjectMetadataSchemaInput;
-};
-
-
-export type WorkspaceMutationsSetWorkspaceSsoMinimumRoleArgs = {
-  input: SetWorkspaceSsoMinimumRoleInput;
 };
 
 
@@ -10023,21 +8313,11 @@ export type WorkspacePermissionChecks = {
   canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
   canAccessViewer3: PermissionCheckResult;
-  /** Whether the current user can add additional server admins to their currently-active support session in this workspace. */
-  canAddAdminToSupportSession: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
-  /**
-   * Whether the current user can create an AI skill in this workspace. Member +
-   * write, gated on the workspace plan granting `aiChat`. Frontend disables the
-   * "New skill" affordance when this returns `authorized: false`.
-   */
-  canCreateAiSkill: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
-  canCreateResourceMeta: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canDeleteInvite: PermissionCheckResult;
-  canDeleteResourceMeta: PermissionCheckResult;
   canDeleteSsoSession: PermissionCheckResult;
   canEditEmbedOptions: PermissionCheckResult;
   canEditWorkspaceIssueLabels: PermissionCheckResult;
@@ -10050,7 +8330,6 @@ export type WorkspacePermissionChecks = {
   canManageDomainBasedSecurityPolicies: PermissionCheckResult;
   canManageInvites: PermissionCheckResult;
   canManageJoinRequests: PermissionCheckResult;
-  canManageProjectMetadataSchema: PermissionCheckResult;
   canManageScim: PermissionCheckResult;
   canManageSso: PermissionCheckResult;
   /** Whether the current user can approve/manage support sessions (workspace admins only) */
@@ -10066,7 +8345,6 @@ export type WorkspacePermissionChecks = {
   canReadMemberRole: PermissionCheckResult;
   canReadPeopleSettings: PermissionCheckResult;
   canReadProjectsSettings: PermissionCheckResult;
-  canReadResourceMeta: PermissionCheckResult;
   canReadSecuritySettings: PermissionCheckResult;
   /** Whether the current user can read/list support sessions for this workspace */
   canReadSupportSessions: PermissionCheckResult;
@@ -10074,43 +8352,17 @@ export type WorkspacePermissionChecks = {
   canReadWorkspaceProjectLabels: PermissionCheckResult;
   canRejectJoinRequest: PermissionCheckResult;
   canRemoveUser: PermissionCheckResult;
-  canRequestAdminUpgrade: PermissionCheckResult;
   /** Whether the current user can request support access to this workspace (server admins only) */
   canRequestSupportAccess: PermissionCheckResult;
   canResendInvite: PermissionCheckResult;
   canRevokeAllShareTokens: PermissionCheckResult;
-  /**
-   * Whether the current user can revoke a support session in this workspace from the workspace-admin perspective.
-   * Per-session ownership-based revoke (where the session owner self-revokes) is evaluated server-side at mutation time.
-   */
-  canRevokeSupportSession: PermissionCheckResult;
   canSendJoinRequest: PermissionCheckResult;
   canUpdate: PermissionCheckResult;
-  canUpdateResourceMeta: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
-  /**
-   * When invoked without an input (or with omitted `targetPlan` / `targetInterval`),
-   * the check skips the target-specific validations and just verifies the user
-   * can reach an upgrade at all (role, session, plan status). Pass a concrete
-   * target when the caller knows which plan/interval the user is moving to.
-   */
   canUpgradePlan: PermissionCheckResult;
-  /**
-   * Whether the current user can use the AI chat feature in this workspace.
-   * Two gates compose:
-   *   - Workspace membership (any role from Guest upward) with a valid SSO
-   *     session and write-mode policy semantics.
-   *   - The workspace's plan grants `aiChat`. Default off — operators grant
-   *     per workspace until the public plan story is finalised.
-   * Frontend hides the sidebar entry and `/magic` page when this returns
-   * `authorized: false`. Resolvers in this module gate every operation on
-   * the same policy.
-   */
-  canUseAiChat: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
-  canViewUpgradeOptions: PermissionCheckResult;
 };
 
 
@@ -10137,7 +8389,7 @@ export type WorkspacePermissionChecksCanUpdateRoleArgs = {
 
 
 export type WorkspacePermissionChecksCanUpgradePlanArgs = {
-  input?: InputMaybe<CanUpgradePlanInput>;
+  input: CanUpgradePlanInput;
 };
 
 
@@ -10185,7 +8437,6 @@ export enum WorkspacePlanStatuses {
 export type WorkspacePlanUsage = {
   __typename?: 'WorkspacePlanUsage';
   dashboardCount: Scalars['Int']['output'];
-  projectActivity: WorkspaceProjectActivity;
   projectCount: Scalars['Int']['output'];
   sync: WorkspaceSyncUsage;
   users: WorkspaceUserCount;
@@ -10202,16 +8453,8 @@ export enum WorkspacePlans {
   Enterprise = 'enterprise',
   Free = 'free',
   Legacy = 'legacy',
-  Sandbox = 'sandbox',
   Unlimited = 'unlimited'
 }
-
-/** Activity-derived signals about workspace projects (e.g. for upgrade-segment heuristics). */
-export type WorkspaceProjectActivity = {
-  __typename?: 'WorkspaceProjectActivity';
-  /** Number of non-archived workspace projects whose `updatedAt` is older than 30 days. */
-  inactiveCount30d: Scalars['Int']['output'];
-};
 
 export type WorkspaceProjectActivityTimelineInput = {
   /**
@@ -10346,17 +8589,6 @@ export type WorkspaceProjectLabelsInput = {
   sortDirection?: InputMaybe<SortOrder>;
 };
 
-export type WorkspaceProjectMetadataSchema = {
-  __typename?: 'WorkspaceProjectMetadataSchema';
-  createdAt: Scalars['DateTime']['output'];
-  /**
-   * The constrained JSON Schema 2020-12 document. The frontend can mount JSONForms
-   * over this directly.
-   */
-  schema: Scalars['JSONObject']['output'];
-  updatedAt: Scalars['DateTime']['output'];
-};
-
 export type WorkspaceProjectMutations = {
   __typename?: 'WorkspaceProjectMutations';
   create: Project;
@@ -10484,82 +8716,8 @@ export type WorkspaceShareTokensFilter = {
   sourceType?: InputMaybe<ShareSourceType>;
 };
 
-export enum WorkspaceSnowflakeAuthMode {
-  KeyPair = 'key_pair',
-  Pat = 'pat'
-}
-
-export type WorkspaceSnowflakeConnection = {
-  __typename?: 'WorkspaceSnowflakeConnection';
-  account: Scalars['String']['output'];
-  authMode: WorkspaceSnowflakeAuthMode;
-  createdAt: Scalars['DateTime']['output'];
-  database?: Maybe<Scalars['String']['output']>;
-  databases: Array<Scalars['String']['output']>;
-  id: Scalars['String']['output'];
-  lastTestError?: Maybe<Scalars['String']['output']>;
-  lastTestSucceeded?: Maybe<Scalars['Boolean']['output']>;
-  lastTestedAt?: Maybe<Scalars['DateTime']['output']>;
-  role?: Maybe<Scalars['String']['output']>;
-  schema?: Maybe<Scalars['String']['output']>;
-  schemas: Array<Scalars['String']['output']>;
-  tableColumns: Array<SnowflakeColumnRef>;
-  tablePreview: SnowflakeTablePreview;
-  tables: Array<SnowflakeTableRef>;
-  updatedAt: Scalars['DateTime']['output'];
-  username: Scalars['String']['output'];
-  views: Array<SnowflakeTableRef>;
-  warehouse: Scalars['String']['output'];
-  workspaceId: Scalars['String']['output'];
-};
-
-
-export type WorkspaceSnowflakeConnectionSchemasArgs = {
-  database: Scalars['String']['input'];
-};
-
-
-export type WorkspaceSnowflakeConnectionTableColumnsArgs = {
-  database: Scalars['String']['input'];
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceSnowflakeConnectionTablePreviewArgs = {
-  database: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  schema: Scalars['String']['input'];
-  table: Scalars['String']['input'];
-};
-
-
-export type WorkspaceSnowflakeConnectionTablesArgs = {
-  database: Scalars['String']['input'];
-  schema: Scalars['String']['input'];
-};
-
-
-export type WorkspaceSnowflakeConnectionViewsArgs = {
-  database: Scalars['String']['input'];
-  schema: Scalars['String']['input'];
-};
-
-export type WorkspaceSnowflakeConnectionTestResult = {
-  __typename?: 'WorkspaceSnowflakeConnectionTestResult';
-  durationMs: Scalars['Int']['output'];
-  error?: Maybe<Scalars['String']['output']>;
-  success: Scalars['Boolean']['output'];
-};
-
 export type WorkspaceSso = {
   __typename?: 'WorkspaceSso';
-  /**
-   * Minimum workspace role (by weight) at or above which an active SSO session is forced.
-   * Raw workspace role value (e.g. "workspace:member"). Defaults to "workspace:member"
-   * (guests bypass SSO).
-   */
-  minimumSsoRole: Scalars['String']['output'];
   /** If null, the workspace does not have SSO configured */
   provider?: Maybe<WorkspaceSsoProvider>;
   session?: Maybe<WorkspaceSsoSession>;
@@ -10625,12 +8783,6 @@ export type WorkspaceSubscriptionSeats = {
 export type WorkspaceSupportMutations = {
   __typename?: 'WorkspaceSupportMutations';
   /**
-   * Add another server admin to the inviter's currently active support session. The new session
-   * is created already active, inherits the inviter's validUntil, and has approvedBy set to the
-   * inviter. Independent of the inviter's session — revoking the inviter does not cascade.
-   */
-  addAdmin: WorkspaceSupportSession;
-  /**
    * Approve a pending support access request. Only workspace admins can approve.
    * Activates the session and notifies the requesting server admin.
    */
@@ -10645,11 +8797,6 @@ export type WorkspaceSupportMutations = {
    * Can be called by the requesting server admin or a workspace admin.
    */
   revokeAccess: WorkspaceSupportSession;
-};
-
-
-export type WorkspaceSupportMutationsAddAdminArgs = {
-  input: AddAdminToSupportSessionInput;
 };
 
 
@@ -10867,7 +9014,7 @@ export type StreamAccessRequestCreateMutationVariables = Exact<{
 
 export type StreamAccessRequestCreateMutation = { __typename?: 'Mutation', streamAccessRequestCreate: { __typename?: 'StreamAccessRequest', id: string } };
 
-export type WorkspaceListWorkspaceItemFragment = { __typename?: 'Workspace', id: string, slug: string, name: string, description?: string | null, createdAt: string, updatedAt: string, logoUrl?: string | null, role?: string | null, readOnly: boolean, permissions: { __typename?: 'WorkspacePermissionChecks', canCreateProject: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string } } };
+export type WorkspaceListWorkspaceItemFragment = { __typename?: 'Workspace', id: string, slug: string, name: string, description?: string | null, createdAt: string, updatedAt: string, logoUrl?: string | null, role?: string | null, readOnly: boolean, permissions: { __typename?: 'WorkspacePermissionChecks', canCreateProject: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canAccessHelpCenter: { __typename?: 'PermissionCheckResult', authorized: boolean } } };
 
 export type AutomateFunctionItemFragment = { __typename?: 'AutomateFunction', name: string, isFeatured: boolean, id: string, creator?: { __typename?: 'LimitedUser', name: string } | null, releases: { __typename?: 'AutomateFunctionReleaseCollection', items: Array<{ __typename?: 'AutomateFunctionRelease', inputSchema?: {} | null }> } };
 
@@ -10898,7 +9045,7 @@ export type WorkspaceListQueryQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceListQueryQuery = { __typename?: 'Query', activeUser?: { __typename?: 'User', id: string, workspaces: { __typename?: 'WorkspaceCollection', totalCount: number, cursor?: string | null, items: Array<{ __typename?: 'Workspace', id: string, slug: string, name: string, description?: string | null, createdAt: string, updatedAt: string, logoUrl?: string | null, role?: string | null, readOnly: boolean, permissions: { __typename?: 'WorkspacePermissionChecks', canCreateProject: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string } } }> } } | null };
+export type WorkspaceListQueryQuery = { __typename?: 'Query', activeUser?: { __typename?: 'User', id: string, workspaces: { __typename?: 'WorkspaceCollection', totalCount: number, cursor?: string | null, items: Array<{ __typename?: 'Workspace', id: string, slug: string, name: string, description?: string | null, createdAt: string, updatedAt: string, logoUrl?: string | null, role?: string | null, readOnly: boolean, permissions: { __typename?: 'WorkspacePermissionChecks', canCreateProject: { __typename?: 'PermissionCheckResult', authorized: boolean, code: string, message: string }, canAccessHelpCenter: { __typename?: 'PermissionCheckResult', authorized: boolean } } }> } } | null };
 
 export type ActiveUserQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -11126,6 +9273,20 @@ export type ProjectModelIngestionUpdatedSubscription = { __typename?: 'Subscript
 
 export type IssuesItemFragment = { __typename?: 'Issue', id: string, status: IssueStatus, title?: string | null, priority: IssuePriority, viewerState?: {} | null, identifier: string, resourceIdString?: string | null, dueDate?: string | null, activities?: { __typename?: 'IssueActivityCollection', totalCount: number, items: Array<{ __typename?: 'IssueActivity', eventType: IssueActivityEventType, createdAt: string, actor?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', name: string, id: string, avatar?: string | null } } | null }> } | null, replies: { __typename?: 'IssueReplyCollection', totalCount: number, items: Array<{ __typename?: 'IssueReply', id: string, createdAt: string, author?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', name: string, id: string, avatar?: string | null } } | null, description?: { __typename?: 'SmartTextEditorValue', doc?: {} | null } | null }> }, description?: { __typename?: 'SmartTextEditorValue', doc?: {} | null } | null, labels: Array<{ __typename?: 'AssignedLabel', hexColor: string, id: string, name: string }>, author?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, name: string, avatar?: string | null } } | null, assignee?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, avatar?: string | null, name: string } } | null };
 
+export type DeleteResourceMetaMutationVariables = Exact<{
+  input: DeleteResourceMetaInput;
+}>;
+
+
+export type DeleteResourceMetaMutation = { __typename?: 'Mutation', resourceMetaMutations: { __typename?: 'ResourceMetaMutations', delete: boolean } };
+
+export type UpdateIssueMutationVariables = Exact<{
+  input: UpdateIssueInput;
+}>;
+
+
+export type UpdateIssueMutation = { __typename?: 'Mutation', projectMutations: { __typename?: 'ProjectMutations', issues: { __typename?: 'ProjectIssueMutations', updateIssue: { __typename?: 'Issue', id: string, status: IssueStatus } } } };
+
 export type IssuesListQueryVariables = Exact<{
   projectId: Scalars['String']['input'];
 }>;
@@ -11142,7 +9303,14 @@ export type IssueResourceMetaSearchQueryVariables = Exact<{
 }>;
 
 
-export type IssueResourceMetaSearchQuery = { __typename?: 'Query', resourceMetaSearch: Array<{ __typename?: 'ResourceMeta', data: any }> };
+export type IssueResourceMetaSearchQuery = { __typename?: 'Query', resourceMetaSearch: Array<{ __typename?: 'ResourceMeta', id: string, data: any }> };
+
+export type WorkspaceIntercomPermissionQueryVariables = Exact<{
+  workspaceId: Scalars['String']['input'];
+}>;
+
+
+export type WorkspaceIntercomPermissionQuery = { __typename?: 'Query', workspace: { __typename?: 'Workspace', id: string, permissions: { __typename?: 'WorkspacePermissionChecks', canAccessHelpCenter: { __typename?: 'PermissionCheckResult', authorized: boolean } } } };
 
 export type WorkspacePlanUsageUpdatedSubscriptionVariables = Exact<{
   input: WorkspacePlanUsageSubscriptionInput;
@@ -11151,7 +9319,7 @@ export type WorkspacePlanUsageUpdatedSubscriptionVariables = Exact<{
 
 export type WorkspacePlanUsageUpdatedSubscription = { __typename?: 'Subscription', workspacePlanUsageUpdated: boolean };
 
-export const WorkspaceListWorkspaceItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Workspace"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"logoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"readOnly"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceListWorkspaceItemFragment, unknown>;
+export const WorkspaceListWorkspaceItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Workspace"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"logoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"readOnly"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canAccessHelpCenter"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceListWorkspaceItemFragment, unknown>;
 export const AutomateFunctionItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomateFunctionItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateFunction"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"isFeatured"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"creator"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"releases"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"inputSchema"}}]}}]}}]}}]} as unknown as DocumentNode<AutomateFunctionItemFragment, unknown>;
 export const AutomateFunctionRunItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomateFunctionRunItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateFunctionRun"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"statusMessage"}},{"kind":"Field","name":{"kind":"Name","value":"results"}},{"kind":"Field","name":{"kind":"Name","value":"contextView"}},{"kind":"Field","name":{"kind":"Name","value":"function"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logo"}}]}}]}}]} as unknown as DocumentNode<AutomateFunctionRunItemFragment, unknown>;
 export const AutomationRunItemFragmentDoc = {"kind":"Document","definitions":[{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomationRunItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateRun"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"automation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"functionRuns"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"AutomateFunctionRunItem"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomateFunctionRunItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateFunctionRun"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"statusMessage"}},{"kind":"Field","name":{"kind":"Name","value":"results"}},{"kind":"Field","name":{"kind":"Name","value":"contextView"}},{"kind":"Field","name":{"kind":"Name","value":"function"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logo"}}]}}]}}]} as unknown as DocumentNode<AutomationRunItemFragment, unknown>;
@@ -11169,7 +9337,7 @@ export const CreateProjectInWorkspaceDocument = {"kind":"Document","definitions"
 export const StreamAccessRequestCreateDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"StreamAccessRequestCreate"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"streamAccessRequestCreate"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"streamId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]} as unknown as DocumentNode<StreamAccessRequestCreateMutation, StreamAccessRequestCreateMutationVariables>;
 export const CreateAutomationDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"CreateAutomation"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ProjectAutomationCreateInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"automationMutations"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"projectId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"create"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]}}]} as unknown as DocumentNode<CreateAutomationMutation, CreateAutomationMutationVariables>;
 export const AutomationStatusDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"AutomationStatus"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"model"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"automationsStatus"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"automationRuns"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"AutomationRunItem"}}]}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomateFunctionRunItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateFunctionRun"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"statusMessage"}},{"kind":"Field","name":{"kind":"Name","value":"results"}},{"kind":"Field","name":{"kind":"Name","value":"contextView"}},{"kind":"Field","name":{"kind":"Name","value":"function"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"logo"}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"AutomationRunItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"AutomateRun"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"automation"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"functionRuns"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"AutomateFunctionRunItem"}}]}}]}}]} as unknown as DocumentNode<AutomationStatusQuery, AutomationStatusQueryVariables>;
-export const WorkspaceListQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WorkspaceListQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"limit"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserWorkspacesFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"workspaces"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"Variable","name":{"kind":"Name","value":"limit"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"cursor"},"value":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Workspace"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"logoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"readOnly"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceListQueryQuery, WorkspaceListQueryQueryVariables>;
+export const WorkspaceListQueryDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WorkspaceListQuery"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"limit"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"Int"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"filter"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"UserWorkspacesFilter"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"workspaces"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"Variable","name":{"kind":"Name","value":"limit"}}},{"kind":"Argument","name":{"kind":"Name","value":"filter"},"value":{"kind":"Variable","name":{"kind":"Name","value":"filter"}}},{"kind":"Argument","name":{"kind":"Name","value":"cursor"},"value":{"kind":"Variable","name":{"kind":"Name","value":"cursor"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"cursor"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"WorkspaceListWorkspaceItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Workspace"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"slug"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"description"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"updatedAt"}},{"kind":"Field","name":{"kind":"Name","value":"logoUrl"}},{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"readOnly"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canAccessHelpCenter"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceListQueryQuery, WorkspaceListQueryQueryVariables>;
 export const ActiveUserDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"ActiveUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"role"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]} as unknown as DocumentNode<ActiveUserQuery, ActiveUserQueryVariables>;
 export const CanCreatePersonalProjectDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CanCreatePersonalProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"activeUser"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreatePersonalProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"payload"}}]}}]}}]}}]}}]} as unknown as DocumentNode<CanCreatePersonalProjectQuery, CanCreatePersonalProjectQueryVariables>;
 export const CanCreateProjectInWorkspaceDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CanCreateProjectInWorkspace"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"workspace"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateProject"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}},{"kind":"Field","name":{"kind":"Name","value":"payload"}}]}}]}}]}}]}}]} as unknown as DocumentNode<CanCreateProjectInWorkspaceQuery, CanCreateProjectInWorkspaceQueryVariables>;
@@ -11200,6 +9368,9 @@ export const FailModelIngestionWithErrorDocument = {"kind":"Document","definitio
 export const FailModelIngestionWithCancelDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"FailModelIngestionWithCancel"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionCancelledInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"modelIngestionMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"failWithCancel"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}}]}}]}}]}}]}}]} as unknown as DocumentNode<FailModelIngestionWithCancelMutation, FailModelIngestionWithCancelMutationVariables>;
 export const CanCreateIngestionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CanCreateIngestion"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"model"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateIngestion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<CanCreateIngestionQuery, CanCreateIngestionQueryVariables>;
 export const ProjectModelIngestionUpdatedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"subscription","name":{"kind":"Name","value":"ProjectModelIngestionUpdated"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ProjectModelIngestionSubscriptionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectModelIngestionUpdated"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"modelIngestion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"statusData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionSuccessStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"versionId"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionProcessingStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"progressMessage"}},{"kind":"Field","name":{"kind":"Name","value":"progress"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionFailedStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"errorReason"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionCancelledStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"cancellationMessage"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionQueuedStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"progressMessage"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<ProjectModelIngestionUpdatedSubscription, ProjectModelIngestionUpdatedSubscriptionVariables>;
+export const DeleteResourceMetaDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteResourceMeta"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"DeleteResourceMetaInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resourceMetaMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"delete"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]}}]} as unknown as DocumentNode<DeleteResourceMetaMutation, DeleteResourceMetaMutationVariables>;
+export const UpdateIssueDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateIssue"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateIssueInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"issues"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateIssue"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]}}]}}]} as unknown as DocumentNode<UpdateIssueMutation, UpdateIssueMutationVariables>;
 export const IssuesListDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssuesList"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"issues"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"IssuesItem"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"IssuesItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Issue"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"viewerState"}},{"kind":"Field","name":{"kind":"Name","value":"identifier"}},{"kind":"Field","name":{"kind":"Name","value":"resourceIdString"}},{"kind":"Field","name":{"kind":"Name","value":"activities"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"limit"},"value":{"kind":"IntValue","value":"1"}},{"kind":"ObjectField","name":{"kind":"Name","value":"sortDirection"},"value":{"kind":"EnumValue","value":"asc"}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"actor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"eventType"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"replies"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"description"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"doc"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"description"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"doc"}}]}},{"kind":"Field","name":{"kind":"Name","value":"labels"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hexColor"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"dueDate"}},{"kind":"Field","name":{"kind":"Name","value":"assignee"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]} as unknown as DocumentNode<IssuesListQuery, IssuesListQueryVariables>;
-export const IssueResourceMetaSearchDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueResourceMetaSearch"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ResourceMetaType"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resourceMetaSearch"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"workspaceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"projectId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}},{"kind":"Argument","name":{"kind":"Name","value":"metaType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"data"}}]}}]}}]} as unknown as DocumentNode<IssueResourceMetaSearchQuery, IssueResourceMetaSearchQueryVariables>;
+export const IssueResourceMetaSearchDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueResourceMetaSearch"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ResourceMetaType"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resourceMetaSearch"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"workspaceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"projectId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}},{"kind":"Argument","name":{"kind":"Name","value":"metaType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"data"}}]}}]}}]} as unknown as DocumentNode<IssueResourceMetaSearchQuery, IssueResourceMetaSearchQueryVariables>;
+export const WorkspaceIntercomPermissionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WorkspaceIntercomPermission"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"workspace"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canAccessHelpCenter"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}}]}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceIntercomPermissionQuery, WorkspaceIntercomPermissionQueryVariables>;
 export const WorkspacePlanUsageUpdatedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"subscription","name":{"kind":"Name","value":"WorkspacePlanUsageUpdated"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"WorkspacePlanUsageSubscriptionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"workspacePlanUsageUpdated"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]} as unknown as DocumentNode<WorkspacePlanUsageUpdatedSubscription, WorkspacePlanUsageUpdatedSubscriptionVariables>;
