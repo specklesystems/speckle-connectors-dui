@@ -10,6 +10,11 @@ on:
       IMAGE_VERSION_TAG:
         required: true
         type: string
+    secrets:
+      HYPERDX_API_KEY:
+        # Browser HyperDX ingestion key, baked into the static bundle at build time.
+        # Set this as a repository/organisation Actions secret in GitHub.
+        required: false
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
 
@@ -44,5 +49,12 @@ jobs:
           push: ${{ inputs.PUBLISH }}
           tags: ghcr.io/specklesystems/speckle-dui:${{ inputs.IMAGE_VERSION_TAG }}
           file: ./deployment/docker/Dockerfile
+          # Browser OpenTelemetry (HyperDX RUM) is baked at build time because the DUI is a
+          # static bundle (no runtime env). Points at the same collector frontend-3 uses.
+          build-args: |
+            NUXT_PUBLIC_HYPERDX_ENABLED=true
+            NUXT_PUBLIC_HYPERDX_COLLECTOR_URL=https://collector.speckle.dev
+            NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES=service.name=speckle-dui,service.version=${{ inputs.IMAGE_VERSION_TAG }}
+            NUXT_PUBLIC_HYPERDX_INGESTION_KEY=${{ secrets.HYPERDX_API_KEY }}
           network: host # to be able to connect to Tailscale and pull private base image during build
           allow: network.host # to be able to connect to Tailscale and pull private base image during build

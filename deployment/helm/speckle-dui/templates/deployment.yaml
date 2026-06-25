@@ -43,6 +43,20 @@ spec:
             - name: http
               containerPort: 80 # Needs to match port defined in deployment/docker/configuration.toml
               protocol: TCP
+          {{- if .Values.observability.hyperdx.enabled }}
+          # Browser OpenTelemetry (HyperDX RUM), for parity with the speckle-server chart.
+          # NOTE: the DUI is a static bundle, so these must be baked at image build time to
+          # take effect (see deployment/docker/Dockerfile). Surfaced here for parity/intent.
+          env:
+            - name: NUXT_PUBLIC_HYPERDX_ENABLED
+              value: "true"
+            - name: NUXT_PUBLIC_HYPERDX_COLLECTOR_URL
+              value: {{ .Values.observability.hyperdx.browserCollectorUrl | quote }}
+            - name: NUXT_PUBLIC_HYPERDX_INGESTION_KEY
+              value: {{ .Values.observability.hyperdx.ingestionKey | quote }}
+            - name: NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES
+              value: {{ .Values.observability.hyperdx.otelResourceAttributes | quote }}
+          {{- end }}
           {{- with .Values.livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}

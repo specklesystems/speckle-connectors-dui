@@ -33,7 +33,8 @@ jobs:
     with:
       PUBLISH: false
       IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
-    secrets: {}
+    secrets:
+      HYPERDX_API_KEY: ${{ secrets.HYPERDX_API_KEY }}
     permissions:
       contents: read
       packages: write # to be able to push images to ghcr.io, even if PUBLISH is false, as permissions is static at workflow level

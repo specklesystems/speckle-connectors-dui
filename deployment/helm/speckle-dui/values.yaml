@@ -56,6 +56,23 @@ service:
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
   port: 80
 
+# Observability configuration, matching the speckle-server chart.
+# NOTE: speckle-dui is served as a pre-built static bundle (static-web-server, no Node
+# runtime), so these values only take effect when baked into the image at build time
+# (see deployment/docker/Dockerfile build args). They are surfaced here, and as pod env,
+# for parity with the server's OpenTelemetry configuration.
+observability:
+  ## Browser OpenTelemetry (HyperDX RUM) for the DUI.
+  hyperdx:
+    ## If enabled, the DUI is configured to export browser traces/sessions to HyperDX.
+    enabled: false
+    ## The URL of the HyperDX collector endpoint for browser-side telemetry (HTTP, typically port 4318). Must be publicly reachable.
+    browserCollectorUrl: ""
+    ## The HyperDX ingestion / API key used by the browser SDK.
+    ingestionKey: ""
+    ## OTEL_RESOURCE_ATTRIBUTES added to all exported telemetry. service.name is fixed to "speckle-dui".
+    otelResourceAttributes: "service.name=speckle-dui"
+
 security:
   ## The IP addresses of trusted proxies, such as loadbalancers or WAFs, that may be forwarding traffic to the dashboards. This is important for correctly handling the X-Forwarded-For header and ensuring accurate client IP logging and security measures. Empty means all proxies are trusted, which may not be secure in production environments. We recommend setting this to the specific IP addresses of your trusted proxies.
   trustedProxies: []
