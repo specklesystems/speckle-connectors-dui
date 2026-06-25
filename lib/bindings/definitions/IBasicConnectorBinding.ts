@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/require-await */
+// Mock binding: async methods satisfy the Promise-returning interface
+// signatures but have nothing to actually await.
 import type {
   IBinding,
   IBindingSharedEvents
@@ -77,63 +80,63 @@ export class MockedBaseBinding implements IBasicConnectorBinding {
     'openUrl'
   ]
   public async getSourceApplicationName() {
-    return await 'headless'
+    return 'headless'
   }
 
   public async getSourceApplicationVersion() {
-    return await 'dev'
+    return 'dev'
   }
 
   public async getConnectorVersion() {
-    return await 'dev'
+    return 'dev'
   }
 
   public async getDocumentInfo() {
-    return (await {
+    return {
       id: 'whatever',
       name: 'test',
       location: 'whocares'
-    }) as DocumentInfo
+    } as DocumentInfo
   }
 
   public async getDocumentState() {
-    return (await { models: [] }) as DocumentModelStore
+    return { models: [] } as DocumentModelStore
   }
 
   public async addModel(_model: IModelCard) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async removeModel(_model: IModelCard) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async removeModels(_models: IModelCard[]) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async updateModel(_model: IModelCard) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async highlightModel(_modelCardId: string) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async highlightObjects(_objectIds: string[]) {
-    await console.log('no way dude')
+    console.log('no way dude')
   }
 
   public async updateParameters(payload: string) {
-    await console.log('Mock: updateParameters called with payload:', payload)
+    console.log('Mock: updateParameters called with payload:', payload)
   }
 
   public async showDevTools() {
-    await console.log('No way dude')
+    console.log('No way dude')
   }
 
   public async openUrl(url: string) {
-    await window.open(url)
+    window.open(url)
   }
 
   public on() {

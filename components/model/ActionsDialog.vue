@@ -13,10 +13,12 @@
       :title="`${modelName} actions`"
       fullscreen="none"
     >
-      <SendSettingsDialog
+      <ModelSettingsDialog
         v-if="hasSettings"
         :model-card-id="props.modelCard.modelCardId"
         :settings="props.modelCard.settings"
+        :default-settings="settingsDefaults as unknown as CardSetting[]"
+        :is-sender="isSender"
       >
         <template #activator="{ toggle }">
           <button class="action action-normal" @click="toggle()">
@@ -24,7 +26,7 @@
             <div><Cog6ToothIcon class="w-5 h-5" /></div>
           </button>
         </template>
-      </SendSettingsDialog>
+      </ModelSettingsDialog>
       <ReportBase v-if="modelCard.report" :report="modelCard.report">
         <template #activator="{ toggle }">
           <button class="action action-normal" @click="toggle()">
@@ -69,6 +71,8 @@ import {
   Bars3Icon
 } from '@heroicons/vue/24/outline'
 import type { IModelCard } from '~/lib/models/card'
+import type { CardSetting } from '~/lib/models/card/setting'
+import { useHostAppStore } from '~/store/hostApp'
 import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { issuesListQuery } from '~/lib/issues/graphql/queries'
 import { useAccountStore } from '~/store/accounts'
@@ -76,6 +80,7 @@ import { storeToRefs } from 'pinia'
 import { useQuery } from '@vue/apollo-composable'
 
 const { trackEvent } = useMixpanel()
+const store = useHostAppStore()
 
 const openModelCardActionsDialog = ref(false)
 const emit = defineEmits(['view', 'view-versions', 'copy-model-link', 'remove'])
@@ -84,6 +89,14 @@ const props = defineProps<{
   modelName: string
   modelCard: IModelCard
 }>()
+
+const isSender = computed(() =>
+  props.modelCard.typeDiscriminator.includes('SenderModelCard')
+)
+
+const settingsDefaults = computed(() =>
+  isSender.value ? store.sendSettings : store.receiveSettings
+)
 
 const hasSettings = computed(() => {
   return !!props.modelCard.settings

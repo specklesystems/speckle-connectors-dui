@@ -39,3 +39,15 @@ jobs:
     permissions:
       contents: read
       packages: write # to be able to push images to ghcr.io
+  publish:
+    uses: ./.github/workflows/publish.yml
+    needs:
+      - build
+      - get-version
+    with:
+      PUBLISH_TO_PROD: true
+      IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
+    secrets: {}
+    permissions:
+      contents: read
+      packages: write # to be able to push helm charts to ghcr.io

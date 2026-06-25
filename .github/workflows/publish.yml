@@ -1,0 +1,61 @@
+name: Publish Deployment Packaging
+
+on:
+  workflow_call:
+    inputs:
+      PUBLISH_TO_PROD:
+        required: false
+        type: boolean
+        default: false
+      IMAGE_VERSION_TAG:
+        required: true
+        type: string
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
+concurrency:
+  group: ${{ github.workflow }}-publish-deployment-packaging-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  speckle-dui-helm-chart-oci:
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    name: Publish Speckle DUI Helm Chart
+    container:
+      image: speckle/pre-commit-runner:latest # zizmor: ignore[unpinned-images] Speckle own this image repository
+    permissions:
+      contents: read
+      packages: write # publish helm chart to ghcr.io registry if that is the target
+    env:
+      IMAGE_PREFIX: ghcr.io/specklesystems
+      IMAGE_VERSION_TAG: ${{ inputs.IMAGE_VERSION_TAG }}
+      REGISTRY_USERNAME: ${{ github.actor }}
+      REGISTRY_PASSWORD: ${{ github.token }}
+      HELM_REGISTRY_DOMAIN: ghcr.io
+      HELM_REPOSITORY_PATH: specklesystems
+      CHART_NAME: speckle-dui-chart
+      PUBLISH_TO_PROD: ${{ inputs.PUBLISH_TO_PROD }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - run: git config --global --add safe.directory $PWD
+      - name: Publish Speckle DUI Helm Chart
+        shell: bash
+        run: |
+          GIT_REPO=$( pwd )
+          RELEASE_VERSION="${IMAGE_VERSION_TAG}"
+          yq e -i ".image.repository = \"${IMAGE_PREFIX}/speckle-dui\"" "${GIT_REPO}/deployment/helm/speckle-dui/values.yaml"
+          yq e -i ".image.tag = \"${IMAGE_VERSION_TAG}\"" "${GIT_REPO}/deployment/helm/speckle-dui/values.yaml"
+          yq e -i ".name = \"${CHART_NAME}\"" "${GIT_REPO}/deployment/helm/speckle-dui/Chart.yaml"
+
+          echo "Logging in to Helm registry ${HELM_REGISTRY_DOMAIN} with user ${REGISTRY_USERNAME}"
+          echo "${REGISTRY_PASSWORD}" | helm registry login "${HELM_REGISTRY_DOMAIN}" --username "${REGISTRY_USERNAME}" --password-stdin
+          helm package "${GIT_REPO}/deployment/helm/speckle-dui" --version "${RELEASE_VERSION}" --app-version "${IMAGE_VERSION_TAG}" --destination "/tmp"
+          if [[ "${PUBLISH_TO_PROD}" == "true" ]]; then
+            echo "Publishing chart to oci://${HELM_REGISTRY_DOMAIN}/${HELM_REPOSITORY_PATH}/${CHART_NAME}"
+            helm push "/tmp/${CHART_NAME}-${RELEASE_VERSION}.tgz" "oci://${HELM_REGISTRY_DOMAIN}/${HELM_REPOSITORY_PATH}"
+          else
+            echo "Skipping publishing to production registry since PUBLISH_TO_PROD is not set to true. Exiting."
+          fi

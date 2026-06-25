@@ -68,11 +68,11 @@ export class MockedTestBinding implements ITestBinding {
   }
 
   public async showDevTools() {
-    await console.log('No way dude')
+    console.log('No way dude')
   }
 
   public async openUrl(url: string) {
-    await window.open(url)
+    window.open(url)
   }
 
   public on() {
