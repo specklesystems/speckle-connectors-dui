@@ -34,8 +34,8 @@ export class GenericBridge extends BaseBridge {
 
     try {
       this.availableMethodNames = await this.bridge.GetBindingsMethodNames()
-    } catch {
-      console.warn(`Failed to get method names from binding.`)
+    } catch (error) {
+      console.warn(`Failed to get method names from binding.`, error)
       return false
     }
 
