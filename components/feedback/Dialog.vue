@@ -37,7 +37,7 @@
 import { ToastNotificationType, type LayoutDialogButton } from '@speckle/ui-components'
 import { useForm } from 'vee-validate'
 import { useZapier } from '~/lib/core/composables/zapier'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 

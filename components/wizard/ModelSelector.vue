@@ -151,7 +151,7 @@ import {
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 
 const { trackEvent } = useAnalytics()
 const hostAppStore = useHostAppStore()
@@ -235,7 +235,12 @@ const createNewModel = async (name: string) => {
 
   isCreatingModel.value = true
 
-  void trackEvent('DUI3 Action', { name: 'Model Create' }, account.value.accountInfo.id)
+  void trackEvent(
+    'DUI3 Action',
+    account.value.accountInfo,
+    { name: 'Model Create' },
+    props.workspaceId
+  )
 
   const { mutate } = provideApolloClient(account.value.client)(() =>
     useMutation(createModelMutation)

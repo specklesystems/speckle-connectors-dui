@@ -30,10 +30,7 @@
           <div class="relative w-4 h-4">
             <ArrowTopRightOnSquareIcon
               class="w-4 h-4"
-              @click.stop="
-                $openUrl(projectUrl),
-                  trackEvent('DUI3 Action', { name: 'Project View' }, project.accountId) //TODO: todo
-              "
+              @click.stop="$openUrl(projectUrl)"
             />
           </div>
         </button>
@@ -129,9 +126,7 @@ import {
   userProjectsUpdatedSubscription,
   projectUpdatedSubscription
 } from '~~/lib/graphql/mutationsAndQueries'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 
-const { trackEvent } = useAnalytics()
 const accountStore = useAccountStore()
 const hostAppStore = useHostAppStore()
 const { $openUrl } = useNuxtApp()

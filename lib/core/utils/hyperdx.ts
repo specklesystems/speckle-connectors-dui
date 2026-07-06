@@ -8,7 +8,7 @@
  *
  * Config is baked at build time via `NUXT_PUBLIC_HYPERDX_*` and exposed through
  * `runtimeConfig.public` (see `nuxt.config.ts`), the same way the DUI already
- * injects Mixpanel config.
+ * injects PostHog config.
  */
 type HyperDXModule = typeof import('@hyperdx/browser')
 let hyperdx: HyperDXModule['default'] | null = null

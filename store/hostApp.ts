@@ -3,7 +3,7 @@ import type {
   DocumentModelStore
 } from '~/lib/bindings/definitions/IBasicConnectorBinding'
 import type { IModelCard, ModelCardProgress } from '~/lib/models/card'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import type {
   IDirectSelectionSendFilter,
@@ -449,12 +449,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const account = accountsStore.getAccount(model.accountId)
 
     if (account) {
+      const settingProperties = Object.fromEntries(
+        (model.settings ?? []).map((setting) => [
+          `ModelCardSetting_${setting.id}`,
+          setting.value
+        ])
+      )
+
       void trackEvent(
         'Send',
         account.accountInfo,
         {
           expired: model.expired,
-          actionSource: actionSource.toLowerCase()
+          actionSource: actionSource.toLowerCase(),
+          sendFilter: model.sendFilter?.name,
+          ...settingProperties
         },
         model.workspaceId
       )

@@ -73,7 +73,7 @@ import {
 import type { IModelCard } from '~/lib/models/card'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useHostAppStore } from '~/store/hostApp'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { issuesListQuery } from '~/lib/issues/graphql/queries'
 import { useAccountStore } from '~/store/accounts'
 import { storeToRefs } from 'pinia'
@@ -112,10 +112,15 @@ const items = [
     name: 'View 3D model in browser',
     icon: ArrowTopRightOnSquareIcon,
     action: () => {
-      void trackEvent('DUI3 Action', {
-        name: 'Version View',
-        source: 'model actions dialog'
-      })
+      const account = accountStore.getAccount(props.modelCard.accountId)
+      if (account) {
+        void trackEvent(
+          'DUI3 Action',
+          account.accountInfo,
+          { name: 'Version View', source: 'model actions dialog' },
+          props.modelCard.workspaceId
+        )
+      }
       emit('view')
       openModelCardActionsDialog.value = false
     }
@@ -124,10 +129,6 @@ const items = [
     name: 'View model versions',
     icon: ClockIcon,
     action: () => {
-      void trackEvent('DUI3 Action', {
-        name: 'Model History View',
-        source: 'model actions dialog'
-      })
       emit('view-versions')
       openModelCardActionsDialog.value = false
     }
@@ -137,7 +138,7 @@ const items = [
     danger: true,
     icon: ArchiveBoxXMarkIcon,
     action: () => {
-      // NOTE: Mixpanel event tracking is in host app store
+      // NOTE: analytics event tracking is in host app store
       emit('remove')
       openModelCardActionsDialog.value = false
     }

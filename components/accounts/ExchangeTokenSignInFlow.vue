@@ -73,7 +73,7 @@
 import { ref } from 'vue'
 import { useAuthManager } from '~/lib/authn/useAuthManager'
 import { useTokenExchange, supportsOAuthToken } from '~/lib/authn/useTokenExchange'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { useAccountStore } from '~/store/accounts'
 import type { BaseBridge } from '~/lib/bridge/base'
 

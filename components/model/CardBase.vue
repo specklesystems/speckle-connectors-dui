@@ -250,7 +250,7 @@ import { useHostAppStore } from '~~/store/hostApp'
 import type { IModelCard } from '~~/lib/models/card'
 import { useAccountStore } from '~/store/accounts'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import type { ProjectCommentsUpdatedMessage } from '~/lib/common/generated/gql/graphql'
 import { useFunctionRunsStatusSummary } from '~/lib/automate/runStatus'
@@ -263,7 +263,6 @@ const app = useNuxtApp()
 const store = useHostAppStore()
 const accStore = useAccountStore()
 const { trackEvent } = useAnalytics()
-const accountStore = useAccountStore()
 
 const props = withDefaults(
   defineProps<{
@@ -390,14 +389,16 @@ const highlightModel = () => {
     })
     return
   }
-  const acc = accountStore.getAccount(props.modelCard.accountId).accountInfo
   app.$baseBinding.highlightModel(props.modelCard.modelCardId)
-  trackEvent(
-    'DUI3 Action',
-    acc,
-    { name: 'Highlight Model' },
-    props.modelCard.workspaceId
-  )
+  const account = accStore.getAccount(props.modelCard.accountId)
+  if (account) {
+    trackEvent(
+      'DUI3 Action',
+      account.accountInfo,
+      { name: 'Highlight Model' },
+      props.modelCard.workspaceId
+    )
+  }
 }
 
 const isSettingsMissing = computed(() =>
@@ -427,7 +428,15 @@ const isReceiveSettingsMissing = computed(
 
 const viewModel = () => {
   // previously with DUI2, it was Stream View but actually it is "Version View" now. Also having conflict with old/new terminology.
-  trackEvent('DUI3 Action', { name: 'Version View' }, props.modelCard.accountId)
+  const account = accStore.getAccount(props.modelCard.accountId)
+  if (account) {
+    trackEvent(
+      'DUI3 Action',
+      account.accountInfo,
+      { name: 'Version View' },
+      props.modelCard.workspaceId
+    )
+  }
   app.$baseBinding.openUrl(
     `${projectAccount.value.accountInfo.serverInfo.url}/projects/${props.modelCard?.projectId}/models/${props.modelCard.modelId}`
   )
@@ -542,7 +551,6 @@ onCommentResult((res) => {
 })
 
 const viewComment = () => {
-  trackEvent('DUI3 Action', { name: 'Comment View' }, props.modelCard.accountId)
   if (!latestCommentNotification.value?.comment) return
 
   const commentId =

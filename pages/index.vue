@@ -218,7 +218,6 @@ import {
 import { useAccountStore } from '~~/store/accounts'
 import { useHostAppStore } from '~~/store/hostApp'
 import { useConfigStore } from '~~/store/config'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 const app = useNuxtApp()
 const config = useConfigStore()
 
@@ -231,7 +230,6 @@ await accountStore.refreshAccounts()
 const { accounts } = storeToRefs(accountStore)
 
 const store = useHostAppStore()
-const { trackEvent } = useAnalytics()
 
 const showSendDialog = ref(false)
 const showReceiveDialog = ref(false)
@@ -243,12 +241,10 @@ app.$baseBinding?.on('documentChanged', () => {
 
 const handleSendClick = () => {
   showSendDialog.value = !showSendDialog.value
-  trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'start' })
 }
 
 const handleReceiveClick = () => {
   showReceiveDialog.value = !showReceiveDialog.value
-  trackEvent('DUI3 Action', { name: 'Load Wizard', step: 'start' })
 }
 
 const hasNoModelCards = computed(

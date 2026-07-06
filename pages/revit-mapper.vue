@@ -202,13 +202,11 @@ import type {
 
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
 const revitMapperStore = useRevitMapper()
 const { selectionInfo } = storeToRefs(selectionStore)
-const { trackEvent } = useAnalytics()
 
 // === STATE ===
 const selectedMappingMode = ref<string | undefined>(undefined)
@@ -318,12 +316,6 @@ const confirmModeChange = async () => {
       // Clear all layer mappings before switching to Selection mode
       await $revitMapperBinding?.clearAllLayerCategoryAssignments()
     }
-
-    // Track the manual mode switch
-    trackEvent('DUI3 Action', {
-      name: 'Mapper Mode Changed',
-      mode: selectedMappingMode.value
-    })
 
     // Switch mode
     selectedMappingMode.value = pendingMode.value

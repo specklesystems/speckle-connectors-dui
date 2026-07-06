@@ -101,12 +101,10 @@ import { useHostAppStore } from '~/store/hostApp'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import { versionDetailsQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useInterval, watchOnce } from '@vueuse/core'
 import { useAccountStore } from '~~/store/accounts'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useAnalytics()
 const app = useNuxtApp()
 const accountStore = useAccountStore()
 
@@ -166,10 +164,6 @@ const handleVersionSelection = async (
   latestVersion: VersionListItemFragment
 ) => {
   openVersionsDialog.value = false
-  void trackEvent('DUI3 Action', {
-    name: 'Load Card Version Change',
-    isLatestVersion: selectedVersion === latestVersion
-  })
   if (props.modelCard.progress) {
     await store.receiveModelCancel(props.modelCard.modelCardId)
   }

@@ -60,13 +60,11 @@ import type {
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { ReceiverModelCard } from '~/lib/models/card/receiver'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { getSlugFromHostAppNameAndVersion } from '~/lib/common/helpers/hostAppSlug'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useAnalytics()
 const { trackSettingsChange } = useSettingsTracking()
 
 const showReceiveDialog = defineModel<boolean>('open', { default: false })
@@ -125,14 +123,11 @@ const selectProject = (
   selectedAccountId.value = accountId
   selectedProject.value = project
   selectedWorkspace.value = workspace
-
-  void trackEvent('DUI3 Action', { name: 'Load Wizard', step: 'project selected' })
 }
 
 const selectModel = (model: ModelListModelItemFragment) => {
   step.value++
   selectedModel.value = model
-  void trackEvent('DUI3 Action', { name: 'Load Wizard', step: 'model selected' })
 }
 
 const title = computed(() => {
@@ -152,11 +147,7 @@ const selectVersionAndAddModel = async (
   version: VersionListItemFragment,
   latestVersion: VersionListItemFragment
 ) => {
-  void trackEvent('DUI3 Action', {
-    name: 'Load Wizard',
-    step: 'version selected',
-    hasSelectedLatestVersion: version.id === latestVersion.id
-  })
+  const account = accountStore.getAccount(selectedAccountId.value)
 
   const existingModel = hostAppStore.models.find(
     (m) =>
@@ -171,8 +162,9 @@ const selectVersionAndAddModel = async (
       'Load Settings Changed',
       receieveSettings.value,
       existingModel?.settings || hostAppStore.receiveSettings || [],
-      selectedAccountId.value,
-      true
+      account?.accountInfo,
+      true,
+      selectedWorkspace.value?.id
     )
   }
 

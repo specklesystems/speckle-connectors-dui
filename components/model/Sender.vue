@@ -126,7 +126,7 @@ import type { ModelCardNotification } from '~/lib/models/card/notification'
 import type { ISendFilter, ISenderModelCard } from '~/lib/models/card/send'
 import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
 import {
   provideApolloClient,
@@ -224,10 +224,18 @@ const isSaveDisabled = computed(() => {
 
 const saveFilter = async () => {
   if (!newFilter.value) return // Safety check
-  void trackEvent('DUI3 Action', {
-    name: 'Publish Card Filter Change',
-    filter: newFilter.value.typeDiscriminator
-  })
+  const account = accountStore.getAccount(props.modelCard.accountId)
+  if (account) {
+    void trackEvent(
+      'DUI3 Action',
+      account.accountInfo,
+      {
+        name: 'Publish Card Filter Change',
+        filter: newFilter.value.typeDiscriminator
+      },
+      props.modelCard.workspaceId
+    )
+  }
 
   // do not reset idmap while creating a new one because it is managed by host app
   newFilter.value.idMap = props.modelCard.sendFilter?.idMap
@@ -249,9 +257,15 @@ const setVersionMessage = async (message: string) => {
     return
   }
 
-  void trackEvent('DUI3 Action', {
-    name: 'Set version message'
-  })
+  const account = accountStore.getAccount(props.modelCard.accountId)
+  if (account) {
+    void trackEvent(
+      'DUI3 Action',
+      account.accountInfo,
+      { name: 'Set version message' },
+      props.modelCard.workspaceId
+    )
+  }
 
   isUpdatingVersionMessage.value = true
   const client = projectAccount.value?.client as ApolloClient<unknown> | undefined

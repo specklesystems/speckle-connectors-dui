@@ -35,7 +35,7 @@ export function useAnalytics() {
 
       const url = new URL(account.serverInfo.url)
 
-      if (url === new URL('https://app.speckle.systems')) {
+      if (url.origin !== 'https://app.speckle.systems') {
         // Right now, we're keeping posthog only for app.speckle.systems users
         return
       }

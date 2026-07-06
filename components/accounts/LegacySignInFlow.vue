@@ -56,10 +56,12 @@ import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
 
 const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
+const { trackEvent } = useAnalytics()
 const hostApp = useHostAppStore()
 const app = useNuxtApp()
 
@@ -78,13 +80,18 @@ const showHelp = ref(false)
 
 const accountCheckerIntervalFn = useIntervalFn(
   async () => {
-    const previousAccountCount = accountStore.accounts.length
+    const previousAccountIds = new Set(
+      accountStore.accounts.map((acc) => acc.accountInfo.id)
+    )
     await accountStore.refreshAccounts()
-    const currentAccountCount = accountStore.accounts.length
-    if (previousAccountCount !== currentAccountCount) {
+    const newAccount = accountStore.accounts.find(
+      (acc) => !previousAccountIds.has(acc.accountInfo.id)
+    )
+    if (newAccount) {
       isAddingAccount.value = false
       showCustomServerInput.value = false
       accountCheckerIntervalFn.pause()
+      void trackEvent('DUI Account Added', newAccount.accountInfo)
     }
   },
   1000,

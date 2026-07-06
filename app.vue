@@ -10,9 +10,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
-import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import { storeToRefs } from 'pinia'
 import { logToSeq } from '~/lib/logger/composables/useLogger'
@@ -39,8 +37,6 @@ useHead({
 })
 
 onMounted(() => {
-  const { addConnectorToProfile, identifyProfile } = useAnalytics()
-
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { $intercom } = useNuxtApp() // needed her for initialisation
 

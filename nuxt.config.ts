@@ -20,8 +20,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      mixpanelApiHost: 'UNDEFINED',
-      mixpanelTokenId: 'UNDEFINED',
+      postHogApiKey: process.env.NUXT_PUBLIC_POSTHOG_API_KEY || '',
+      postHogApiHost: process.env.NUXT_PUBLIC_POSTHOG_API_HOST || '',
       speckleToken: process.env.SPECKLE_TOKEN,
       speckleUserId: process.env.SPECKLE_USER_ID,
       speckleUserEmail: process.env.SPECKLE_USER_EMAIL,

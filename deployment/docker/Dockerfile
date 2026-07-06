@@ -9,7 +9,7 @@ COPY . .
 # NODE_ENV must be set after the dependencies are installed because @nuxt/kit is a devDependency and is required to build the application
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
-ENV NUXT_PUBLIC_POSTHOG_API_KEY=acd87c5a50b56df91a795e999812a3a4
+ENV NUXT_PUBLIC_POSTHOG_API_KEY=phc_7zaDwBgrBYb1yUe0Ff3Sn0DUibq0NoPNxYNC90M7cfg
 ENV NUXT_PUBLIC_POSTHOG_API_HOST="eu.i.posthog.com"
 # Browser OpenTelemetry (HyperDX RUM). Static SPA → config is baked at build time;
 # override per-deployment with --build-arg. service.name is fixed to "speckle-dui".
