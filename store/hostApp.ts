@@ -451,7 +451,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     if (account) {
       const settingProperties = Object.fromEntries(
         (model.settings ?? []).map((setting) => [
-          `ModelCardSetting_${setting.id}`,
+          `modelCardSetting_${setting.id}`,
           setting.value
         ])
       )

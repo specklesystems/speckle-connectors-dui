@@ -22,12 +22,6 @@ export function useAnalytics() {
     customProperties: CustomProperties = {},
     workspaceId: string | null = null
   ) {
-    // TODO: enable it later somehow
-    // if (process.dev) {
-    //   // Only track in production
-    //   return
-    // }
-
     try {
       if (!account?.userInfo?.email || !account?.serverInfo?.url) {
         throw new Error('Email or server not found to track event.')
@@ -87,9 +81,9 @@ export function useAnalytics() {
       const response = await fetch(`https://${postHogApiHost as string}/i/v0/e/`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
+          'Content-Type': 'application/json'
         },
-        body: `data=${btoa(JSON.stringify(eventData))}`
+        body: JSON.stringify(eventData)
       })
 
       if (!response.ok) {
