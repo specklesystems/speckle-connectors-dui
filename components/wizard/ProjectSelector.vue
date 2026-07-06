@@ -218,12 +218,12 @@ import type {
   ProjectListProjectItemFragment,
   WorkspaceListWorkspaceItemFragment
 } from '~/lib/common/generated/gql/graphql'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
 import { useHostAppStore } from '~/store/hostApp'
 
 const hostAppStore = useHostAppStore()
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const { $openUrl } = useNuxtApp()
 
 const emit = defineEmits<{

@@ -250,7 +250,7 @@ import { useHostAppStore } from '~~/store/hostApp'
 import type { IModelCard } from '~~/lib/models/card'
 import { useAccountStore } from '~/store/accounts'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useIntervalFn, useTimeoutFn } from '@vueuse/core'
 import type { ProjectCommentsUpdatedMessage } from '~/lib/common/generated/gql/graphql'
 import { useFunctionRunsStatusSummary } from '~/lib/automate/runStatus'
@@ -262,7 +262,8 @@ import { MessageCircleMore } from 'lucide-vue-next'
 const app = useNuxtApp()
 const store = useHostAppStore()
 const accStore = useAccountStore()
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
+const accountStore = useAccountStore()
 
 const props = withDefaults(
   defineProps<{
@@ -389,9 +390,14 @@ const highlightModel = () => {
     })
     return
   }
-
+  const acc = accountStore.getAccount(props.modelCard.accountId).accountInfo
   app.$baseBinding.highlightModel(props.modelCard.modelCardId)
-  trackEvent('DUI3 Action', { name: 'Highlight Model' }, props.modelCard.accountId)
+  trackEvent(
+    'DUI3 Action',
+    acc,
+    { name: 'Highlight Model' },
+    props.modelCard.workspaceId
+  )
 }
 
 const isSettingsMissing = computed(() =>

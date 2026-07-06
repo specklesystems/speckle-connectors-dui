@@ -126,7 +126,7 @@ import type { ModelCardNotification } from '~/lib/models/card/notification'
 import type { ISendFilter, ISenderModelCard } from '~/lib/models/card/send'
 import type { ProjectModelGroup } from '~/store/hostApp'
 import { useHostAppStore } from '~/store/hostApp'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { ToastNotificationType, ValidationHelpers } from '@speckle/ui-components'
 import {
   provideApolloClient,
@@ -142,7 +142,7 @@ import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 const store = useHostAppStore()
 const accountStore = useAccountStore()
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const app = useNuxtApp()
 const { canCreateModelIngestion } = useCheckGraphql()
 

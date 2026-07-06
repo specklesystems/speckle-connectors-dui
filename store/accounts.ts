@@ -309,6 +309,12 @@ export const useAccountStore = defineStore('accountStore', () => {
     ).client
   }
 
+  const getAccount = (accountId: string): DUIAccount | undefined => {
+    return accounts.value.find(
+      (account) => account.accountInfo.id === accountId
+    ) as DUIAccount
+  }
+
   const provideClients = () => {
     provideApolloClients(apolloClients)
   }
@@ -336,6 +342,7 @@ export const useAccountStore = defineStore('accountStore', () => {
     isLoading,
     accounts,
     getAccountClient,
+    getAccount,
     defaultAccount,
     activeAccount,
     userSelectedAccount,

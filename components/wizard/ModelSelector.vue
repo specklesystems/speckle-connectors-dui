@@ -151,9 +151,9 @@ import {
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const hostAppStore = useHostAppStore()
 
 const emit = defineEmits<{

@@ -202,13 +202,13 @@ import type {
 
 // Import categories
 import { getAvailableCategories, getCategoryLabel } from '~/lib/mapper/revit-categories'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 
 // === STORES ===
 const selectionStore = useSelectionStore()
 const revitMapperStore = useRevitMapper()
 const { selectionInfo } = storeToRefs(selectionStore)
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 
 // === STATE ===
 const selectedMappingMode = ref<string | undefined>(undefined)
@@ -343,34 +343,15 @@ const assignToCategory = async () => {
   if (!revitMapperStore.selectedCategory?.value || !hasTargetsSelected.value) return
 
   try {
-    let assignedCount = 0
     const { selectedCategory } = storeToRefs(revitMapperStore)
     const categoryValue = selectedCategory?.value?.value
 
     if (selectedMappingMode.value === 'Selection' && categoryValue) {
       const objectIds = selectionInfo.value?.selectedObjectIds || []
       await $revitMapperBinding?.assignObjectsToCategory(objectIds, categoryValue)
-      assignedCount = objectIds.length
-
-      // Track the assignment
-      trackEvent('DUI3 Action', {
-        name: 'Mapper Assign Category',
-        category: categoryValue,
-        count: assignedCount,
-        mappingType: 'object'
-      })
     } else if (selectedMappingMode.value === 'Layer' && categoryValue) {
       const layerIds = selectedLayers.value.map((layer) => layer.id)
       await $revitMapperBinding?.assignLayerToCategory(layerIds, categoryValue)
-      assignedCount = selectedLayers.value.length
-
-      // Track the assignment
-      trackEvent('DUI3 Action', {
-        name: 'Mapper Assign Category',
-        category: categoryValue,
-        count: assignedCount,
-        mappingType: 'layer'
-      })
 
       selectedLayers.value = []
     }
@@ -667,12 +648,6 @@ onMounted(async () => {
   $revitMapperBinding?.on('layersChanged', (newLayers: LayerOption[]) => {
     layerOptions.value = newLayers
     selectedLayers.value = []
-  })
-
-  // Track mapper opened with the initial mode (after loadData determines it)
-  trackEvent('DUI3 Action', {
-    name: 'Mapper Opened',
-    mode: selectedMappingMode.value
   })
 })
 

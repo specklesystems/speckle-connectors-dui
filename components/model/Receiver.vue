@@ -101,12 +101,12 @@ import { useHostAppStore } from '~/store/hostApp'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import { versionDetailsQuery } from '~/lib/graphql/mutationsAndQueries'
 import type { VersionListItemFragment } from '~/lib/common/generated/gql/graphql'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useInterval, watchOnce } from '@vueuse/core'
 import { useAccountStore } from '~~/store/accounts'
 import type { CardSetting } from '~/lib/models/card/setting'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const app = useNuxtApp()
 const accountStore = useAccountStore()
 

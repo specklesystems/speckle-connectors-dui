@@ -10,7 +10,7 @@
   </div>
 </template>
 <script setup lang="ts">
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useConfigStore } from '~/store/config'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
@@ -39,22 +39,7 @@ useHead({
 })
 
 onMounted(() => {
-  const { trackEvent, addConnectorToProfile, identifyProfile } = useMixpanel()
-  // TODO: some host apps can open DUI3 automatically, with this case we shouldn't mark track event as `"type": "action"`,
-  // we need to get this info from source app. (TBD which apps: Rhino opens automatically, not sure acad, sketchup and revit needs trigger button to init)
-  trackEvent('DUI3 Action', { name: 'Launch' })
-
-  const { accounts } = useAccountStore()
-
-  const uniqueEmails = new Set<string>()
-  accounts.forEach((account) => {
-    const email = account?.accountInfo.userInfo.email
-    if (email && !uniqueEmails.has(email)) {
-      addConnectorToProfile(email)
-      identifyProfile(email)
-      uniqueEmails.add(email)
-    }
-  })
+  const { addConnectorToProfile, identifyProfile } = useAnalytics()
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { $intercom } = useNuxtApp() // needed her for initialisation

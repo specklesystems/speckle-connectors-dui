@@ -3,7 +3,7 @@ import type {
   DocumentModelStore
 } from '~/lib/bindings/definitions/IBasicConnectorBinding'
 import type { IModelCard, ModelCardProgress } from '~/lib/models/card'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import type {
   IDirectSelectionSendFilter,
@@ -45,7 +45,7 @@ export type ProjectModelGroup = {
 
 export const useHostAppStore = defineStore('hostAppStore', () => {
   const app = useNuxtApp()
-  const { trackEvent } = useMixpanel()
+  const { trackEvent } = useAnalytics()
   const { $openUrl } = useNuxtApp()
   const accountsStore = useAccountStore()
   const { checkUpdate } = useUpdateConnector()
@@ -76,6 +76,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const isUpdateNotificationDisabled = ref(false)
   const defaultSpeckleServerUrl = ref('https://app.speckle.systems')
+  const sessionId = ref<Nullable<string>>()
 
   // Different host apps can have different kind of ISendFilterSelect send filters, and we collect them here to generalize the component we use in `ListSelect`
   const availableSelectSendFilters = ref<Record<string, SendFilterSelect>>({})
@@ -193,12 +194,6 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     documentModelStore.value.models = documentModelStore.value.models.filter(
       (item) => item.modelCardId !== model.modelCardId
     )
-
-    void trackEvent(
-      'DUI3 Action',
-      { name: 'Remove Model Card', type: model.typeDiscriminator },
-      model.accountId
-    )
   }
 
   const removeAccountModels = async (accountId: string) => {
@@ -252,8 +247,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     ) as ISenderModelCard
     model.progress = undefined
     model.error = undefined
-    void trackEvent('DUI3 Action', { name: 'Send Cancel' }, model.accountId)
     model.latestCreatedVersionId = undefined
+
+    const account = accountsStore.getAccount(model.accountId)
+    if (account) {
+      void trackEvent(
+        'DUI3 Action',
+        account.accountInfo,
+        { name: 'Send Cancel' },
+        model.workspaceId
+      )
+    }
   })
 
   app.$sendBinding?.on(
@@ -442,28 +446,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.expired = false
     model.report = undefined
 
-    if (model.expired) {
-      // user sends via "Update" button
+    const account = accountsStore.getAccount(model.accountId)
+
+    if (account) {
       void trackEvent(
         'Send',
+        account.accountInfo,
         {
-          expired: true,
-          actionSource: actionSource.toLowerCase(),
-          // eslint-disable-next-line camelcase
-          workspace_id: model.workspaceId
+          expired: model.expired,
+          actionSource: actionSource.toLowerCase()
         },
-        model.accountId
-      )
-    } else {
-      void trackEvent(
-        'Send',
-        {
-          expired: false,
-          actionSource: actionSource.toLowerCase(),
-          // eslint-disable-next-line camelcase
-          workspace_id: model.workspaceId
-        },
-        model.accountId
+        model.workspaceId
       )
     }
 
@@ -491,8 +484,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     await app.$sendBinding.cancelSend(modelCardId)
     model.progress = undefined
     model.error = undefined
-    void trackEvent('DUI3 Action', { name: 'Send Cancel' }, model.accountId)
     model.latestCreatedVersionId = undefined
+
+    const account = accountsStore.getAccount(model.accountId)
+    if (account) {
+      void trackEvent(
+        'DUI3 Action',
+        account.accountInfo,
+        { name: 'Send Cancel' },
+        model.workspaceId
+      )
+    }
 
     // Clean up any active ingestion subscription from SDK-based connectors
     unsubscribeFromIngestion(modelCardId)
@@ -555,23 +557,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (m) => m.modelCardId === modelCardId
     ) as IReceiverModelCard
 
-    const account = accountsStore.accounts.find(
-      (a) => a.accountInfo.id === model.accountId
-    )
-
-    void trackEvent(
-      'Receive',
-      {
-        expired: model.expired,
-        sourceHostApp: model.selectedVersionSourceApp,
-        isMultiplayer: model.selectedVersionUserId !== account?.accountInfo.userInfo.id,
-        actionSource: actionSource.toLowerCase(),
-        // eslint-disable-next-line camelcase
-        workspace_id: model.workspaceId
-      },
-      model.accountId
-    )
-
+    const account = accountsStore.getAccount(model.accountId)
+    if (account) {
+      void trackEvent(
+        'Receive',
+        account.accountInfo,
+        {
+          expired: model.expired,
+          sourceHostApp: model.selectedVersionSourceApp,
+          isMultiplayer:
+            model.selectedVersionUserId !== account.accountInfo.userInfo.id,
+          actionSource: actionSource.toLowerCase()
+        },
+        model.workspaceId
+      )
+    }
     model.report = undefined
     model.error = undefined
     model.expired = false
@@ -597,8 +597,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (m) => m.modelCardId === modelCardId
     ) as IReceiverModelCard
     await app.$receiveBinding.cancelReceive(modelCardId)
-    void trackEvent('DUI3 Action', { name: 'Receive Cancel' }, model.accountId)
     model.progress = undefined
+
+    const account = accountsStore.getAccount(model.accountId)
+    if (account) {
+      void trackEvent(
+        'DUI3 Action',
+        account.accountInfo,
+        { name: 'Receive Cancel' },
+        model.workspaceId
+      )
+    }
   }
 
   const setModelReceiveResult = async (args: {
@@ -733,6 +742,18 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     if (app.$isRunningOnConnector && !isUpdateNotificationDisabled.value) {
       await checkUpdate()
     }
+  }
+
+  const getSessionId = async () => {
+    const canGetSessionId = ['getSessionId', 'GetSessionId'].some((name) =>
+      (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
+    )
+
+    if (canGetSessionId) {
+      sessionId.value = await app.$configBinding.getSessionId()
+    }
+
+    return null
   }
 
   /**
@@ -913,6 +934,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     await getHostAppName()
     await getHostAppVersion()
     await getConnectorVersion()
+    await getSessionId()
     await refreshDocumentInfo()
     await refreshDocumentModelStore()
     await refreshSendFilters()
@@ -945,6 +967,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     hostAppName,
     hostAppVersion,
     connectorVersion,
+    sessionId,
     activeIngestions,
     isConnectorUpToDate,
     latestAvailableVersion,

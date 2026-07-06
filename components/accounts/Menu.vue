@@ -74,12 +74,10 @@ import { storeToRefs } from 'pinia'
 import { XMarkIcon } from '@heroicons/vue/20/solid'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { BaseBridge } from '~/lib/bridge/base'
 import { useHostAppStore } from '~/store/hostApp'
 
-const { trackEvent } = useMixpanel()
 const app = useNuxtApp()
 const { pingDesktopService } = useDesktopService()
 const { $accountBinding } = useNuxtApp()
@@ -123,7 +121,6 @@ app.$baseBinding?.on('documentChanged', () => {
 watch(showAccountsDialog, (newVal) => {
   if (newVal) {
     void accountStore.refreshAccounts()
-    void trackEvent('DUI3 Action', { name: 'Account menu open' })
   }
 })
 
@@ -152,12 +149,10 @@ const selectAccount = (acc: DUIAccount) => {
   userSelectedAccount.value = acc
   accountStore.setUserSelectedAccount(acc) // saves the selected account id into DUI3Config.db for later use
   showAccountsDialog.value = false
-  void trackEvent('DUI3 Action', { name: 'Account change' })
 }
 
 const removeAccount = async (acc: DUIAccount) => {
   await accountStore.removeAccount(acc)
-  void trackEvent('DUI3 Action', { name: 'Account removed' })
 }
 
 const user = computed(() => {

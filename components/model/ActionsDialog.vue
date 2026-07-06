@@ -73,13 +73,13 @@ import {
 import type { IModelCard } from '~/lib/models/card'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useHostAppStore } from '~/store/hostApp'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { issuesListQuery } from '~/lib/issues/graphql/queries'
 import { useAccountStore } from '~/store/accounts'
 import { storeToRefs } from 'pinia'
 import { useQuery } from '@vue/apollo-composable'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const store = useHostAppStore()
 
 const openModelCardActionsDialog = ref(false)

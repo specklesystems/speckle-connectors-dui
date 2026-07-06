@@ -218,7 +218,7 @@ import {
 import { useAccountStore } from '~~/store/accounts'
 import { useHostAppStore } from '~~/store/hostApp'
 import { useConfigStore } from '~~/store/config'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 const app = useNuxtApp()
 const config = useConfigStore()
 
@@ -231,7 +231,7 @@ await accountStore.refreshAccounts()
 const { accounts } = storeToRefs(accountStore)
 
 const store = useHostAppStore()
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 
 const showSendDialog = ref(false)
 const showReceiveDialog = ref(false)

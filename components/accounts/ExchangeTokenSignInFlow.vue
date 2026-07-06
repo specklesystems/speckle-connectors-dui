@@ -73,7 +73,7 @@
 import { ref } from 'vue'
 import { useAuthManager } from '~/lib/authn/useAuthManager'
 import { useTokenExchange, supportsOAuthToken } from '~/lib/authn/useTokenExchange'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useAccountStore } from '~/store/accounts'
 import type { BaseBridge } from '~/lib/bridge/base'
 
@@ -88,7 +88,7 @@ const emit = defineEmits<{
 const app = useNuxtApp()
 const { generateLocalChallenge } = useAuthManager()
 const { exchangeAccessCode } = useTokenExchange()
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const accountStore = useAccountStore()
 
 const { $accountBinding } = useNuxtApp()
@@ -148,13 +148,13 @@ const submitCode = async () => {
 
   state.value = 'submitting'
   try {
-    await exchangeAccessCode(
+    const acc = await exchangeAccessCode(
       currentServerUrl,
       code,
       currentCodeChallenge,
       currentCodeVerifier
     )
-    void trackEvent('DUI Account Added')
+    void trackEvent('DUI Account Added', acc)
     // Refresh accounts so the watcher in Menu.vue detects the new account and closes the dialog
     await accountStore.refreshAccounts()
   } catch (error) {

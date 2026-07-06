@@ -37,7 +37,7 @@
 import { ToastNotificationType, type LayoutDialogButton } from '@speckle/ui-components'
 import { useForm } from 'vee-validate'
 import { useZapier } from '~/lib/core/composables/zapier'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 
@@ -52,7 +52,7 @@ const props = defineProps<{
 
 const isOpen = defineModel<boolean>('open', { required: true })
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const { sendWebhook } = useZapier()
 const { handleSubmit } = useForm<FormValues>()
 const accountStore = useAccountStore()
@@ -81,8 +81,9 @@ const onSubmit = handleSubmit(async () => {
   if (!feedback.value) return
 
   isOpen.value = false
+  const account = accountStore.defaultAccount.accountInfo
 
-  trackEvent('Feedback Sent', {
+  trackEvent('Feedback Sent', account, {
     message: feedback.value,
     feedbackType: 'dui3',
     ...props.metadata
@@ -93,7 +94,7 @@ const onSubmit = handleSubmit(async () => {
     title: 'Thank you for your feedback!'
   })
 
-  const userId = accountStore.defaultAccount.accountInfo.userInfo.id ?? ''
+  const userId = account.userInfo.id ?? ''
 
   await sendWebhook('https://hooks.zapier.com/hooks/catch/12120532/2m4okri/', {
     userId,

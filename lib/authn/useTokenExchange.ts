@@ -22,7 +22,7 @@ export function useTokenExchange() {
     accessCode: string,
     challenge: string,
     codeVerifier?: string
-  ): Promise<void> => {
+  ): Promise<Account> => {
     // Normalize to origin (strips trailing slash, path, etc.)
     // so account IDs stay consistent with connectors
     const serverUrl = new URL(rawServerUrl).origin
@@ -108,6 +108,7 @@ export function useTokenExchange() {
     }
 
     await $accountBinding.addAccount(accountId, account)
+    return account
   }
 
   return { exchangeAccessCode }

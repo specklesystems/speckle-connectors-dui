@@ -1,58 +1,27 @@
-import md5 from '~/lib/common/helpers/md5'
 import { useHostAppStore } from '~/store/hostApp'
-import { useAccountStore } from '~/store/accounts'
-
+import type { Account } from '~/lib/bindings/definitions/IAccountBinding'
 interface CustomProperties {
   [key: string]: object | string | boolean | number | undefined | null
 }
 
-// Cached email, server, and userId
-const lastEmail: Ref<string | undefined> = ref(undefined)
-const lastServer: Ref<string | undefined> = ref(undefined)
-const lastUserId: Ref<string | undefined> = ref(undefined)
-
-/**
- * Get Mixpanel functions
- * In DUI3, quite likely to change distinct id of the track operation since we can trigger repetitive calls that belongs to different account.
- * Also we have some operations that explicitly not belong to any account, i.e. first "Send" or "Load" click,
- * with this case we use default account on manager to get "email", "server", and "userId" and cache them for later anonymous track.
- * In each call we update "lastEmail", "lastServer", and "lastUserId" for the following potential anonymous tracks.
- */
-export function useMixpanel() {
+export function useAnalytics() {
   const hostApp = useHostAppStore()
   const {
-    public: { mixpanelApiHost, mixpanelTokenId }
+    public: { postHogApiHost, postHogApiKey }
   } = useRuntimeConfig()
 
   /**
-   * Track event for mixpanel which do HTTP request to end point.
+   * Send metrics events to posthog
    * @param eventName Event name.
+   * @param account account track with
    * @param customProperties custom properties that will be attached to the properties of track event.
-   * @param accountId account id to track with id. It will populate hashed "distinct_id" from email and "server_id" from url.
-   * @param isAction whether event is action or not.
    */
   async function trackEvent(
     eventName: string,
+    account: Account,
     customProperties: CustomProperties = {},
-    accountId?: string,
-    isAction: boolean = true
+    workspaceId: string | null = null
   ) {
-    const { activeAccount, accounts } = useAccountStore()
-
-    if (accountId) {
-      const account = accounts.find((a) => a.accountInfo.id === accountId)
-      lastEmail.value = account?.accountInfo.userInfo.email
-      lastServer.value = account?.accountInfo.serverInfo.url
-      lastUserId.value = account?.accountInfo.userInfo.id
-    } else {
-      // do not set if they cached already
-      if (lastEmail.value === undefined || lastServer.value === undefined) {
-        lastEmail.value = activeAccount.accountInfo.userInfo.email
-        lastServer.value = activeAccount.accountInfo.serverInfo.url
-        lastUserId.value = activeAccount.accountInfo.userInfo.id
-      }
-    }
-
     // TODO: enable it later somehow
     // if (process.dev) {
     //   // Only track in production
@@ -60,14 +29,16 @@ export function useMixpanel() {
     // }
 
     try {
-      if (!lastEmail.value || !lastServer.value) {
+      if (!account?.userInfo?.email || !account?.serverInfo?.url) {
         throw new Error('Email or server not found to track event.')
       }
-      const hashedEmail =
-        '@' + md5(lastEmail.value.toLowerCase() as string).toUpperCase()
-      const serverUrl = new URL(lastServer.value)
-      const serverHostname = serverUrl.hostname.toLowerCase()
-      const hashedServer = md5(serverHostname).toUpperCase()
+
+      const url = new URL(account.serverInfo.url)
+
+      if (url === new URL('https://app.speckle.systems')) {
+        // Right now, we're keeping posthog only for app.speckle.systems users
+        return
+      }
 
       // Get os info from userAgent text
       // taken from original mixpanel implementation
@@ -79,120 +50,73 @@ export function useMixpanel() {
       } else if (/Mac/i.test(userAgent)) {
         os = 'Mac OS X'
       }
+      const [major, minor, patch] = _parseVersion(hostApp.connectorVersion)
 
-      // Merge base properties with custom ones
+      /* eslint-disable camelcase */
       const properties = {
         $os: os,
-        // eslint-disable-next-line camelcase
-        distinct_id: hashedEmail,
-        // eslint-disable-next-line camelcase
-        server_id: hashedServer,
-        // eslint-disable-next-line camelcase
-        server_domain: serverHostname,
-        token: mixpanelTokenId as string,
-        type: isAction ? 'action' : undefined,
-        hostApp: hostApp.hostAppName,
+        //$os_version: null,
+        $lib: 'speckle-connectors-dui',
+        $lib_version: '3',
+        $user_id: account.userInfo.id,
+        $session_id: hostApp.sessionId,
+        $host: url.host,
+        hostAppSlug: hostApp.hostAppName,
         hostAppVersion: hostApp.hostAppVersion as string,
-        ui: 'dui3', // Not sure about this but we need to put something to distiguish some events, like "Send", "Receive", alternatively we can have "SendDUI3" not sure!
-        // eslint-disable-next-line camelcase
-        core_version: hostApp.connectorVersion,
-        email: lastEmail.value,
-        userId: lastUserId.value,
+        connectorVersion: hostApp.connectorVersion,
+        connectorVersionMajor: major,
+        connectorVersionMinor: minor,
+        connectorVersionPatch: patch,
+        email: account.userInfo.email,
+        workspace_id: workspaceId,
         ...customProperties
       }
 
       const eventData = {
+        api_key: postHogApiKey,
         event: eventName.toString(),
+        distinct_id: account.userInfo.id,
         properties
       }
+      /* eslint-enable camelcase */
 
       if (import.meta.dev) {
-        console.info('Mixpanel event', eventData)
+        console.info('Posthog event', eventData)
       }
 
-      const response = await fetch(
-        `${mixpanelApiHost as string}/track?ip=1&_=${Date.now()}`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `data=${btoa(JSON.stringify(eventData))}`
-        }
-      )
-
-      if (!response.ok) {
-        throw new Error(`Analytics event failed: ${response.statusText}`)
-      }
-    } catch (error) {
-      // Handle error or logging
-      console.warn('Failed to track event in MixPanel:', error)
-    }
-  }
-
-  async function addConnectorToProfile(email: string) {
-    try {
-      const hashedEmail = '@' + md5(email.toLowerCase() as string).toUpperCase()
-
-      const eventData = {
-        // eslint-disable-next-line camelcase
-        $distinct_id: hashedEmail,
-        $token: mixpanelTokenId as string,
-        $union: {
-          Connectors: [hostApp.hostAppName]
-        }
-      }
-
-      const response = await fetch(
-        `${mixpanelApiHost as string}/engage#profile-union`,
-        {
-          method: 'POST',
-          headers: {
-            accept: 'text/plain',
-            'Content-Type': 'application/x-www-form-urlencoded'
-          },
-          body: `data=${btoa(JSON.stringify(eventData))}`
-        }
-      )
-      if (!response.ok) {
-        throw new Error(`Analytics event failed: ${response.statusText}`)
-      }
-    } catch (error) {
-      // Handle error or logging
-      console.warn('Failed to track event in MixPanel:', error)
-    }
-  }
-
-  async function identifyProfile(email: string) {
-    try {
-      const hashedEmail = '@' + md5(email.toLowerCase() as string).toUpperCase()
-
-      const eventData = {
-        // eslint-disable-next-line camelcase
-        $distinct_id: hashedEmail,
-        $token: mixpanelTokenId as string,
-        $set: {
-          Identified: true,
-          email
-        }
-      }
-
-      const response = await fetch(`${mixpanelApiHost as string}/engage#profile-set`, {
+      const response = await fetch(`https://${postHogApiHost as string}/i/v0/e/`, {
         method: 'POST',
         headers: {
-          accept: 'text/plain',
           'Content-Type': 'application/x-www-form-urlencoded'
         },
         body: `data=${btoa(JSON.stringify(eventData))}`
       })
+
       if (!response.ok) {
         throw new Error(`Analytics event failed: ${response.statusText}`)
       }
     } catch (error) {
       // Handle error or logging
-      console.warn('Failed to track event in MixPanel:', error)
+      console.warn('Failed to track event in PostHog:', error)
     }
   }
 
-  return { trackEvent, addConnectorToProfile, identifyProfile }
+  function _parseVersion(
+    applicationVersion: string | null | undefined
+  ): [number | null, number | null, number | null] {
+    if (!applicationVersion) {
+      return [null, null, null]
+    }
+
+    const coreVersion = applicationVersion.split('-')[0]
+    const [major, minor, patch] = coreVersion.split('.').map(Number)
+
+    if ([major, minor, patch].some(Number.isNaN)) {
+      throw new Error(`Invalid semantic version: ${applicationVersion}`)
+    }
+
+    return [major, minor, patch]
+  }
+
+  return { trackEvent }
 }

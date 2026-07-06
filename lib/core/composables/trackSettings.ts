@@ -1,8 +1,8 @@
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import type { CardSetting } from '~/lib/models/card/setting'
 
 export function useSettingsTracking() {
-  const { trackEvent } = useMixpanel()
+  const { trackEvent } = useAnalytics()
 
   function trackSettingsChange(
     eventName: string,
@@ -31,7 +31,7 @@ export function useSettingsTracking() {
           : setting.value
       }
     })
-
+    
     // only track if user changed a setting
     if (!requireChanges || hasAnyChange) {
       void trackEvent('DUI3 Action', settingProperties, accountId)

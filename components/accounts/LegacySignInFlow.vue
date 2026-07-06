@@ -54,7 +54,6 @@
 import { useIntervalFn } from '@vueuse/core'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import { ArrowLeftIcon } from '@heroicons/vue/24/solid'
@@ -63,7 +62,6 @@ const accountStore = useAccountStore()
 const { pingDesktopService } = useDesktopService()
 const hostApp = useHostAppStore()
 const app = useNuxtApp()
-const { trackEvent } = useMixpanel()
 
 const props = defineProps<{
   serverUrl: string
@@ -87,7 +85,6 @@ const accountCheckerIntervalFn = useIntervalFn(
       isAddingAccount.value = false
       showCustomServerInput.value = false
       accountCheckerIntervalFn.pause()
-      trackEvent('DUI Account Added')
     }
   },
   1000,

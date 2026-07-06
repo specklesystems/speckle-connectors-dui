@@ -70,14 +70,14 @@ import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { useSelectionStore } from '~/store/selection'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const { trackSettingsChange } = useSettingsTracking()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
