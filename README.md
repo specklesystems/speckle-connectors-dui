@@ -23,6 +23,9 @@ Start the development server on `http://localhost:8082`
 yarn dev
 ```
 
+Once you've got it running locally, you can run connectors with `SPECKLE_DUI_URL` env var set to `http://127.0.0.1:8082` (either system level, via CLI, or via launch/IDE configuration)
+see [connector-configuration](https://docs.speckle.systems/connectors/connector-configuration#self-hosting-desktop-ui) docs.
+
 ## Production
 
 Build the application for production:

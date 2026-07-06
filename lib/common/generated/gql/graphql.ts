@@ -4120,6 +4120,7 @@ export type Mutation = {
   webhookUpdate: Scalars['String']['output'];
   workspaceJoinRequestMutations: WorkspaceJoinRequestMutations;
   workspaceMutations: WorkspaceMutations;
+  workspaceSandboxMutations: WorkspaceSandboxMutations;
 };
 
 
@@ -5787,6 +5788,38 @@ export enum ProjectVisibility {
   Workspace = 'WORKSPACE'
 }
 
+/** Bentley cloud (iTwin) browsing surface, reached via `ProjectWiseIntegration.cloud`. */
+export type ProjectWiseCloudIntegration = {
+  __typename?: 'ProjectWiseCloudIntegration';
+  folder: ProjectWiseFolder;
+  iTwin: ProjectWiseiTwin;
+  iTwins: ProjectWiseiTwinCollection;
+  /**
+   * Resolve a ProjectWise Design Integration folder by id, scoped to a specific
+   * Work Area Connection (via its `url`).
+   */
+  pwdiFolder: ProjectWisePwdiFolder;
+};
+
+
+/** Bentley cloud (iTwin) browsing surface, reached via `ProjectWiseIntegration.cloud`. */
+export type ProjectWiseCloudIntegrationFolderArgs = {
+  folderId: Scalars['String']['input'];
+};
+
+
+/** Bentley cloud (iTwin) browsing surface, reached via `ProjectWiseIntegration.cloud`. */
+export type ProjectWiseCloudIntegrationITwinArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+/** Bentley cloud (iTwin) browsing surface, reached via `ProjectWiseIntegration.cloud`. */
+export type ProjectWiseCloudIntegrationPwdiFolderArgs = {
+  connectionUrl: Scalars['String']['input'];
+  folderId: Scalars['String']['input'];
+};
+
 export type ProjectWiseFile = {
   __typename?: 'ProjectWiseFile';
   displayName: Scalars['String']['output'];
@@ -5818,37 +5851,117 @@ export type ProjectWiseFolderCollection = {
   items: Array<ProjectWiseFolder>;
 };
 
+/**
+ * Namespace grouping every ProjectWise browsing entry point for a single
+ * workspace: cloud (iTwin) access, on-premises native WSG Basic Auth (ad-hoc or
+ * via a saved credential) and the caller's saved credentials.
+ */
 export type ProjectWiseIntegration = {
   __typename?: 'ProjectWiseIntegration';
-  folder: ProjectWiseFolder;
-  iTwin: ProjectWiseiTwin;
-  iTwins: ProjectWiseiTwinCollection;
+  /** Bentley cloud (iTwin) browsing via an OAuth access token obtained by the client. */
+  cloud?: Maybe<ProjectWiseCloudIntegration>;
   /**
-   * Resolve a ProjectWise Design Integration folder by id, scoped to a specific
-   * Work Area Connection (via its `url`).
+   * List saved ProjectWise Basic Auth credentials for the calling user in this
+   * workspace. Passwords are never returned — use `stored` to browse using saved
+   * credentials.
    */
-  pwdiFolder: ProjectWisePwdiFolder;
+  credentials: Array<SavedProjectwiseCredential>;
+  /**
+   * Entry point for on-premises ProjectWise via native WSG Basic Auth.
+   * Credentials are passed per-request and never stored server-side.
+   */
+  native?: Maybe<ProjectWiseNativeIntegration>;
+  /**
+   * Entry point for on-premises ProjectWise using a previously saved credential.
+   * The server decrypts the stored credentials and uses them for the request.
+   */
+  stored?: Maybe<ProjectWiseNativeIntegration>;
 };
 
 
-export type ProjectWiseIntegrationFolderArgs = {
-  folderId: Scalars['String']['input'];
+/**
+ * Namespace grouping every ProjectWise browsing entry point for a single
+ * workspace: cloud (iTwin) access, on-premises native WSG Basic Auth (ad-hoc or
+ * via a saved credential) and the caller's saved credentials.
+ */
+export type ProjectWiseIntegrationCloudArgs = {
+  token: Scalars['String']['input'];
 };
 
 
-export type ProjectWiseIntegrationITwinArgs = {
-  id: Scalars['String']['input'];
+/**
+ * Namespace grouping every ProjectWise browsing entry point for a single
+ * workspace: cloud (iTwin) access, on-premises native WSG Basic Auth (ad-hoc or
+ * via a saved credential) and the caller's saved credentials.
+ */
+export type ProjectWiseIntegrationNativeArgs = {
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+  wsgUrl: Scalars['String']['input'];
 };
 
 
-export type ProjectWiseIntegrationPwdiFolderArgs = {
-  connectionUrl: Scalars['String']['input'];
-  folderId: Scalars['String']['input'];
+/**
+ * Namespace grouping every ProjectWise browsing entry point for a single
+ * workspace: cloud (iTwin) access, on-premises native WSG Basic Auth (ad-hoc or
+ * via a saved credential) and the caller's saved credentials.
+ */
+export type ProjectWiseIntegrationStoredArgs = {
+  credentialId: Scalars['ID']['input'];
 };
 
 export type ProjectWiseItemCollection = {
   __typename?: 'ProjectWiseItemCollection';
   items: Array<ProjectWiseStorageItem>;
+};
+
+export type ProjectWiseNativeDatasource = {
+  __typename?: 'ProjectWiseNativeDatasource';
+  folder?: Maybe<ProjectWiseNativeFolder>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  rootFolders: Array<ProjectWiseNativeFolder>;
+  wsgUrl: Scalars['String']['output'];
+};
+
+
+export type ProjectWiseNativeDatasourceFolderArgs = {
+  id: Scalars['ID']['input'];
+};
+
+export type ProjectWiseNativeFile = {
+  __typename?: 'ProjectWiseNativeFile';
+  datasourceId: Scalars['String']['output'];
+  fileName?: Maybe<Scalars['String']['output']>;
+  fileSize?: Maybe<Scalars['Int']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  parentFolderId?: Maybe<Scalars['String']['output']>;
+  updateTime?: Maybe<Scalars['String']['output']>;
+  wsgUrl: Scalars['String']['output'];
+};
+
+export type ProjectWiseNativeFolder = {
+  __typename?: 'ProjectWiseNativeFolder';
+  children: Array<ProjectWiseNativeFolder>;
+  datasourceId: Scalars['String']['output'];
+  files: Array<ProjectWiseNativeFile>;
+  id: Scalars['ID']['output'];
+  isRichProject: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  wsgUrl: Scalars['String']['output'];
+};
+
+export type ProjectWiseNativeIntegration = {
+  __typename?: 'ProjectWiseNativeIntegration';
+  datasource?: Maybe<ProjectWiseNativeDatasource>;
+  datasources: Array<ProjectWiseNativeDatasource>;
+  wsgUrl: Scalars['String']['output'];
+};
+
+
+export type ProjectWiseNativeIntegrationDatasourceArgs = {
+  id: Scalars['ID']['input'];
 };
 
 export type ProjectWisePwdiFile = {
@@ -5982,6 +6095,14 @@ export type PublicAiConversation = {
   id: Scalars['ID']['output'];
   messages: Array<Scalars['JSONObject']['output']>;
   projectId?: Maybe<Scalars['String']['output']>;
+  /**
+   * Presigned snapshot URLs for the data warehouse tables this conversation's
+   * reports depend on, so a shared report can re-attach and re-render them
+   * client-side (the share token has no workspace access to fetch them itself).
+   * Scoped to ONLY the sources the conversation actually references; empty when the
+   * warehouses module is disabled or no warehouse sources are used.
+   */
+  reportDataSourceSnapshots: Array<PublicReportDataSourceSnapshot>;
   surface: Scalars['String']['output'];
   title: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
@@ -6003,8 +6124,31 @@ export type PublicReport = {
   layout: Scalars['JSONObject']['output'];
   name: Scalars['String']['output'];
   projectId: Scalars['String']['output'];
+  /**
+   * Presigned snapshots for the data warehouse tables this shared report's
+   * bindings depend on (extracted from the saved layout's `section.datasources`).
+   * The share token has no workspace access, so the server presigns them here —
+   * scoped to ONLY the sources the report references. Empty when the warehouses
+   * module is disabled or nothing is referenced. The existing snapshot is served
+   * as-is (no refresh) so an anonymous public load never triggers warehouse
+   * materialisation.
+   */
+  reportDataSourceSnapshots: Array<PublicReportDataSourceSnapshot>;
   schemaVersion: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
+};
+
+/**
+ * A presigned snapshot of a data warehouse source a shared report depends on.
+ * `alias` is the SQL identifier the report's bindings reference; `url` is a
+ * short-lived download URL for the source's `.duckdb` snapshot.
+ */
+export type PublicReportDataSourceSnapshot = {
+  __typename?: 'PublicReportDataSourceSnapshot';
+  alias: Scalars['String']['output'];
+  filename: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  url: Scalars['String']['output'];
 };
 
 export type PublicShareTokenInfo = {
@@ -6730,6 +6874,30 @@ export type RootPermissionChecks = {
   canSupportServerUsers: PermissionCheckResult;
   canUpdateServerSettings: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
+};
+
+export type SaveProjectwiseCredentialInput = {
+  datasourceId: Scalars['String']['input'];
+  datasourceName: Scalars['String']['input'];
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+  wsgUrl: Scalars['String']['input'];
+};
+
+export type SaveProjectwiseCredentialResult = {
+  __typename?: 'SaveProjectwiseCredentialResult';
+  datasourceName: Scalars['String']['output'];
+  id: Scalars['String']['output'];
+  wsgUrl: Scalars['String']['output'];
+};
+
+export type SavedProjectwiseCredential = {
+  __typename?: 'SavedProjectwiseCredential';
+  datasourceId: Scalars['String']['output'];
+  datasourceName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  wsgUrl: Scalars['String']['output'];
 };
 
 export type SavedView = {
@@ -7732,6 +7900,12 @@ export type Subscription = {
    */
   workspaceProjectsUpdated: WorkspaceProjectsUpdatedMessage;
   /**
+   * Track when a newly created sandbox gets created and is ready to be used. Scoped to the
+   * authenticated user (from the auth token) - the event is only emitted to admins of the
+   * newly created sandbox workspace.
+   */
+  workspaceSandboxCreated: WorkspaceSandboxCreatedMessage;
+  /**
    * Track support session changes for a specific workspace.
    * Fires when sessions are requested, approved, revoked, or expire.
    */
@@ -8550,6 +8724,11 @@ export type UserMeta = {
   intelligenceCommunityStandUpBannerDismissed: Scalars['Boolean']['output'];
   legacyProjectsExplainerCollapsed: Scalars['Boolean']['output'];
   newWorkspaceExplainerDismissed: Scalars['Boolean']['output'];
+  /**
+   * Whether the sandbox walkthrough tour has been completed by this user.
+   * Reset to false on new sandbox creation so each fresh sandbox re-triggers the tour.
+   */
+  sandboxWalkthroughCompleted: Scalars['Boolean']['output'];
   speckleCon25BannerDismissed: Scalars['Boolean']['output'];
   speckleConBannerDismissed: Scalars['Boolean']['output'];
 };
@@ -8565,6 +8744,11 @@ export type UserMetaMutations = {
   setIntelligenceCommunityStandUpBannerDismissed: Scalars['Boolean']['output'];
   setLegacyProjectsExplainerCollapsed: Scalars['Boolean']['output'];
   setNewWorkspaceExplainerDismissed: Scalars['Boolean']['output'];
+  /**
+   * Set the sandbox walkthrough completion flag. Pass `true` when the tour finishes,
+   * `false` to restart it.
+   */
+  setSandboxWalkthroughCompleted: Scalars['Boolean']['output'];
   setSpeckleCon25BannerDismissed: Scalars['Boolean']['output'];
   setSpeckleConBannerDismissed: Scalars['Boolean']['output'];
 };
@@ -8587,6 +8771,11 @@ export type UserMetaMutationsSetLegacyProjectsExplainerCollapsedArgs = {
 
 
 export type UserMetaMutationsSetNewWorkspaceExplainerDismissedArgs = {
+  value: Scalars['Boolean']['input'];
+};
+
+
+export type UserMetaMutationsSetSandboxWalkthroughCompletedArgs = {
   value: Scalars['Boolean']['input'];
 };
 
@@ -9583,16 +9772,17 @@ export type WorkspaceIdentifier = {
 export type WorkspaceIntegrations = {
   __typename?: 'WorkspaceIntegrations';
   acc?: Maybe<AccIntegration>;
+  /**
+   * Bentley ProjectWise integration entry point for this workspace. Nullable so
+   * that a disabled Bentley module / missing plan feature isolates to this field.
+   * Authorization (workspace membership + the `bentleyIntegration` plan feature)
+   * is enforced once here; the whole subtree below inherits it.
+   */
   projectWise?: Maybe<ProjectWiseIntegration>;
 };
 
 
 export type WorkspaceIntegrationsAccArgs = {
-  token?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type WorkspaceIntegrationsProjectWiseArgs = {
   token?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -9855,6 +10045,11 @@ export type WorkspaceMutations = {
    * Irreversible.
    */
   deleteProjectMetadataSchema: Workspace;
+  /**
+   * Delete a saved ProjectWise credential. Caller must be the credential owner
+   * or a workspace admin.
+   */
+  deleteProjectwiseCredential: Scalars['Boolean']['output'];
   deleteSsoProvider: Scalars['Boolean']['output'];
   /** Revoke the SSO session for a specific user in a workspace. Only workspace admins can perform this action. */
   deleteSsoSession: Scalars['Boolean']['output'];
@@ -9869,6 +10064,11 @@ export type WorkspaceMutations = {
   projects: WorkspaceProjectMutations;
   regenerateScimToken: WorkspaceScimTokenResult;
   requestToJoin: Scalars['Boolean']['output'];
+  /**
+   * Save (upsert) an on-premises ProjectWise Basic Auth credential set for the
+   * calling user. Credentials are encrypted server-side before storage.
+   */
+  saveProjectwiseCredential: SaveProjectwiseCredentialResult;
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
   setProjectMetadataSchema: Workspace;
@@ -9916,6 +10116,12 @@ export type WorkspaceMutationsDeleteProjectMetadataSchemaArgs = {
 };
 
 
+export type WorkspaceMutationsDeleteProjectwiseCredentialArgs = {
+  id: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
+
 export type WorkspaceMutationsDeleteSsoProviderArgs = {
   workspaceId: Scalars['String']['input'];
 };
@@ -9954,6 +10160,11 @@ export type WorkspaceMutationsRegenerateScimTokenArgs = {
 
 export type WorkspaceMutationsRequestToJoinArgs = {
   input: WorkspaceRequestToJoinInput;
+};
+
+
+export type WorkspaceMutationsSaveProjectwiseCredentialArgs = {
+  input: SaveProjectwiseCredentialInput;
 };
 
 
@@ -10446,6 +10657,40 @@ export type WorkspaceRoleUpdateInput = {
   role?: InputMaybe<Scalars['String']['input']>;
   userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+export type WorkspaceSandboxCreatedMessage = {
+  __typename?: 'WorkspaceSandboxCreatedMessage';
+  /** Workspace ID */
+  id: Scalars['String']['output'];
+  /** Workspace itself */
+  workspace: Workspace;
+};
+
+/** Pre-built example a sandbox can be populated from on creation. */
+export enum WorkspaceSandboxExampleInput {
+  AiReadyDashboards = 'AI_READY_DASHBOARDS',
+  CrossToolCollaborations = 'CROSS_TOOL_COLLABORATIONS',
+  ModelValidation = 'MODEL_VALIDATION'
+}
+
+export type WorkspaceSandboxMutations = {
+  __typename?: 'WorkspaceSandboxMutations';
+  /**
+   * Create a sandbox workspace. Sandboxes are created on the sandbox plan with a trial
+   * status and are automatically deleted once the trial expires. The name and slug are
+   * auto-generated, so no input is required. If the user already owns a sandbox, it is
+   * deleted before the new one is created.
+   *
+   * When `example` is provided, the sandbox is populated from the matching pre-built
+   * example workspace. When omitted, an empty sandbox is created.
+   */
+  create: Workspace;
+};
+
+
+export type WorkspaceSandboxMutationsCreateArgs = {
+  example?: InputMaybe<WorkspaceSandboxExampleInput>;
 };
 
 export type WorkspaceScimConfig = {
