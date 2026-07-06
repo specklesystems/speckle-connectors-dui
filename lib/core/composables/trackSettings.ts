@@ -33,7 +33,7 @@ export function useSettingsTracking() {
           : setting.value
       }
     })
-    
+
     // only track if user changed a setting
     if (account && (!requireChanges || hasAnyChange)) {
       void trackEvent('DUI3 Action', account, settingProperties, workspaceId)
