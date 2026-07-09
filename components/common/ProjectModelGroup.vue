@@ -30,10 +30,7 @@
           <div class="relative w-4 h-4">
             <ArrowTopRightOnSquareIcon
               class="w-4 h-4"
-              @click.stop="
-                $openUrl(projectUrl),
-                  trackEvent('DUI3 Action', { name: 'Project View' }, project.accountId)
-              "
+              @click.stop="$openUrl(projectUrl)"
             />
           </div>
         </button>
@@ -129,9 +126,7 @@ import {
   userProjectsUpdatedSubscription,
   projectUpdatedSubscription
 } from '~~/lib/graphql/mutationsAndQueries'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
 
-const { trackEvent } = useMixpanel()
 const accountStore = useAccountStore()
 const hostAppStore = useHostAppStore()
 const { $openUrl } = useNuxtApp()
@@ -316,14 +311,14 @@ userProjectsUpdated((res) => {
 })
 
 const projectUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
+  const acc = accountStore.getAccount(clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/projects/${
     props.project.projectId
   }`
 })
 
 const workspaceUrl = computed(() => {
-  const acc = accountStore.accounts.find((acc) => acc.accountInfo.id === clientId.value)
+  const acc = accountStore.getAccount(clientId.value)
   return `${acc?.accountInfo.serverInfo.url as string}/workspaces/${
     projectDetails.value?.workspace?.slug
   }`

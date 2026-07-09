@@ -218,12 +218,12 @@ import type {
   ProjectListProjectItemFragment,
   WorkspaceListWorkspaceItemFragment
 } from '~/lib/common/generated/gql/graphql'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
 import { useConfigStore } from '~/store/config'
 import { useHostAppStore } from '~/store/hostApp'
 
 const hostAppStore = useHostAppStore()
-const { trackEvent } = useMixpanel()
+const { trackEvent } = useAnalytics()
 const { $openUrl } = useNuxtApp()
 
 const emit = defineEmits<{
@@ -268,7 +268,7 @@ const selectAccount = (account: DUIAccount) => {
   refetchServerInfo() // to be able to understand workspaces enabled or not
   refetchActiveWorkspace()
   refetchWorkspaces()
-  void trackEvent('DUI3 Action', { name: 'Account Select' }, account.accountInfo.id)
+  void trackEvent('DUI3 Action', account.accountInfo, { name: 'Account Select' })
 }
 
 const handleProjectCreated = (result: ProjectListProjectItemFragment) => {
@@ -519,11 +519,10 @@ const account = computed(() => {
 
 const createNewWorkspaceProject = async (name: string) => {
   isCreatingProject.value = true
-  void trackEvent(
-    'DUI3 Action',
-    { name: 'Project Create', workspace: true },
-    accountId.value
-  )
+  void trackEvent('DUI3 Action', account.value.accountInfo, {
+    name: 'Project Create',
+    workspace: true
+  })
   const { mutate, onError } = provideApolloClient(account.value.client)(() =>
     useMutation(createProjectInWorkspaceMutation)
   )
@@ -549,11 +548,10 @@ const createNewWorkspaceProject = async (name: string) => {
 const createNewPersonalProject = async (name: string) => {
   isCreatingProject.value = true
 
-  void trackEvent(
-    'DUI3 Action',
-    { name: 'Project Create', workspace: false },
-    account.value.accountInfo.id
-  )
+  void trackEvent('DUI3 Action', account.value.accountInfo, {
+    name: 'Project Create',
+    workspace: false
+  })
 
   const { mutate, onError } = provideApolloClient(account.value.client)(() =>
     useMutation(createProjectMutation)

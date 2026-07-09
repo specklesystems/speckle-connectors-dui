@@ -97,7 +97,7 @@ const isSender = computed(() =>
     .includes('sender')
 )
 
-const acc = accStore.accounts.find((acc) => acc.accountInfo.id === cardBase.accountId)
+const acc = accStore.getAccount(cardBase.accountId)
 
 const details = computed(() =>
   props.reportItem.error

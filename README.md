@@ -17,11 +17,13 @@ And create an `.env` file from `.env.example`.
 
 ## Development
 
-Start the development server on `http://localhost:8082`
+Start the development server on `http://localhost:8082/`
 
 ```bash
 yarn dev
 ```
+
+Once you've got it running locally, you can run connectors with [`SPECKLE_DUI_URL`](https://docs.speckle.systems/connectors/connector-configuration#self-hosting-desktop-ui) env var set to `http://127.0.0.1:8082` (via launch/IDE configuration)
 
 ## Production
 

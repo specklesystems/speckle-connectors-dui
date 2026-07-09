@@ -24,6 +24,7 @@ export interface IConfigBinding extends IBinding<IConfigBindingEvents> {
   getAccountsConfig: () => Promise<AccountsConfig> // should have been named like this from day 0. we should get rid of `getUserSelectedAccountId` function after some amount of time to not confuse ourselves.
   setUserSelectedWorkspaceId: (workspaceId: string) => void
   getWorkspacesConfig: () => Promise<WorkspacesConfig>
+  getSessionId: () => Promise<string | null>
 }
 
 export interface IConfigBindingEvents extends IBindingSharedEvents {}
@@ -58,7 +59,8 @@ export class MockedConfigBinding implements IConfigBinding {
     'getWorkspacesConfig',
     'getUserSelectedAccountId',
     'showDevTools',
-    'openUrl'
+    'openUrl',
+    'getSessionId'
   ]
   public async getIsDevMode() {
     return true
@@ -105,6 +107,10 @@ export class MockedConfigBinding implements IConfigBinding {
 
   public async openUrl(url: string) {
     window.open(url)
+  }
+
+  public async getSessionId() {
+    return null
   }
 
   public on() {

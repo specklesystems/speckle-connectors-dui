@@ -70,14 +70,12 @@ import { SenderModelCard } from '~/lib/models/card/send'
 import { useHostAppStore } from '~/store/hostApp'
 import { useAccountStore } from '~/store/accounts'
 import { useSelectionStore } from '~/store/selection'
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
 import { useSettingsTracking } from '~/lib/core/composables/trackSettings'
 import type { CardSetting } from '~/lib/models/card/setting'
 import { useAddByUrl } from '~/lib/core/composables/addByUrl'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 
-const { trackEvent } = useMixpanel()
 const { trackSettingsChange } = useSettingsTracking()
 
 const showSendDialog = defineModel<boolean>('open', { default: false })
@@ -204,7 +202,6 @@ const selectProject = (accountId: string, project: ProjectListProjectItemFragmen
   step.value++
   selectedAccountId.value = accountId
   selectedProject.value = project
-  void trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'project selected' })
 }
 
 const title = computed(() => {
@@ -217,16 +214,11 @@ const title = computed(() => {
 const selectModel = (model: ModelListModelItemFragment) => {
   step.value++
   selectedModel.value = model
-  void trackEvent('DUI3 Action', { name: 'Publish Wizard', step: 'model selected' })
 }
 
 // accountId, serverUrl, projectId, modelId, sendFilter, settings
 const addModel = async () => {
-  void trackEvent('DUI3 Action', {
-    name: 'Publish Wizard',
-    step: 'objects selected',
-    filter: filter.value?.typeDiscriminator
-  })
+  const account = accountStore.getAccount(selectedAccountId.value)
 
   const existingModel = hostAppStore.models.find(
     (m) =>
@@ -241,8 +233,9 @@ const addModel = async () => {
       'Publish Settings Changed',
       settings.value,
       existingModel?.settings || hostAppStore.sendSettings || [],
-      selectedAccountId.value,
-      true
+      account?.accountInfo,
+      true,
+      workspaceId.value
     )
   }
   if (existingModel) {

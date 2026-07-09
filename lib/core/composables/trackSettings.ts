@@ -1,15 +1,17 @@
-import { useMixpanel } from '~/lib/core/composables/mixpanel'
+import { useAnalytics } from '~/lib/core/composables/analytics'
+import type { Account } from '~/lib/bindings/definitions/IAccountBinding'
 import type { CardSetting } from '~/lib/models/card/setting'
 
 export function useSettingsTracking() {
-  const { trackEvent } = useMixpanel()
+  const { trackEvent } = useAnalytics()
 
   function trackSettingsChange(
     eventName: string,
     settings: CardSetting[],
     defaultSettings: CardSetting[],
-    accountId?: string,
-    requireChanges: boolean = false
+    account?: Account,
+    requireChanges: boolean = false,
+    workspaceId?: string | null
   ) {
     // building dynamic properties
     // since this can change based on HostApp
@@ -33,8 +35,8 @@ export function useSettingsTracking() {
     })
 
     // only track if user changed a setting
-    if (!requireChanges || hasAnyChange) {
-      void trackEvent('DUI3 Action', settingProperties, accountId)
+    if (account && (!requireChanges || hasAnyChange)) {
+      void trackEvent('DUI3 Action', account, settingProperties, workspaceId)
     }
   }
 
