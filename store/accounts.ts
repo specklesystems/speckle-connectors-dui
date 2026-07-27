@@ -17,6 +17,7 @@ import { setContext } from '@apollo/client/link/context'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
 import { logToSeq } from '~/lib/logger/composables/useLogger'
+import { serverInfoQuery } from '~/lib/graphql/mutationsAndQueries'
 
 export type DUIAccount = {
   /** account info coming from the host app */
@@ -25,6 +26,8 @@ export type DUIAccount = {
   client: ApolloClient<unknown>
   /** whether an intial serverinfo query succeeded. */
   isValid: boolean
+  /** whether this account's server has the workspaces module enabled (false on most self-hosted servers) */
+  workspacesEnabled: boolean
 }
 
 const accountTestQuery = gql`
@@ -203,20 +206,23 @@ export const useAccountStore = defineStore('accountStore', () => {
         }
       })
 
-      // const workspacesEnabled = false
-      // try {
-      //   // get workspace enabled flag and store it in account
-      //   const res = await client.query({ query: serverInfoQuery })
-      //   workspacesEnabled = !!res.data.serverInfo.workspaces.workspacesEnabled
-      // } catch (err) {
-      //   // probably having some local account or client could not established well for some reason!
-      //   console.log(err)
-      // }
+      let workspacesEnabled = false
+      try {
+        // get workspace enabled flag and store it in account
+        const res = await client.query({ query: serverInfoQuery })
+        workspacesEnabled = !!res.data.serverInfo.workspaces.workspacesEnabled
+      } catch (err) {
+        // servers without the workspaces module (e.g. self-hosted with
+        // FF_WORKSPACES_MODULE_ENABLED=false) don't expose `serverInfo.workspaces`
+        // in their schema at all, so this query fails - that's expected, treat as disabled
+        console.log(err)
+      }
 
       apolloClients[acc.id] = client
       newAccs.push({
         accountInfo: acc,
         client,
+        workspacesEnabled,
         isValid: true
       })
     }
