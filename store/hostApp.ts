@@ -406,6 +406,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       model.accountId
     )
 
+    // The DUI-created ingestion handed down to connectors on the 4.0 artifact
+    // path (sketchup): they extract/upload against it and the DUI completes it —
+    // one ingestion per publish, owned by the DUI end-to-end.
+    let connectorIngestion: { ingestionId: string; versionId: string } | undefined
+
     // for the connectors that don't have SDK to handle graqhql
     if (shouldHandleIngestion.value && canCreateIngestion.queryAvailable) {
       const sourceData = {
@@ -413,7 +418,13 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
       }
       if (canCreateIngestion.authorized) {
-        await startIngestion(model, 'Starting to publish', sourceData)
+        const created = await startIngestion(model, 'Starting to publish', sourceData)
+        if (created?.id && created.preallocatedVersionId) {
+          connectorIngestion = {
+            ingestionId: created.id,
+            versionId: created.preallocatedVersionId
+          }
+        }
         model.progress = { status: 'Converting the objects...' }
       } else {
         setNotification({
@@ -477,6 +488,23 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       setTimeout(() => {
         void app.$sendBinding.send(modelCardId)
       }, 500) // I prefer to sacrifice 500ms
+    } else if (
+      hostAppName.value === 'sketchup' &&
+      connectorIngestion &&
+      // Evergreen-DUI guard: only 4.0 connectors register the 'sendArtifacts'
+      // command; older connectors have a fixed-arity `send` that would error on
+      // extra args, so they keep getting the single-argument call.
+      (app.$sendBinding as unknown as BaseBridge).availableMethodNames?.includes(
+        'sendArtifacts'
+      )
+    ) {
+      // Sketchup's bridge forwards variadic args to Ruby: the artifact path
+      // uploads against this DUI-created ingestion instead of creating its own.
+      void app.$sendBinding.send(
+        modelCardId,
+        connectorIngestion.ingestionId,
+        connectorIngestion.versionId
+      )
     } else {
       void app.$sendBinding.send(modelCardId)
     }
