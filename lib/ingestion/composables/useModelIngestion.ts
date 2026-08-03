@@ -3,6 +3,7 @@ import {
   useMutation,
   useSubscription
 } from '@vue/apollo-composable'
+import { parse } from 'graphql'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import {
@@ -30,6 +31,31 @@ import { ToastNotificationType } from '@speckle/ui-components'
  * 2. Update the ingestion with the new data when connector throws progress via 'setModelProgress' event
  * 3. Complete the version with the root object id that passed by connector or server/sketchup bridges in JS
  */
+/**
+ * Raw (non-codegen) query for the version id the server pre-allocates on
+ * ingestion create. `ModelIngestion.versionId` only exists on 4.0 (v2 data
+ * endpoint) servers, so this cannot go through codegen against the production
+ * schema yet — callers must tolerate it failing on older servers. Built via
+ * `parse` (not a `gql` tag) so graphql-codegen's document scanner does not
+ * pick it up and fail validation against the production schema.
+ *
+ * TODO(ENG-9043): once production exposes ModelIngestion.versionId, select it
+ * directly in the CreateModelIngestion mutation and delete this probe (and its
+ * extra roundtrip in startIngestion) — failure tolerance then becomes a plain
+ * optional-field read on the mutation response.
+ */
+const preallocatedVersionIdQuery = parse(`
+  query IngestionPreallocatedVersionId($projectId: String!, $ingestionId: ID!) {
+    project(id: $projectId) {
+      id
+      ingestion(id: $ingestionId) {
+        id
+        versionId
+      }
+    }
+  }
+`)
+
 export const useModelIngestion = () => {
   const store = useHostAppStore()
 
@@ -71,7 +97,29 @@ export const useModelIngestion = () => {
       activeIngestions.value[senderModelCard.modelCardId] = ingestionId
     }
 
-    return res?.data?.projectMutations.modelIngestionMutations.create
+    // On 4.0 servers the ingestion comes with a pre-allocated version id, which
+    // connectors on the artifact path need up-front (artifact filenames bake it
+    // in). Older servers don't have the field — treat that as "not available".
+    let preallocatedVersionId: string | undefined
+    if (ingestionId) {
+      try {
+        const versionRes = await client.query<{
+          project?: { ingestion?: { versionId?: string | null } | null }
+        }>({
+          query: preallocatedVersionIdQuery,
+          variables: { projectId: senderModelCard.projectId, ingestionId },
+          fetchPolicy: 'network-only'
+        })
+        preallocatedVersionId =
+          versionRes.data?.project?.ingestion?.versionId ?? undefined
+      } catch {
+        // Older server without ModelIngestion.versionId — artifact-path callers
+        // will send without ingestion info and surface a clear connector error.
+      }
+    }
+
+    const created = res?.data?.projectMutations.modelIngestionMutations.create
+    return created ? { ...created, preallocatedVersionId } : created
   }
 
   const updateIngestion = async (

@@ -81,9 +81,10 @@
     >
       <template #title>
         <span v-if="inaccessibleReason === 'no-account'">
-          <!-- no local account matches this project's server — query was never attempted -->
+          <!-- no local account matches this project's server — query was never attempted.
+               serverUrl can be missing on cards saved by older connectors -->
           No account found for
-          <code>{{ project.serverUrl }}</code>
+          <code>{{ project.serverUrl || 'this project’s server (unknown)' }}</code>
         </span>
         <span v-else>
           <!-- project query threw — server will throw for any reason the account can't see
@@ -152,7 +153,10 @@ const projectNavigatorTippy = computed(() =>
     : 'Open project in browser'
 )
 
-const normalizeUrl = (url: string) => url.replace(/\/$/, '').toLowerCase()
+// null-tolerant: model cards saved by older connectors restore without a
+// serverUrl, and stale accounts can miss serverInfo.url
+const normalizeUrl = (url: string | null | undefined) =>
+  (url ?? '').replace(/\/$/, '').toLowerCase()
 
 // match by account ID first, then fall back to server URL
 // normalized to avoid trailing-slash / casing mismatches (can that even be a thing??)

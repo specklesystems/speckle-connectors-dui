@@ -16,7 +16,19 @@ export const ISendBindingKey = 'sendBinding'
 export interface ISendBinding extends IBinding<ISendBindingEvents> {
   getSendFilters: () => Promise<ISendFilter[]>
   getSendSettings: () => Promise<CardSetting[]>
-  send: (modelId: string) => Promise<void>
+  /**
+   * The optional ingestion args carry the DUI-created ingestion (and its
+   * pre-allocated version id) down to connectors on the 4.0 artifact path
+   * (today: sketchup) — one ingestion per publish, created by the DUI; the
+   * server creates the version and the DUI tracks it via the ingestion
+   * subscription. Only passed for hosts whose bridge forwards variadic args;
+   * other connectors keep receiving a single argument.
+   */
+  send: (
+    modelId: string,
+    ingestionId?: string,
+    ingestionVersionId?: string
+  ) => Promise<void>
   cancelSend: (modelId: string) => Promise<void>
 }
 
