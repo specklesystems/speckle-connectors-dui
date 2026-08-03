@@ -38,6 +38,11 @@ import { ToastNotificationType } from '@speckle/ui-components'
  * schema yet — callers must tolerate it failing on older servers. Built via
  * `parse` (not a `gql` tag) so graphql-codegen's document scanner does not
  * pick it up and fail validation against the production schema.
+ *
+ * TODO(ENG-9043): once production exposes ModelIngestion.versionId, select it
+ * directly in the CreateModelIngestion mutation and delete this probe (and its
+ * extra roundtrip in startIngestion) — failure tolerance then becomes a plain
+ * optional-field read on the mutation response.
  */
 const preallocatedVersionIdQuery = parse(`
   query IngestionPreallocatedVersionId($projectId: String!, $ingestionId: ID!) {
