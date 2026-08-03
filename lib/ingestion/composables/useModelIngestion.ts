@@ -3,7 +3,7 @@ import {
   useMutation,
   useSubscription
 } from '@vue/apollo-composable'
-import { gql } from '@apollo/client/core'
+import { parse } from 'graphql'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import {
@@ -35,9 +35,11 @@ import { ToastNotificationType } from '@speckle/ui-components'
  * Raw (non-codegen) query for the version id the server pre-allocates on
  * ingestion create. `ModelIngestion.versionId` only exists on 4.0 (v2 data
  * endpoint) servers, so this cannot go through codegen against the production
- * schema yet — callers must tolerate it failing on older servers.
+ * schema yet — callers must tolerate it failing on older servers. Built via
+ * `parse` (not a `gql` tag) so graphql-codegen's document scanner does not
+ * pick it up and fail validation against the production schema.
  */
-const preallocatedVersionIdQuery = gql`
+const preallocatedVersionIdQuery = parse(`
   query IngestionPreallocatedVersionId($projectId: String!, $ingestionId: ID!) {
     project(id: $projectId) {
       id
@@ -47,7 +49,7 @@ const preallocatedVersionIdQuery = gql`
       }
     }
   }
-`
+`)
 
 export const useModelIngestion = () => {
   const store = useHostAppStore()
