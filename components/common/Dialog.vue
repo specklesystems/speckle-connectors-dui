@@ -242,7 +242,7 @@ const isFullscreenDesktop = computed(
 
 const dialogPanelClasses = computed(() => {
   const classParts: string[] = [
-    'transform md:rounded-xl text-foreground overflow-hidden transition-all text-left flex flex-col md:h-auto'
+    'md:rounded-xl text-foreground overflow-hidden transition-all text-left flex flex-col md:h-auto'
   ]
 
   if (!props.isTransparent) {
