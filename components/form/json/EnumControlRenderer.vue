@@ -12,7 +12,6 @@
       by="value"
       button-style="tinted"
       :validate-on-value-update="validateOnValueUpdate"
-      mount-menu-on-body
       @update:model-value="handleChange"
     >
       <template #nothing-selected>
