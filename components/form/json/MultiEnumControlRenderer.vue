@@ -22,6 +22,7 @@
         by="value"
         button-style="tinted"
         :validate-on-value-update="validateOnValueUpdate"
+        fixed-height
         @update:model-value="handleChange"
       >
         <template #nothing-selected>
