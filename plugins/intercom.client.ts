@@ -86,9 +86,15 @@ export const useIntercom = () => {
   }
 
   const checkPermissions = async () => {
-    if (!activeAccount.value || !userSelectedWorkspaceId.value) {
+    if (
+      !activeAccount.value ||
+      !userSelectedWorkspaceId.value ||
+      !activeAccount.value.workspacesEnabled
+    ) {
       // userSelectedWorkspaceId is only null before any publish/load action,
-      // at which point the NavBar (and feedback button) isn't visible anyway
+      // at which point the NavBar (and feedback button) isn't visible anyway.
+      // Servers without the workspaces module (most self-hosted servers) don't
+      // expose this query at all, so skip it rather than let it fail with a 400.
       hasIntercomAccess.value = false
       return
     }
