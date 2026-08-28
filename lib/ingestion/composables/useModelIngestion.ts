@@ -23,6 +23,20 @@ import { storeToRefs } from 'pinia'
 import { ToastNotificationType } from '@speckle/ui-components'
 
 /**
+ * What a browser-side "create version" resolves to once the ingestion has been completed.
+ *
+ * - `versionId` set, `ingestionId` unset: the server created the version synchronously (pre big-truck
+ *   servers, or the `versionMutations.create` fallback). The card can show the version link right away.
+ * - `ingestionId` set: the server accepted the root object but the version is born later, at bundle
+ *   complete (ADR-0003, ENG-9314). The card must subscribe to the ingestion and only show the version
+ *   link on `ModelIngestionSuccessStatus`.
+ */
+export type CreateVersionResult = {
+  versionId?: string
+  ingestionId?: string
+}
+
+/**
  * New way of creating versions.
  * It is essential for server to track limits on versions.
  * The flow is as follows:
@@ -261,16 +275,56 @@ export const useModelIngestion = () => {
       throw new Error(msg)
     }
 
-    const { activeIngestions } = storeToRefs(store)
+    const completed =
+      res?.data?.projectMutations.modelIngestionMutations.completeWithVersion
 
-    // clean the completed ingestion
-    activeIngestions.value = Object.fromEntries(
-      Object.entries(activeIngestions.value).filter(
-        ([key]) => key !== senderModelCard.modelCardId
+    // Only forget the ingestion once it reached a terminal state. On a big-truck server (ENG-9314)
+    // completeWithVersion returns `processing` - the server still owns the packfile + bundle steps and
+    // the user must be able to cancel it from the card until it succeeds or fails.
+    const stillRunning =
+      completed?.statusData.__typename === 'ModelIngestionProcessingStatus' ||
+      completed?.statusData.__typename === 'ModelIngestionQueuedStatus'
+    if (!stillRunning) {
+      const { activeIngestions } = storeToRefs(store)
+      activeIngestions.value = Object.fromEntries(
+        Object.entries(activeIngestions.value).filter(
+          ([key]) => key !== senderModelCard.modelCardId
+        )
       )
-    )
+    }
 
-    return res?.data?.projectMutations.modelIngestionMutations.completeWithVersion
+    return completed
+  }
+
+  /**
+   * Turns the `completeWithVersion` reply into what the bridge should hand to `setModelSendResult`.
+   * Throws on a terminal failure so the bridge's existing error handling kicks in.
+   *
+   * @param completed reply of {@link completeIngestionWithVersion}
+   * @param ingestionId the ingestion that was completed - returned when the version is not born yet
+   */
+  const resolveCompletedIngestion = (
+    completed: Awaited<ReturnType<typeof completeIngestionWithVersion>>,
+    ingestionId: string
+  ): CreateVersionResult => {
+    const statusData = completed?.statusData
+    switch (statusData?.__typename) {
+      case 'ModelIngestionSuccessStatus':
+        // Pre big-truck server: the version exists now.
+        return { versionId: statusData.versionId }
+      case 'ModelIngestionProcessingStatus':
+      case 'ModelIngestionQueuedStatus':
+        // Big-truck server (ENG-9314): the version is born at bundle complete. Subscribe and wait.
+        return { ingestionId }
+      case 'ModelIngestionFailedStatus':
+        throw new Error(
+          `Ingestion failed: ${statusData.errorReason || 'Unknown error'}.`
+        )
+      case 'ModelIngestionCancelledStatus':
+        throw new Error('Ingestion cancelled.')
+      default:
+        throw new Error('Ingestion status does not match the expected types.')
+    }
   }
 
   // Tracks active ingestion subscriptions so they can be stopped on cancel or terminal state
@@ -353,6 +407,13 @@ export const useModelIngestion = () => {
       stop()
       delete activeSubscriptions[modelCardId]
     }
+    // Terminal state reached (or we stopped caring): the card no longer owns a live ingestion.
+    const { activeIngestions } = storeToRefs(store)
+    if (activeIngestions.value[modelCardId]) {
+      activeIngestions.value = Object.fromEntries(
+        Object.entries(activeIngestions.value).filter(([key]) => key !== modelCardId)
+      )
+    }
   }
 
   return {
@@ -361,6 +422,7 @@ export const useModelIngestion = () => {
     failIngestion,
     cancelIngestion,
     completeIngestionWithVersion,
+    resolveCompletedIngestion,
     subscribeToIngestion,
     unsubscribeFromIngestion
   }

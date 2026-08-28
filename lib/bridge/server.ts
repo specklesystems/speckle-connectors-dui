@@ -16,7 +16,10 @@ import type { Emitter } from 'nanoevents'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
-import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import {
+  useModelIngestion,
+  type CreateVersionResult
+} from '../ingestion/composables/useModelIngestion'
 import type { ISenderModelCard } from '../models/card/send'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 
@@ -395,7 +398,7 @@ export class ArchicadBridge {
       sourceApplication,
       sendConversionResults
     } = eventPayload
-    const versionId = await this.createVersion({
+    const { versionId, ingestionId } = await this.createVersion({
       modelCardId,
       projectId,
       modelId,
@@ -407,7 +410,8 @@ export class ArchicadBridge {
     const hostAppStore = useHostAppStore()
     hostAppStore.setModelSendResult({
       modelCardId,
-      versionId: versionId as string,
+      versionId,
+      ingestionId,
       sendConversionResults
     })
   }
@@ -458,19 +462,21 @@ export class ArchicadBridge {
       sourceApplication: hostAppName,
       message: message || `send from ${hostAppStore.hostAppName?.toLowerCase()}`
     }
-    const versionId = await this.createVersion(args)
+    const { versionId, ingestionId } = await this.createVersion(args)
 
     // TODO: Alignment needed
     hostAppStore.setModelSendResult({
       modelCardId: args.modelCardId,
-      versionId: versionId as string,
+      versionId,
+      ingestionId,
       sendConversionResults
     })
   }
 
-  private async createVersion(args: CreateVersionArgs) {
+  private async createVersion(args: CreateVersionArgs): Promise<CreateVersionResult> {
     const hostAppStore = useHostAppStore()
-    const { completeIngestionWithVersion } = useModelIngestion()
+    const { completeIngestionWithVersion, resolveCompletedIngestion } =
+      useModelIngestion()
     const { canCreateModelIngestion } = useCheckGraphql()
 
     const modelCard = hostAppStore.models.find(
@@ -500,28 +506,16 @@ export class ArchicadBridge {
         args.referencedObjectId
       )
 
-      if (res?.statusData.__typename === 'ModelIngestionSuccessStatus') {
-        return res?.statusData.versionId
-      }
-
-      if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
-        const errorReason = res?.statusData.errorReason || 'Unknown error'
+      try {
+        return resolveCompletedIngestion(res, ingestionId)
+      } catch (err) {
         hostAppStore.setNotification({
           type: ToastNotificationType.Danger,
           title: 'Ingestion Failed',
-          description: errorReason
+          description: (err as Error).message
         })
-        throw new Error(`Ingestion failed: ${errorReason}.`)
+        throw err
       }
-
-      hostAppStore.setNotification({
-        type: ToastNotificationType.Danger,
-        title: 'Ingestion Error',
-        description: 'Ingestion status does not match expected types.'
-      })
-      throw new Error(
-        `Ingestion status does not match with the expected types as success or failure.`
-      )
     } else {
       const accountStore = useAccountStore()
       const account = accountStore.getAccountClient(args.accountId)
@@ -537,7 +531,7 @@ export class ArchicadBridge {
           projectId: args.projectId
         }
       })
-      return result?.data?.versionMutations?.create?.id
+      return { versionId: result?.data?.versionMutations?.create?.id }
     }
   }
 }

@@ -19,7 +19,10 @@ import type {
   ReceiveViaBrowserArgs,
   CreateVersionArgs
 } from '~/lib/bridge/server'
-import { useModelIngestion } from '../ingestion/composables/useModelIngestion'
+import {
+  useModelIngestion,
+  type CreateVersionResult
+} from '../ingestion/composables/useModelIngestion'
 import type { ISenderModelCard } from '../models/card/send'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 
@@ -240,12 +243,13 @@ export class SketchupBridge extends BaseBridge {
       sourceApplication: 'sketchup',
       message: message || 'send from sketchup'
     }
-    const versionId = await this.createVersion(args)
+    const { versionId, ingestionId } = await this.createVersion(args)
     const hostAppStore = useHostAppStore()
     // TODO: Alignment needed
     hostAppStore.setModelSendResult({
       modelCardId: args.modelCardId,
-      versionId: versionId as string,
+      versionId,
+      ingestionId,
       sendConversionResults
     })
   }
@@ -302,10 +306,11 @@ export class SketchupBridge extends BaseBridge {
     }
     const hostAppStore = useHostAppStore()
     try {
-      const versionId = await this.createVersion(args)
+      const { versionId, ingestionId } = await this.createVersion(args)
       hostAppStore.setModelSendResult({
         modelCardId: args.modelCardId,
-        versionId: versionId as string,
+        versionId,
+        ingestionId,
         sendConversionResults
       })
     } catch (err) {
@@ -317,12 +322,13 @@ export class SketchupBridge extends BaseBridge {
     }
   }
 
-  public async createVersion(args: CreateVersionArgs) {
+  public async createVersion(args: CreateVersionArgs): Promise<CreateVersionResult> {
     const hostAppStore = useHostAppStore()
     const accountStore = useAccountStore()
     const { accounts } = storeToRefs(accountStore)
     const account = accounts.value.find((acc) => acc.accountInfo.id === args.accountId)
-    const { completeIngestionWithVersion } = useModelIngestion()
+    const { completeIngestionWithVersion, resolveCompletedIngestion } =
+      useModelIngestion()
 
     const modelCard = hostAppStore.models.find(
       (model) => model.modelCardId === args.modelCardId
@@ -351,18 +357,7 @@ export class SketchupBridge extends BaseBridge {
         args.referencedObjectId
       )
 
-      if (res?.statusData.__typename === 'ModelIngestionSuccessStatus') {
-        return res?.statusData.versionId
-      }
-
-      if (res?.statusData.__typename === 'ModelIngestionFailedStatus') {
-        throw new Error(
-          `Ingestion failed: ${res?.statusData.errorReason || 'Unknown error'}.`
-        )
-      }
-      throw new Error(
-        `Ingestion status does not match with the expected types as success or failure.`
-      )
+      return resolveCompletedIngestion(res, ingestionId)
     } else {
       // for the self hosters that does not have available graphql for ingestions
       const createVersion = provideApolloClient((account as DUIAccount).client)(() =>
@@ -381,7 +376,7 @@ export class SketchupBridge extends BaseBridge {
           projectId: args.projectId
         }
       })
-      return result?.data?.versionMutations?.create?.id
+      return { versionId: result?.data?.versionMutations?.create?.id }
     }
   }
 

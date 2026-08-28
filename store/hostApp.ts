@@ -566,7 +566,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   const setModelSendResult = (args: {
     modelCardId: string
-    versionId: string
+    versionId?: string
     sendConversionResults: ConversionResult[]
     ingestionId?: string
   }) => {
@@ -577,10 +577,12 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     model.report = args.sendConversionResults
 
     if (args.ingestionId) {
-      // Connector handled ingestion via SDK — composable subscribes and manages model card state to 'Version created' bla bla
+      // The version is not born yet - the server still owns the ingestion (SDK packfile path, or a
+      // browser-side completeWithVersion that came back `processing` on a big-truck server). The
+      // subscription drives the card: progress phases, then 'Version created' on success.
       subscribeToIngestion(model, args.ingestionId)
     } else {
-      // Legacy path or no ingestion — behave as before
+      // The version exists now - behave as before
       model.latestCreatedVersionId = args.versionId
       model.progress = undefined
     }
