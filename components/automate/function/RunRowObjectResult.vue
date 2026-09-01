@@ -45,7 +45,9 @@ const app = useNuxtApp()
 const applicationIds = computed(() => {
   // Old schema ignore
   if ('objectIds' in props.result) return []
-  return Object.values(props.result.objectAppIds).filter((id) => id !== null)
+  return Object.values(props.result.objectAppIds).filter(
+    (id): id is string => typeof id === 'string'
+  )
 })
 
 const handleClick = async () => {

@@ -22,9 +22,12 @@ jobs:
   lint:
     uses: ./.github/workflows/lint.yml
     with: {}
-    secrets: {}
+    secrets:
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
     permissions:
       contents: read
+      id-token: write # Tailscale OAuth federation for the tailnet npm registry
 
   build:
     needs:
@@ -35,6 +38,9 @@ jobs:
       IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
     secrets:
       HYPERDX_API_KEY: ${{ secrets.HYPERDX_API_KEY }}
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
     permissions:
       contents: read
       packages: write # to be able to push images to ghcr.io, even if PUBLISH is false, as permissions is static at workflow level
+      id-token: write # Tailscale OAuth federation for the tailnet npm registry

@@ -1,7 +1,12 @@
 name: Lint
 
 on:
-  workflow_call: {}
+  workflow_call:
+    secrets:
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE:
+        required: true
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
 
@@ -14,6 +19,7 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     permissions:
       contents: read
+      id-token: write # Tailscale OAuth federation: @speckle/* resolve from the tailnet npm registry
 
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -27,6 +33,14 @@ jobs:
         with:
           node-version: '22.14.0'
           cache: 'yarn'
+
+      - name: Connect to Tailscale (private npm registry)
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+          tags: tag:ci
+          ping: npmregistry.mermaid-emperor.ts.net
 
       - name: Install Dependencies
         run: yarn install --immutable

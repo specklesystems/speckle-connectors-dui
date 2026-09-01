@@ -15,6 +15,10 @@ on:
         # Browser HyperDX ingestion key, baked into the static bundle at build time.
         # Set this as a repository/organisation Actions secret in GitHub.
         required: false
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE:
+        required: true
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
 
@@ -29,6 +33,7 @@ jobs:
     permissions:
       contents: read
       packages: write # to be able to push images to ghcr.io. As permissions is static, it has to be granted even if PUBLISH is false
+      id-token: write # Tailscale OAuth federation: @speckle/* resolve from the tailnet npm registry during the docker build
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -43,6 +48,26 @@ jobs:
           password: ${{ github.token }}
       - name: Setup Docker Builder
         uses: useblacksmith/setup-docker-builder@affa10db466676f3dfb3e54caeb228ee0691510f
+      - name: Connect to Tailscale (private npm registry)
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+          tags: tag:ci
+          ping: npmregistry.mermaid-emperor.ts.net
+      - name: Resolve npm registry address for the docker build
+        id: npm-registry
+        run: |
+          # Buildkit doesn't always inherit the runner's tailscale MagicDNS (e.g. the
+          # Blacksmith fallback builder used when the sticky-disk API is down), so
+          # resolve the registry on the runner and inject it via add-hosts.
+          host="npmregistry.mermaid-emperor.ts.net"
+          ip="$(getent hosts "$host" | awk '{print $1; exit}')"
+          if [ -z "$ip" ]; then
+            echo "Could not resolve $host on the runner" >&2
+            exit 1
+          fi
+          echo "add-hosts=$host:$ip" >> "$GITHUB_OUTPUT"
       - name: Build and push
         uses: useblacksmith/build-push-action@30c71162f16ea2c27c3e21523255d209b8b538c1
         with:
@@ -56,5 +81,6 @@ jobs:
             NUXT_PUBLIC_HYPERDX_COLLECTOR_URL=https://collector.speckle.dev
             NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES=service.name=speckle-dui,service.version=${{ inputs.IMAGE_VERSION_TAG }}
             NUXT_PUBLIC_HYPERDX_INGESTION_KEY=${{ secrets.HYPERDX_API_KEY }}
-          network: host # to be able to connect to Tailscale and pull private base image during build
-          allow: network.host # to be able to connect to Tailscale and pull private base image during build
+          network: host # to be able to reach the tailnet npm registry during build
+          allow: network.host # to be able to reach the tailnet npm registry during build
+          add-hosts: ${{ steps.npm-registry.outputs.add-hosts }}

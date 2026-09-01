@@ -41,9 +41,9 @@
     "@jsonforms/vue-vanilla": "3.1.0",
     "@nuxt/image": "^1.10.0",
     "@pinia/nuxt": "^0.4.11",
-    "@speckle/objectloader": "^2.25.0",
-    "@speckle/objectsender": "^2.25.0",
-    "@speckle/shared": "^2.25.0",
+    "@speckle/objectloader": "2026.9.1",
+    "@speckle/objectsender": "2026.9.1",
+    "@speckle/shared": "2026.9.1",
     "@speckle/tailwind-theme": "2.25.0",
     "@speckle/ui-components": "^2.25.0",
     "@speckle/ui-components-nuxt": "^2.25.0",
@@ -78,7 +78,8 @@
     "portal-vue": "^3.0.0",
     "subscriptions-transport-ws": "^0.11.0",
     "vee-validate": "4.7.0",
-    "vue-tippy": "^6.2.0"
+    "vue-tippy": "^6.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^5.0.5",
