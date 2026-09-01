@@ -136,73 +136,6 @@ export type AccProjectCollection = {
   items: Array<AccProject>;
 };
 
-/**
- * Deprecated: use the generic `Sync` type instead. Retained to avoid
- * breaking existing clients (CLI, connectors, older frontend builds).
- */
-export type AccSyncItem = {
-  __typename?: 'AccSyncItem';
-  accFileExtension: Scalars['String']['output'];
-  accFileLineageUrn: Scalars['String']['output'];
-  accFileName: Scalars['String']['output'];
-  accFileVersionIndex: Scalars['Int']['output'];
-  accFileVersionUrn: Scalars['String']['output'];
-  accFileViewName?: Maybe<Scalars['String']['output']>;
-  accFolderPath: Array<Scalars['String']['output']>;
-  accHubId: Scalars['String']['output'];
-  accProjectId: Scalars['String']['output'];
-  accRegion: Scalars['String']['output'];
-  accRootProjectFolderUrn: Scalars['String']['output'];
-  accWebhookId?: Maybe<Scalars['String']['output']>;
-  author?: Maybe<LimitedUser>;
-  createdAt: Scalars['DateTime']['output'];
-  id: Scalars['ID']['output'];
-  model?: Maybe<Model>;
-  project: Project;
-  status: AccSyncItemStatus;
-  updatedAt: Scalars['DateTime']['output'];
-};
-
-export type AccSyncItemCollection = {
-  __typename?: 'AccSyncItemCollection';
-  cursor?: Maybe<Scalars['String']['output']>;
-  items: Array<AccSyncItem>;
-  totalCount: Scalars['Int']['output'];
-};
-
-export type AccSyncItemMutations = {
-  __typename?: 'AccSyncItemMutations';
-  /** @deprecated Use syncMutations.create instead, we will be removing this in the 6 months. */
-  create: AccSyncItem;
-  /** @deprecated Use syncMutations.delete instead, we will be removing this in the 6 months. */
-  delete: Scalars['Boolean']['output'];
-  /** @deprecated Use syncMutations.update instead, we will be removing this in the 6 months. */
-  update: AccSyncItem;
-};
-
-
-export type AccSyncItemMutationsCreateArgs = {
-  input: CreateAccSyncItemInput;
-};
-
-
-export type AccSyncItemMutationsDeleteArgs = {
-  input: DeleteAccSyncItemInput;
-};
-
-
-export type AccSyncItemMutationsUpdateArgs = {
-  input: UpdateAccSyncItemInput;
-};
-
-export enum AccSyncItemStatus {
-  Failed = 'failed',
-  Paused = 'paused',
-  Pending = 'pending',
-  Succeeded = 'succeeded',
-  Syncing = 'syncing'
-}
-
 export type ActiveUserMutations = {
   __typename?: 'ActiveUserMutations';
   emailMutations: UserEmailMutations;
@@ -268,10 +201,92 @@ export type AddWorkspaceDomainInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type AddWorkspaceGroupMembersInput = {
+  groupId: Scalars['ID']['input'];
+  members: Array<WorkspaceGroupMemberInput>;
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type AdditionalRequestHeader = {
   __typename?: 'AdditionalRequestHeader';
   header: Scalars['String']['output'];
   value: Scalars['String']['output'];
+};
+
+/**
+ * One conversation's AI spend over the queried window. Identifiers only: token
+ * events live on the main DB while conversations and projects are regional, so
+ * no names are resolvable here.
+ */
+export type AdminAiConversationCost = {
+  __typename?: 'AdminAiConversationCost';
+  /**
+   * Money: marked-up USD drawn from the workspace's AI credit. Null when nothing
+   * in the window carried a billed amount.
+   */
+  billedUsdTotal?: Maybe<Scalars['Float']['output']>;
+  /**
+   * Prompt tokens served from the provider's cache, which are discounted reuse
+   * rather than fresh consumption.
+   */
+  cacheReadTokens: Scalars['Int']['output'];
+  /** Id of the conversation the spend is attributed to. */
+  conversationId: Scalars['String']['output'];
+  /**
+   * Raw USD the provider charged us, before markup. Not a billed figure, and
+   * deliberately kept separate from `billedUsdTotal`.
+   */
+  costUsdTotal?: Maybe<Scalars['Float']['output']>;
+  /** Model calls in the window that errored after prefill. */
+  errorCount: Scalars['Int']['output'];
+  /** Timestamp of the conversation's first model call inside the window. */
+  firstEventAt: Scalars['DateTime']['output'];
+  /** New prompt tokens sent across the window. */
+  inputTokens: Scalars['Int']['output'];
+  /** Timestamp of the conversation's most recent model call. */
+  lastEventAt: Scalars['DateTime']['output'];
+  /** Billed USD in the trailing hour: the runaway-rate signal. */
+  lastHourBilledUsd?: Maybe<Scalars['Float']['output']>;
+  /** Billed model calls in the window. */
+  modelCallCount: Scalars['Int']['output'];
+  /** Tokens generated across the window. */
+  outputTokens: Scalars['Int']['output'];
+  /** The three costliest turns in the window, most expensive first. */
+  topTurns: Array<AdminAiTurnCost>;
+  /** Null for anonymous conversations, which carry no user. */
+  userId?: Maybe<Scalars['String']['output']>;
+  /** Null for anonymous conversations, which carry no workspace. */
+  workspaceId?: Maybe<Scalars['String']['output']>;
+};
+
+/** Ranking dimension for the server-admin expensive-conversations view. */
+export enum AdminAiCostOrder {
+  /**
+   * Billed spend in the trailing hour, which surfaces a conversation burning
+   * money right now before it out-totals long-lived ones.
+   */
+  LastHourRate = 'LAST_HOUR_RATE',
+  /** Cumulative billed spend over the whole window. */
+  Total = 'TOTAL'
+}
+
+/** One turn's spend inside a conversation. */
+export type AdminAiTurnCost = {
+  __typename?: 'AdminAiTurnCost';
+  /**
+   * Marked-up USD drawn from the workspace credit for this turn. Null when no
+   * row in the turn carried a billed amount.
+   */
+  billedUsd?: Maybe<Scalars['Float']['output']>;
+  /** Timestamp of this turn's most recent model call. */
+  lastEventAt: Scalars['DateTime']['output'];
+  /** Model calls recorded for this turn in the window. */
+  modelCallCount: Scalars['Int']['output'];
+  /**
+   * Null for the single bucket holding this conversation's rows from before
+   * per-turn attribution existed.
+   */
+  turnId?: Maybe<Scalars['String']['output']>;
 };
 
 export type AdminExternalSyncMutations = {
@@ -412,6 +427,15 @@ export type AdminQueries = {
   inviteList: AdminInviteList;
   projectList: ProjectCollection;
   serverStatistics: ServerStatistics;
+  /**
+   * Conversations ranked by AI spend across the whole server. This is the
+   * investigation surface for a suspected runaway; live detection of one stays
+   * with the OTel turn duration and cost alerts.
+   *
+   * SERVER_ADMIN only, because `Query.admin` itself admits SERVER_SUPPORT, which
+   * is too weak for cross-workspace spend data.
+   */
+  topAiConversationsByCost: Array<AdminAiConversationCost>;
   user?: Maybe<AdminUserListItem>;
   userList: AdminUserList;
   workspaceList: WorkspaceCollection;
@@ -431,6 +455,13 @@ export type AdminQueriesProjectListArgs = {
   orderBy?: InputMaybe<Scalars['String']['input']>;
   query?: InputMaybe<Scalars['String']['input']>;
   visibility?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type AdminQueriesTopAiConversationsByCostArgs = {
+  days?: InputMaybe<Scalars['Int']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<AdminAiCostOrder>;
 };
 
 
@@ -510,6 +541,8 @@ export type AdminUsersListItem = {
 };
 
 export type AdminWorkspaceJoinRequestFilter = {
+  /** Matches against the requesting user's name or primary email */
+  search?: InputMaybe<Scalars['String']['input']>;
   status?: InputMaybe<WorkspaceJoinRequestStatus>;
 };
 
@@ -521,6 +554,16 @@ export type AiChatMutations = {
    * same data source is a no-op. Returns the updated conversation.
    */
   attachDataSource: AiConversation;
+  /**
+   * Pre-turn AI capacity gate, called by the frontend AI server before every
+   * top-level action that starts a model loop (chat turn, report generation or
+   * patch, chart, skill run, document extraction). Returns the current pool, or
+   * null when the workspace is uncapped. Throws
+   * `WORKSPACE_AI_CAPACITY_EXCEEDED` when the credit is spent, and
+   * `AI_CAPACITY_GATE_UNAVAILABLE` when the capacity read itself fails (fail
+   * closed, a deliberately distinct code).
+   */
+  checkAiCapacity?: Maybe<WorkspaceAiCapacity>;
   create: AiConversation;
   /**
    * Create a public share link for a conversation. Owner-only; requires a
@@ -556,6 +599,11 @@ export type AiChatMutations = {
 
 export type AiChatMutationsAttachDataSourceArgs = {
   input: AiConversationAttachDataSourceInput;
+};
+
+
+export type AiChatMutationsCheckAiCapacityArgs = {
+  input: CheckAiCapacityInput;
 };
 
 
@@ -603,6 +651,13 @@ export type AiChatPublicMutations = {
    */
   recordAnonTokenEvent: Scalars['Boolean']['output'];
   /**
+   * Extend the TTL of the parallelism lock acquired by `startAnonTurn`, so a turn
+   * running longer than the 5-minute TTL keeps its lock. Called on a heartbeat for
+   * the life of the turn. Compare-and-set on `lockToken`: a no-op (returns true)
+   * once the lock has expired or been re-taken by another turn.
+   */
+  refreshAnonTurn: Scalars['Boolean']['output'];
+  /**
    * Release the parallelism lock acquired by `startAnonTurn`. Idempotent
    * — safe after lock TTL expiry (no-op).
    */
@@ -628,6 +683,11 @@ export type AiChatPublicMutations = {
 
 export type AiChatPublicMutationsRecordAnonTokenEventArgs = {
   input: AiTokenEventInput;
+};
+
+
+export type AiChatPublicMutationsRefreshAnonTurnArgs = {
+  input: RefreshAnonTurnInput;
 };
 
 
@@ -824,6 +884,99 @@ export type AiConversationUpdateInput = {
   workspaceId: Scalars['String']['input'];
 };
 
+/**
+ * A workspace AI rule: an admin-authored instruction injected into the system
+ * prompt of every authenticated AI turn in its workspace while enabled.
+ */
+export type AiRule = {
+  __typename?: 'AiRule';
+  /** When the rule was created. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Disabled rules stay listed in settings but are not injected into prompts. */
+  enabled: Scalars['Boolean']['output'];
+  /** Unique rule id. */
+  id: Scalars['ID']['output'];
+  /** The instruction text injected into the AI system prompt. */
+  instructions: Scalars['String']['output'];
+  /** Short display name shown in settings. */
+  name: Scalars['String']['output'];
+  /** When the rule was last modified. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Workspace the rule belongs to and applies in. */
+  workspaceId: Scalars['String']['output'];
+};
+
+/** Input for creating a workspace AI rule. */
+export type AiRuleCreateInput = {
+  /** Defaults to true. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The instruction text injected into the AI system prompt. */
+  instructions: Scalars['String']['input'];
+  /** Short display name shown in settings. */
+  name: Scalars['String']['input'];
+  /** Workspace to create the rule in. Caller must be a workspace admin. */
+  workspaceId: Scalars['String']['input'];
+};
+
+/** Input for deleting a workspace AI rule. */
+export type AiRuleDeleteInput = {
+  /** Id of the rule to delete. */
+  id: Scalars['ID']['input'];
+};
+
+/**
+ * Workspace AI rule management. All mutations require workspace admin on the
+ * target workspace.
+ */
+export type AiRuleMutations = {
+  __typename?: 'AiRuleMutations';
+  /** Create a rule in a workspace. Fails when the per-workspace rule cap is hit. */
+  create: AiRule;
+  /** Delete a rule. Returns true on success. */
+  delete: Scalars['Boolean']['output'];
+  /** Update a rule's name, instructions and/or enabled state. */
+  update: AiRule;
+};
+
+
+/**
+ * Workspace AI rule management. All mutations require workspace admin on the
+ * target workspace.
+ */
+export type AiRuleMutationsCreateArgs = {
+  input: AiRuleCreateInput;
+};
+
+
+/**
+ * Workspace AI rule management. All mutations require workspace admin on the
+ * target workspace.
+ */
+export type AiRuleMutationsDeleteArgs = {
+  input: AiRuleDeleteInput;
+};
+
+
+/**
+ * Workspace AI rule management. All mutations require workspace admin on the
+ * target workspace.
+ */
+export type AiRuleMutationsUpdateArgs = {
+  input: AiRuleUpdateInput;
+};
+
+/** Input for updating a workspace AI rule. Omitted fields are left unchanged. */
+export type AiRuleUpdateInput = {
+  /** Enable or disable the rule without deleting it. */
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Id of the rule to update. */
+  id: Scalars['ID']['input'];
+  /** New instruction text. */
+  instructions?: InputMaybe<Scalars['String']['input']>;
+  /** New display name. */
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type AiSkill = {
   __typename?: 'AiSkill';
   conversationStarters: Array<Scalars['String']['output']>;
@@ -832,6 +985,15 @@ export type AiSkill = {
   id: Scalars['ID']['output'];
   /** Null on list/summary rows (Workspace.aiSkills); populated by aiSkill(id). */
   instructions?: Maybe<Scalars['String']['output']>;
+  /**
+   * The `file`-kind entries of `knowledgeSources`, resolved to the workspace's
+   * actual uploads. Both the chat client (which mounts each tabular file's
+   * queryable database) and the agent loop (which needs the per-table schema to
+   * write SQL) read this, so they can't drift apart. Refs to deleted or
+   * foreign-workspace sources are dropped rather than erroring. Warehouse-kind
+   * refs are not included — read those from `knowledgeSources`.
+   */
+  knowledgeFiles: Array<ExternalDataSource>;
   /**
    * Typed data-source refs this skill pins as Knowledge. `kind` is `file`
    * (externalDataSource upload) or `warehouse` (data warehouse table). Null on
@@ -953,6 +1115,11 @@ export type AiTokenByProject = {
 
 export type AiTokenByPurpose = {
   __typename?: 'AiTokenByPurpose';
+  /**
+   * Marked-up USD drawn from the workspace's AI credit for these calls. Null
+   * when nothing in the window carried a billed amount.
+   */
+  billedUsd?: Maybe<Scalars['Float']['output']>;
   cacheReadTokens: Scalars['Int']['output'];
   cacheWriteTokens: Scalars['Int']['output'];
   callCount: Scalars['Int']['output'];
@@ -1022,10 +1189,12 @@ export type AiTokenEventInput = {
    */
   callType: Scalars['String']['input'];
   /**
-   * Conversation this call belongs to. Required even for anonymous calls
-   * (synthetic Nitro-side UUID for those).
+   * Conversation this call belongs to. Set for every chat-driven call,
+   * including anonymous ones (synthetic Nitro-side UUID for those). NULL only
+   * for `extraction` calls, which belong to an uploaded data source rather
+   * than a conversation.
    */
-  conversationId: Scalars['String']['input'];
+  conversationId?: InputMaybe<Scalars['String']['input']>;
   /**
    * USD cost that the provider paid the upstream model host. Only
    * populated by OpenRouter (via `costDetails.upstreamInferenceCost`).
@@ -1070,6 +1239,12 @@ export type AiTokenEventInput = {
    * title gen.
    */
   tool?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Groups every model call made while answering one user message (main turn,
+   * escalation retry, tool summaries, title generation). Minted per turn by the
+   * frontend AI server. Null when the caller doesn't attribute turns.
+   */
+  turnId?: InputMaybe<Scalars['String']['input']>;
   /**
    * User this call is attributed to. NULL for anonymous calls.
    * Must be paired with `workspaceId`.
@@ -1118,36 +1293,36 @@ export type AiTokenUsageTotals = {
 export type AiTokenWorkspaceUsage = {
   __typename?: 'AiTokenWorkspaceUsage';
   /**
-   * Per-project breakdown for the last 30 days (rolling). Ordered by
-   * total tokens descending. Includes a synthetic entry with
+   * Per-project breakdown over `range`, a rolling window ending now. Ordered
+   * by total tokens descending. Includes a synthetic entry with
    * `projectId: null` for workspace-scoped (non-project) chats.
    */
   byProjectLastMonth: Array<AiTokenByProject>;
   /**
-   * Per-purpose breakdown for the last 30 days (rolling). Ordered by total
-   * tokens descending. Includes a synthetic entry with `purpose: null` for
-   * events recorded before per-task attribution.
+   * Per-purpose breakdown over `range`, a rolling window ending now. Ordered
+   * by total tokens descending. Includes a synthetic entry with
+   * `purpose: null` for events recorded before per-task attribution.
    */
   byPurposeLastMonth: Array<AiTokenByPurpose>;
   /**
-   * Per-tool raw-result footprint for the last 30 days (rolling): the
-   * estimated token size each tool's results produced, across ALL tool calls.
+   * Per-tool raw-result footprint over `range`, a rolling window ending now:
+   * the estimated token size each tool's results produced, across ALL tool calls.
    * NOT a billed figure — it is the proxy for the (much larger) context cost a
    * tool drives by occupying the model's context. Ordered by size descending,
    * so the heaviest tools (the optimisation targets) come first.
    */
   byToolFootprintLastMonth: Array<AiTokenByToolFootprint>;
   /**
-   * Per-tool breakdown for the last 30 days (rolling), restricted to
-   * tool-attributed BILLED spend (today: tool-result summarisation). Ordered
+   * Per-tool breakdown over `range` (a rolling window ending now), restricted
+   * to tool-attributed BILLED spend (today: tool-result summarisation). Ordered
    * by total tokens descending. Exact, but only covers tools whose results
    * were big enough to be summarised — see `byToolFootprintLastMonth` for the
    * raw-output size of every tool.
    */
   byToolLastMonth: Array<AiTokenByTool>;
   /**
-   * Per-user breakdown for the last 30 days (rolling). Ordered by total
-   * tokens descending.
+   * Per-user breakdown over `range`, a rolling window ending now. Ordered by
+   * total tokens descending.
    */
   byUserLastMonth: Array<AiTokenByUser>;
   /** Aggregate restricted to the current calendar month (UTC). */
@@ -1159,6 +1334,31 @@ export type AiTokenWorkspaceUsage = {
   monthly: Array<AiTokenMonthlyRow>;
   /** All-time aggregate across every call ever attributed to this workspace. */
   totals: AiTokenUsageTotals;
+};
+
+
+export type AiTokenWorkspaceUsageByProjectLastMonthArgs = {
+  range?: WorkspaceUsageAnalyticsRange;
+};
+
+
+export type AiTokenWorkspaceUsageByPurposeLastMonthArgs = {
+  range?: WorkspaceUsageAnalyticsRange;
+};
+
+
+export type AiTokenWorkspaceUsageByToolFootprintLastMonthArgs = {
+  range?: WorkspaceUsageAnalyticsRange;
+};
+
+
+export type AiTokenWorkspaceUsageByToolLastMonthArgs = {
+  range?: WorkspaceUsageAnalyticsRange;
+};
+
+
+export type AiTokenWorkspaceUsageByUserLastMonthArgs = {
+  range?: WorkspaceUsageAnalyticsRange;
 };
 
 
@@ -1244,6 +1444,16 @@ export type AssignedLabel = {
   name: Scalars['String']['output'];
 };
 
+export type AttachProjectGroupInput = {
+  groupId: Scalars['ID']['input'];
+  projectId: Scalars['ID']['input'];
+  /**
+   * The workspace the group was authored in. The project must belong to it — a group has no standing
+   * outside its own workspace.
+   */
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type AuthStrategy = {
   __typename?: 'AuthStrategy';
   color?: Maybe<Scalars['String']['output']>;
@@ -1301,6 +1511,8 @@ export type AutomateFunctionCollection = {
 export type AutomateFunctionPermissionChecks = {
   __typename?: 'AutomateFunctionPermissionChecks';
   canRegenerateToken: PermissionCheckResult;
+  /** Whether the user can update the function's metadata (name, description, tags etc.). Creator-only. */
+  canUpdate: PermissionCheckResult;
 };
 
 export type AutomateFunctionRelease = {
@@ -1638,6 +1850,15 @@ export type CanUpgradePlanInput = {
   targetPlan?: InputMaybe<WorkspacePlans>;
 };
 
+/** Input for the pre-turn AI capacity gate. */
+export type CheckAiCapacityInput = {
+  /**
+   * Workspace the pending AI action is attributed to. The caller must be able to
+   * use AI in it.
+   */
+  workspaceId: Scalars['String']['input'];
+};
+
 export type Comment = {
   __typename?: 'Comment';
   archived: Scalars['Boolean']['output'];
@@ -1795,6 +2016,11 @@ export type Commit = {
   id: Scalars['String']['output'];
   message?: Maybe<Scalars['String']['output']>;
   parents?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
+  /**
+   * Root object id of the version's legacy object graph. For bundle-only versions there is
+   * no object graph and this carries a bundle reference (`bundle.<projectId>.<modelId>.<versionId>`)
+   * instead; see `packages/server/modules/data/docs/bundle-reference.md` for the contract.
+   */
   referencedObject: Scalars['String']['output'];
   sourceApplication?: Maybe<Scalars['String']['output']>;
   /**
@@ -1875,21 +2101,6 @@ export type CountOnlyCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type CreateAccSyncItemInput = {
-  accFileExtension: Scalars['String']['input'];
-  accFileLineageUrn: Scalars['String']['input'];
-  accFileName: Scalars['String']['input'];
-  accFileVersionIndex: Scalars['Int']['input'];
-  accFileVersionUrn: Scalars['String']['input'];
-  accFileViewName?: InputMaybe<Scalars['String']['input']>;
-  accFolderPath: Array<Scalars['String']['input']>;
-  accHubId: Scalars['String']['input'];
-  accProjectId: Scalars['String']['input'];
-  accRegion: Scalars['String']['input'];
-  accRootProjectFolderUrn: Scalars['String']['input'];
-  projectId: Scalars['String']['input'];
-};
-
 export type CreateAutomateFunctionInput = {
   description: Scalars['String']['input'];
   /** Base64 encoded image data string */
@@ -1947,7 +2158,9 @@ export type CreateEmbedShareTokenInput = {
   projectId: Scalars['String']['input'];
   /**
    * The model(s) and version(s) string used in the embed url.
-   * Format: 'modelId1,modelId2@versionId'
+   * Format: 'modelId1,modelId2@versionId'. The abstract viewer identifiers '$folderName' and 'all'
+   * are also accepted, and are resolved to the models they cover at creation time — build the embed
+   * url from the resulting token's `resourceAccessRules`, not from what was sent here.
    */
   resourceIdString: Scalars['String']['input'];
 };
@@ -2053,8 +2266,11 @@ export type CreateSavedViewInput = {
   position?: InputMaybe<ViewPositionInput>;
   projectId: Scalars['ID']['input'];
   resourceIdString: Scalars['String']['input'];
-  /** Encoded screenshot of the view */
-  screenshot: Scalars['String']['input'];
+  /**
+   * Encoded screenshot of the view. Optional — programmatic creates (e.g.
+   * sketch auto-filed views) have none at creation time.
+   */
+  screenshot?: InputMaybe<Scalars['String']['input']>;
   /**
    * SerializedViewerState. If omitted, comment won't render (correctly) inside the
    * viewer, but will still be retrievable through the API
@@ -2095,6 +2311,17 @@ export type CreateVersionInput = {
   totalChildrenCount?: InputMaybe<Scalars['Int']['input']>;
 };
 
+export type CreateWorkspaceGroupInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Optional initial membership, validated exactly as `addMembers` does and written in the same
+   * transaction as the group.
+   */
+  members?: InputMaybe<Array<WorkspaceGroupMemberInput>>;
+  name: Scalars['String']['input'];
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type CreateWorkspaceMicrosoftFabricConnectionInput = {
   authMode: WorkspaceMicrosoftFabricAuthMode;
   clientId: Scalars['String']['input'];
@@ -2104,6 +2331,22 @@ export type CreateWorkspaceMicrosoftFabricConnectionInput = {
   server: Scalars['String']['input'];
   tenantId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+export type CreateWorkspaceRoleDefinitionInput = {
+  /**
+   * Concrete actions only — never patterns. A wildcard is a late-bound grant that would confer every
+   * action added to its domain in a later release with nobody deciding; pick a base for that instead.
+   */
+  actions: Array<Scalars['String']['input']>;
+  /** A non-admin-tier built-in role id, or omit for the no-access foundation. */
+  baseRole?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  /** Workspace-kind roles only, and refused outright on a project-kind one. */
+  privacyClearance?: InputMaybe<Array<WorkspacePrivacyType>>;
+  resourceType: WorkspaceRoleResourceType;
+  workspaceId: Scalars['ID']['input'];
 };
 
 export enum Currency {
@@ -2342,11 +2585,6 @@ export type DateIntervalFilter = {
   before?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
-export type DeleteAccSyncItemInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-};
-
 export type DeleteIssueInput = {
   issueId: Scalars['ID']['input'];
   projectId: Scalars['ID']['input'];
@@ -2397,9 +2635,30 @@ export type DeleteVersionsInput = {
   versionIds: Array<Scalars['ID']['input']>;
 };
 
+export type DeleteWorkspaceGroupInput = {
+  groupId: Scalars['ID']['input'];
+  workspaceId: Scalars['ID']['input'];
+};
+
+export type DeleteWorkspaceRoleDefinitionInput = {
+  /**
+   * Required, not optional. Every holder is moved onto this role in the same transaction as the
+   * delete, so no row can survive naming a role that no longer exists.
+   */
+  replacementRoleId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type DenyWorkspaceJoinRequestInput = {
   userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+export type DetachProjectGroupInput = {
+  groupId: Scalars['ID']['input'];
+  projectId: Scalars['ID']['input'];
+  workspaceId: Scalars['ID']['input'];
 };
 
 export enum DiscoverableStreamsSortType {
@@ -2444,7 +2703,11 @@ export type EmbedTokenCollection = {
 export type EmbedTokenCreateInput = {
   lifespan?: InputMaybe<Scalars['BigInt']['input']>;
   projectId: Scalars['String']['input'];
-  /** The model(s) and version(s) string used in the embed url */
+  /**
+   * The model(s) and version(s) string used in the embed url. The abstract viewer identifiers
+   * '$folderName' and 'all' are also accepted, and are resolved to the models they cover at
+   * creation time — read back `EmbedToken.resourceIdString` for the resolved form.
+   */
   resourceIdString: Scalars['String']['input'];
 };
 
@@ -2599,11 +2862,10 @@ export type ExternalDataSourceMutations = {
   /** Add a conversation-scoped data source to the workspace Files library. */
   promoteToLibrary: ExternalDataSource;
   /**
-   * Record the outcome of extraction — persists derived content (extracted text
-   * and / or summary) and sets the data source status. Called by the extraction
-   * pipeline once a document has been processed, or by the summarize-only path
-   * for tabular files (which carry a `summary` but no `extractedText`).
-   * `status` must be `ready` or `failed`.
+   * Record extraction progress or its outcome. Successful extraction can also
+   * persist derived content (extracted text and / or summary). Called by the
+   * extraction pipeline and by the summarize-only path for tabular files.
+   * `status` must be `processing`, `ready` or `failed`.
    */
   recordExtraction: ExternalDataSource;
   rename: ExternalDataSource;
@@ -2788,6 +3050,45 @@ export type GetModelUploadsInput = {
 export type GetUngroupedViewGroupInput = {
   /** Viewer resource ID string that identifies which resources should be loaded */
   resourceIdString: Scalars['String']['input'];
+};
+
+/** One capability a role may confer, at one verb. */
+export type GrantableAction = {
+  __typename?: 'GrantableAction';
+  /** The action string, as `domain.feature.verb`. */
+  action: Scalars['String']['output'];
+  /** The verb half of the action - `read`, `write`, `admin` or `invoke`. */
+  verb: Scalars['String']['output'];
+};
+
+/** One feature's slice of the grant menu. */
+export type GrantableFeature = {
+  __typename?: 'GrantableFeature';
+  actions: Array<GrantableAction>;
+  /**
+   * Which section of the role editor this feature renders under - the grouping one level finer than the
+   * domain, which cannot group a menu at all: a project-kind role's whole menu is the single `project`
+   * domain.
+   *
+   * A `String` rather than an enum, deliberately: the areas are presentation and will be reorganized as
+   * the editor is built, and an enum would turn every rename into a schema change. The ids, their
+   * labels and their reading order are published together from `@speckle/shared/authz/capabilityAreas`
+   * - a client resolves the label from there and never restates it.
+   */
+  area: Scalars['String']['output'];
+  /**
+   * The feature's own copy, rendered once per row. A verb's half of a line comes from the shared
+   * `AuthVerbLabels` table, so it is never composed per action.
+   */
+  description: Scalars['String']['output'];
+  /**
+   * False when this deployment does not have the feature. Such a feature is still listed, so an editor
+   * can show it unavailable rather than silently omitting it.
+   */
+  enabled: Scalars['Boolean']['output'];
+  /** The feature path, as `domain.feature`. */
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
 };
 
 export type HasHandlerType = {
@@ -3442,6 +3743,8 @@ export type LimitedUser = {
   verified?: Maybe<Scalars['Boolean']['output']>;
   workspaceDomainPolicyCompliant?: Maybe<Scalars['Boolean']['output']>;
   workspaceRole?: Maybe<Scalars['String']['output']>;
+  /** The identity behind `workspaceRole`, gated identically to it. */
+  workspaceRoleDefinition?: Maybe<RoleIdentity>;
 };
 
 
@@ -3507,6 +3810,15 @@ export type LimitedUserWorkspaceRoleArgs = {
   workspaceId?: InputMaybe<Scalars['String']['input']>;
 };
 
+
+/**
+ * Limited user type, for showing public info about a user
+ * to another user
+ */
+export type LimitedUserWorkspaceRoleDefinitionArgs = {
+  workspaceId?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** Workspace metadata visible to non-workspace members. */
 export type LimitedWorkspace = {
   __typename?: 'LimitedWorkspace';
@@ -3531,6 +3843,8 @@ export type LimitedWorkspace = {
   permissions: WorkspacePermissionChecks;
   /** Active user's role for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   role?: Maybe<Scalars['String']['output']>;
+  /** The identity behind `role`; null when the active user holds no role here. */
+  roleDefinition?: Maybe<RoleIdentity>;
   /** Unique workspace short id. Used for navigation. */
   slug: Scalars['String']['output'];
   /** Workspace members visible to people with verified email domain */
@@ -3616,11 +3930,6 @@ export type MicrosoftFabricTableRef = {
   tableType: Scalars['String']['output'];
 };
 
-export type MigrateLegacySyncInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-};
-
 export type MigrateProjectInput = {
   /** Optional cap on the number of versions to enqueue. Server-side max is 5000. */
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -3634,8 +3943,6 @@ export type MigrateVersionInput = {
 
 export type Model = {
   __typename?: 'Model';
-  /** @deprecated Use Model.sync instead. */
-  accSyncItem?: Maybe<AccSyncItem>;
   author?: Maybe<LimitedUser>;
   automationsStatus?: Maybe<TriggeredAutomationsStatus>;
   /** Return a model tree of children */
@@ -3663,6 +3970,11 @@ export type Model = {
   projectId: Scalars['String']['output'];
   /** The resourceIdString to use when building links to this model in the viewer. Takes home view settings into account. */
   resourceIdString: Scalars['String']['output'];
+  /**
+   * Settings from this model's most recent configured Revit upload. These are
+   * shared model defaults: a later confirmed Revit upload replaces them.
+   */
+  revitUploadSettings?: Maybe<RevitUploadSettings>;
   sync?: Maybe<Sync>;
   updatedAt: Scalars['DateTime']['output'];
   /** Get all file uploads ever done in this model */
@@ -3733,6 +4045,13 @@ export type ModelIngestion = {
   statusData: ModelIngestionStatusData;
   updatedAt: Scalars['DateTime']['output'];
   userId?: Maybe<Scalars['String']['output']>;
+  /**
+   * Version (commit) id reserved at ingestion creation, so producers can write
+   * artefacts under final version-keyed names. Present from creation; the version
+   * itself only exists once the ingestion reaches Success. Do NOT use this to
+   * decide a version exists — use statusData (ModelIngestionSuccessStatus.versionId).
+   */
+  versionId?: Maybe<Scalars['ID']['output']>;
 };
 
 export type ModelIngestionAccHandler = HasHandlerType & {
@@ -3767,6 +4086,16 @@ export type ModelIngestionClientHandler = HasHandlerType & {
   handlerType: ModelIngestionHandlerType;
 };
 
+/**
+ * Executed by a conversion job. The job is keyed by the ingestion id itself, so no
+ * job id is exposed here; integration is the originating CDE integration's slug.
+ */
+export type ModelIngestionConversionJobHandler = HasHandlerType & {
+  __typename?: 'ModelIngestionConversionJobHandler';
+  handlerType: ModelIngestionHandlerType;
+  integration: Scalars['String']['output'];
+};
+
 export type ModelIngestionCreateInput = {
   maxIdleTimeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
   modelId: Scalars['ID']['input'];
@@ -3796,15 +4125,22 @@ export type ModelIngestionFileUploadHandler = HasHandlerType & {
   handlerType: ModelIngestionHandlerType;
 };
 
-export type ModelIngestionHandler = ModelIngestionAccHandler | ModelIngestionAutomateFileUpload | ModelIngestionClientHandler | ModelIngestionFileUploadHandler;
+export type ModelIngestionHandler = ModelIngestionAccHandler | ModelIngestionAutomateFileUpload | ModelIngestionClientHandler | ModelIngestionConversionJobHandler | ModelIngestionFileUploadHandler | ModelIngestionLegacySendHandler;
 
 export enum ModelIngestionHandlerType {
   Acc = 'acc',
   AutomateFileUpload = 'automateFileUpload',
   ClientSide = 'clientSide',
-  DataUpload = 'dataUpload',
+  ConversionJob = 'conversionJob',
   FileUpload = 'fileUpload',
-  ProjectWise = 'projectWise'
+  /**
+   * Legacy send (`versionMutations.create` / `commitCreate`): the object graph is in
+   * the server's object store already; the server packs and bundles it before the
+   * version exists.
+   */
+  LegacySend = 'legacySend',
+  ProjectWise = 'projectWise',
+  TrimbleConnect = 'trimbleConnect'
 }
 
 export type ModelIngestionHistory = {
@@ -3828,8 +4164,41 @@ export type ModelIngestionInvalidStatus = HasModelIngestionStatus & {
   validationOptions?: Maybe<Scalars['JSONObject']['output']>;
 };
 
+/**
+ * Server-driven pipeline for a legacy send; the reserved version id is the
+ * ingestion's top-level `versionId`.
+ */
+export type ModelIngestionLegacySendHandler = HasHandlerType & {
+  __typename?: 'ModelIngestionLegacySendHandler';
+  handlerType: ModelIngestionHandlerType;
+};
+
+/**
+ * The producer-reported slice of the processing pipeline: producing the bundle
+ * (CONVERTING) vs shipping it (PUBLISHING — property-table postpass, viewer
+ * artefact, bundle upload). Upload and queueing are separate statuses.
+ */
+export enum ModelIngestionProcessingPhase {
+  /** Server-side legacy-send step: the packfile being built into the bundle. */
+  Bundling = 'BUNDLING',
+  Converting = 'CONVERTING',
+  /** Server-side legacy-send step: raw objects being packed into the packfile. */
+  Packing = 'PACKING',
+  Publishing = 'PUBLISHING'
+}
+
 export type ModelIngestionProcessingStatus = HasModelIngestionStatus & HasProgressMessage & {
   __typename?: 'ModelIngestionProcessingStatus';
+  /**
+   * 1-based conversion attempt; 2 and above means the job was restarted (e.g.
+   * with more memory after an out-of-memory kill). Null before the first restart.
+   */
+  attempt?: Maybe<Scalars['Int']['output']>;
+  /**
+   * Null on reports from producers that predate the field — consumers fall back
+   * to message heuristics.
+   */
+  phase?: Maybe<ModelIngestionProcessingPhase>;
   progress?: Maybe<Scalars['Float']['output']>;
   progressMessage: Scalars['String']['output'];
   status: ModelIngestionStatus;
@@ -3892,6 +4261,7 @@ export type ModelIngestionSuccessStatus = HasModelIngestionStatus & {
 
 export type ModelIngestionUpdateInput = {
   ingestionId: Scalars['ID']['input'];
+  phase?: InputMaybe<ModelIngestionProcessingPhase>;
   progress?: InputMaybe<Scalars['Float']['input']>;
   progressMessage: Scalars['String']['input'];
   projectId: Scalars['ID']['input'];
@@ -3975,8 +4345,6 @@ export type Mutation = {
   __typename?: 'Mutation';
   /** The void stares back. */
   _?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use Mutation.syncMutations instead. */
-  accSyncItemMutations: AccSyncItemMutations;
   /** Various Active User oriented mutations */
   activeUserMutations: ActiveUserMutations;
   admin: AdminMutations;
@@ -3992,6 +4360,8 @@ export type Mutation = {
    * have no auth token by definition.
    */
   aiChatPublicMutations: AiChatPublicMutations;
+  /** Namespace for workspace AI rule management. */
+  aiRuleMutations: AiRuleMutations;
   aiSkillMutations: AiSkillMutations;
   /** Creates an personal api token. */
   apiTokenCreate: Scalars['String']['output'];
@@ -4019,7 +4389,7 @@ export type Mutation = {
   broadcastViewerUserActivity: Scalars['Boolean']['output'];
   /** @deprecated Comments were moved to issues. Use ProjectIssueMutations instead. This mutation will be removed after 01 Jun 2026. */
   commentMutations: CommentMutations;
-  /** @deprecated Part of the old API surface and will be removed in the future. Use VersionMutations.create instead. */
+  /** @deprecated Part of the old API surface. Publish through the model ingestion rail instead: ProjectModelIngestionMutations.create, then the v1 REST uploads/process endpoint, or the v2 REST uploads/complete endpoint for producer-built bundles. The version is born at bundle complete and the ingestion is the readiness surface, so a version created here is not immediately readable. Migration guide: https://docs.speckle.systems/developers/migration/publish-through-ingestions */
   commitCreate: Scalars['String']['output'];
   /** @deprecated Part of the old API surface and will be removed in the future. Use VersionMutations.delete instead. */
   commitDelete: Scalars['Boolean']['output'];
@@ -4054,7 +4424,7 @@ export type Mutation = {
   inviteResend: Scalars['Boolean']['output'];
   modelMutations: ModelMutations;
   notificationMutations: NotificationMutations;
-  /** @deprecated Part of the old API surface and will be removed in the future. */
+  /** @deprecated Deprecated as of the 2026.9.0 release: legacy object uploads keep working, but compatibility is no longer guaranteed. */
   objectCreate: Array<Scalars['String']['output']>;
   powerTools: PowerToolsMutations;
   projectMutations: ProjectMutations;
@@ -4264,7 +4634,7 @@ export type MutationStreamAccessRequestCreateArgs = {
 export type MutationStreamAccessRequestUseArgs = {
   accept: Scalars['Boolean']['input'];
   requestId: Scalars['String']['input'];
-  role?: StreamRole;
+  roleId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -4370,6 +4740,7 @@ export type Object = {
   /**
    * Get any objects that this object references. In the case of commits, this will give you a commit's constituent objects.
    * **NOTE**: Providing any of the two last arguments ( `query`, `orderBy` ) will trigger a different code branch that executes a much more expensive SQL query. It is not recommended to do so for basic clients that are interested in purely getting all the objects of a given commit.
+   * @deprecated Deprecated as of the 2026.9.0 release: objects in bundle-only versions cannot be queried through this field. Objects/packfile-era versions keep working, but compatibility is no longer guaranteed.
    */
   children: ObjectCollection;
   /**
@@ -4461,6 +4832,8 @@ export type PendingStreamCollaborator = {
   projectId: Scalars['String']['output'];
   projectName: Scalars['String']['output'];
   role: Scalars['String']['output'];
+  /** The identity behind `role`. */
+  roleDefinition?: Maybe<RoleIdentity>;
   /** @deprecated Use projectId instead */
   streamId: Scalars['String']['output'];
   /** @deprecated Use projectName instead */
@@ -4487,6 +4860,8 @@ export type PendingWorkspaceCollaborator = {
   invitedBy?: Maybe<LimitedUser>;
   /** Target workspace role */
   role: Scalars['String']['output'];
+  /** The identity behind `role`. */
+  roleDefinition?: Maybe<RoleIdentity>;
   /** E-mail address or name of the invited user */
   title: Scalars['String']['output'];
   /**
@@ -4515,6 +4890,13 @@ export type PermissionCheckResult = {
 };
 
 export type PlanAddOn = {
+  /**
+   * Total number of extra users the subscription should carry after the change.
+   * Omitted keeps the currently purchased quantity; lowering it is rejected. The
+   * user limit rises only once the resulting invoice is paid.
+   */
+  extraUserQuantity?: InputMaybe<Scalars['Int']['input']>;
+  /** Total number of Booster Packs the subscription should carry after the change */
   quantity: Scalars['Int']['input'];
 };
 
@@ -4532,15 +4914,37 @@ export type Price = {
 
 export type Project = {
   __typename?: 'Project';
-  /** @deprecated Use Project.sync instead. */
-  accSyncItem: AccSyncItem;
-  /** @deprecated Use Project.syncs instead. The generic syncs API supersedes the ACC-specific sync-items surface. */
-  accSyncItems: AccSyncItemCollection;
+  /**
+   * File types (lowercase extensions, without a leading dot) accepted for model
+   * upload ingestion into this project. Resolved through the workspace's
+   * conversion routing, so a workspace pinned to legacy conversions advertises its
+   * legacy-rail set here while ServerConfiguration keeps the deployment default.
+   */
+  acceptedIngestionFileTypes: Array<Scalars['String']['output']>;
+  /**
+   * File types (lowercase extensions, without a leading dot) accepted for CDE sync
+   * ingestion into this project. A subset of acceptedIngestionFileTypes: a
+   * workspace pinned to legacy conversions only syncs the legacy Automate formats
+   * (the rhino importer rail has upload dispatch only).
+   */
+  acceptedSyncFileTypes: Array<Scalars['String']['output']>;
+  /**
+   * Every path by which the active user reaches this project — direct, via a group, or inherited from
+   * the workspace. Empty if the request is not authenticated or the user has no access.
+   */
+  access: Array<ProjectAccessEntry>;
   allowPublicComments: Scalars['Boolean']['output'];
   /** List of allowed assignees for this issue */
   allowedIssueAssignees: IssueParticipantCollection;
   /** When the project was archived. Null if the project is active. */
   archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /**
+   * The groups attached to this project. Every member of one holds that group's project role here, so
+   * this is the second of the three ways a person reaches a project — `team` is the first (direct
+   * collaborators, unchanged), and workspace members reach it through the workspace rather than
+   * through any list on the project.
+   */
+  attachedGroups: Array<WorkspaceGroup>;
   /** Get a single automation by id. Error will be thrown if automation is not found or inaccessible. */
   automation: Automation;
   automations: AutomationCollection;
@@ -4558,7 +4962,6 @@ export type Project = {
    */
   commentThreads: ProjectCommentCollection;
   createdAt: Scalars['DateTime']['output'];
-  dashboardTokens: DashboardTokenCollection;
   dashboards: DashboardCollection;
   description?: Maybe<Scalars['String']['output']>;
   /** Public project-level configuration for embedded viewer */
@@ -4592,6 +4995,11 @@ export type Project = {
   metadata?: Maybe<ProjectMetadata>;
   /** Returns a specific model by its ID */
   model: Model;
+  /**
+   * Bulk model activity (versions + sync executions) for the project timeline
+   * widget, bounded by a date window. Internal API — may change without notice.
+   */
+  modelActivityTimeline?: Maybe<ProjectModelActivityTimelineResult>;
   /** Retrieve a specific project model by its ID */
   modelByName: Model;
   /** Return a model tree of children for the specified model name */
@@ -4606,6 +5014,7 @@ export type Project = {
   /** Returns information about the potential effects of moving a project to a given workspace. */
   moveToWorkspaceDryRun: ProjectMoveToWorkspaceDryRun;
   name: Scalars['String']['output'];
+  /** @deprecated Deprecated as of the 2026.9.0 release: objects in bundle-only versions cannot be queried through this field. Objects/packfile-era versions keep working, but compatibility is no longer guaranteed. */
   object?: Maybe<Object>;
   /** Pending project access requests */
   pendingAccessRequests?: Maybe<Array<ProjectAccessRequest>>;
@@ -4619,7 +5028,10 @@ export type Project = {
    * feature.
    */
   reports: ReportCollection;
-  /** Active user's role for this project. `null` if request is not authenticated, or the project is not explicitly shared with you. */
+  /**
+   * Active user's role for this project. `null` if request is not authenticated, or the project is not explicitly shared with you.
+   * @deprecated Only reports a direct project role, so someone reaching the project through a group or their workspace reads null. Use `access` instead, which names every path conferring access. This field will be removed after August 2027.
+   */
   role?: Maybe<Scalars['String']['output']>;
   savedView: SavedView;
   savedViewGroup: SavedViewGroup;
@@ -4651,17 +5063,6 @@ export type Project = {
   /** Full workspace information for the project. */
   workspace?: Maybe<Workspace>;
   workspaceId?: Maybe<Scalars['String']['output']>;
-};
-
-
-export type ProjectAccSyncItemArgs = {
-  id: Scalars['String']['input'];
-};
-
-
-export type ProjectAccSyncItemsArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -4703,12 +5104,6 @@ export type ProjectCommentArgs = {
 export type ProjectCommentThreadsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<ProjectCommentsFilter>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ProjectDashboardTokensArgs = {
-  cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -4760,6 +5155,11 @@ export type ProjectIssuesArgs = {
 
 export type ProjectModelArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type ProjectModelActivityTimelineArgs = {
+  input: ProjectModelActivityTimelineInput;
 };
 
 
@@ -4897,18 +5297,14 @@ export type ProjectWebhooksArgs = {
   id?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type ProjectAccSyncItemsUpdatedMessage = {
-  __typename?: 'ProjectAccSyncItemsUpdatedMessage';
-  accSyncItem?: Maybe<AccSyncItem>;
-  id: Scalars['String']['output'];
-  type: ProjectAccSyncItemsUpdatedMessageType;
+export type ProjectAccessEntry = {
+  __typename?: 'ProjectAccessEntry';
+  /** The role id conferring access via THIS path, e.g. "stream:contributor" or "workspace:admin". */
+  role: Scalars['String']['output'];
+  /** The identity behind `role`. */
+  roleDefinition?: Maybe<RoleIdentity>;
+  source: ProjectAccessSource;
 };
-
-export enum ProjectAccSyncItemsUpdatedMessageType {
-  Created = 'CREATED',
-  Deleted = 'DELETED',
-  Updated = 'UPDATED'
-}
 
 /** Created when a user requests to become a contributor on a project */
 export type ProjectAccessRequest = {
@@ -4939,8 +5335,21 @@ export type ProjectAccessRequestMutationsCreateArgs = {
 export type ProjectAccessRequestMutationsUseArgs = {
   accept: Scalars['Boolean']['input'];
   requestId: Scalars['String']['input'];
-  role?: StreamRole;
+  roleId?: InputMaybe<Scalars['String']['input']>;
 };
+
+/**
+ * How a subject reaches a project. Provenance, not precedence — roles combine by verb union, so there
+ * is no strongest path, only a strongest answer per verb.
+ */
+export enum ProjectAccessSource {
+  /** A role carried by a group the project is attached to. */
+  Group = 'GROUP',
+  /** A role held directly on the project. */
+  Project = 'PROJECT',
+  /** Inherited from a role on the project's workspace, subject to the project's visibility. */
+  Workspace = 'WORKSPACE'
+}
 
 export type ProjectAutomationCreateInput = {
   enabled: Scalars['Boolean']['input'];
@@ -5031,12 +5440,46 @@ export enum ProjectAutomationsUpdatedMessageType {
 export type ProjectCollaborator = {
   __typename?: 'ProjectCollaborator';
   id: Scalars['ID']['output'];
+  permissions: ProjectCollaboratorPermissionChecks;
   role: Scalars['String']['output'];
+  /** The identity behind `role`. */
+  roleDefinition?: Maybe<RoleIdentity>;
   /** The collaborator's workspace seat type for the workspace this project is in */
   seatType?: Maybe<WorkspaceSeatType>;
   user: LimitedUser;
   /** The collaborator's workspace role for the workspace this project is in, if any */
   workspaceRole?: Maybe<Scalars['String']['output']>;
+  /** The identity behind `workspaceRole`. */
+  workspaceRoleDefinition?: Maybe<RoleIdentity>;
+};
+
+/**
+ * Permission checks for actions the active user can perform on this specific project collaborator.
+ * The target user is implied by the parent collaborator.
+ */
+export type ProjectCollaboratorPermissionChecks = {
+  __typename?: 'ProjectCollaboratorPermissionChecks';
+  canRemove: PermissionCheckResult;
+  /**
+   * Whether this collaborator's project role can be changed to `roleId`. Answers per candidate role, so
+   * a UI can gate one option separately — prefer `canUpdateRoleTo`, which answers for the whole
+   * assignable catalog in a single field.
+   */
+  canUpdateRole: PermissionCheckResult;
+  /**
+   * Every role this collaborator could be moved to, with the per-role answer.
+   * @see WorkspaceCollaboratorPermissionChecks.canUpdateRoleTo — same field, project-kind catalog.
+   */
+  canUpdateRoleTo: Array<RoleAssignability>;
+};
+
+
+/**
+ * Permission checks for actions the active user can perform on this specific project collaborator.
+ * The target user is implied by the parent collaborator.
+ */
+export type ProjectCollaboratorPermissionChecksCanUpdateRoleArgs = {
+  roleId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ProjectCollection = {
@@ -5112,6 +5555,30 @@ export enum ProjectFileImportUpdatedMessageType {
   Created = 'CREATED',
   Updated = 'UPDATED'
 }
+
+export type ProjectGroupMutations = {
+  __typename?: 'ProjectGroupMutations';
+  /**
+   * Attach a group, granting every member their group role on this project. Attaching a group that is
+   * already attached changes nothing and is not an error.
+   */
+  attach: Project;
+  /**
+   * Detach a group, removing the access it conferred. Any other path a member holds — a direct role,
+   * their workspace role, another group — is untouched.
+   */
+  detach: Project;
+};
+
+
+export type ProjectGroupMutationsAttachArgs = {
+  input: AttachProjectGroupInput;
+};
+
+
+export type ProjectGroupMutationsDetachArgs = {
+  input: DetachProjectGroupInput;
+};
 
 export type ProjectInviteCreateInput = {
   /** Either this or userId must be filled */
@@ -5284,8 +5751,74 @@ export type ProjectMetadata = {
   values: Scalars['JSONObject']['output'];
 };
 
+export type ProjectModelActivityTimelineInput = {
+  /**
+   * End of the activity window (exclusive). Defaults to now; future values are
+   * clamped to now. The window is [before - dateRangeDays, before). Used by the
+   * timeline widget to pan back through history.
+   */
+  before?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Size of the activity window in days, counted back from `before`. Clamped 1..365. Default: 7. */
+  dateRangeDays?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Lock the lane set: skip activity ranking and return a group for exactly these
+   * models, in the given order (duplicates removed), including models with zero
+   * activity in the window (deleted/inaccessible ids are dropped). modelLimit is
+   * ignored. Max 30 ids (more errors); an empty list returns an empty result.
+   * Used while panning so lanes stay stable across windows.
+   */
+  modelIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /**
+   * Max model lanes to return, ordered by latest activity DESC (tie-break: model id).
+   * Clamped 1..30. Default: 10. There is no cursor — request a higher limit to
+   * reveal more lanes; ordering is deterministic within a window. Ignored when
+   * modelIds is set.
+   */
+  modelLimit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type ProjectModelActivityTimelineModelGroup = {
+  __typename?: 'ProjectModelActivityTimelineModelGroup';
+  model: Model;
+  /**
+   * Sync executions within the window, createdAt DESC, capped per request.
+   * Always empty for models without a sync, when the syncs module is disabled,
+   * and for callers that cannot read integration settings (the field degrades
+   * instead of erroring).
+   */
+  syncItems: Array<SyncItem>;
+  /** Total number of sync executions this model has inside the window (uncapped count). */
+  syncItemsTotalCount: Scalars['Int']['output'];
+  /**
+   * Versions created within the window, createdAt DESC. The row set is capped
+   * per request — compare against versionsTotalCount for overflow.
+   */
+  versions: Array<Version>;
+  /** Total number of versions this model has inside the window (uncapped count). */
+  versionsTotalCount: Scalars['Int']['output'];
+};
+
+export type ProjectModelActivityTimelineResult = {
+  __typename?: 'ProjectModelActivityTimelineResult';
+  /**
+   * Timestamp of the oldest event (version or sync execution) in the project,
+   * ignoring the window. Null when the project has no events. Drives the
+   * "beginning of history" pan clamp. Only computed for discovery requests —
+   * null whenever modelIds locks the lane set.
+   */
+  earliestEventAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Model groups with any activity in the window, ordered by latest activity DESC. */
+  modelGroups: Array<ProjectModelActivityTimelineModelGroup>;
+  /**
+   * Total count of models with any activity in the window (drives "show more models").
+   * When modelIds locks the lane set, this is the returned group count instead.
+   */
+  modelTotalCount: Scalars['Int']['output'];
+};
+
 export type ProjectModelIngestionMutations = {
   __typename?: 'ProjectModelIngestionMutations';
+  /** @deprecated Complete uploads through the v2 REST `uploads/complete` endpoint instead — versions created through this mutation are not viewer-consumable. */
   completeWithVersion: ModelIngestion;
   /**
    * This will create an ingestion in a processing state.
@@ -5441,6 +5974,7 @@ export type ProjectMutations = {
   createEmbedToken: CreateEmbedTokenReturn;
   /** Delete an existing project */
   delete: Scalars['Boolean']['output'];
+  groups: ProjectGroupMutations;
   /** Invite related mutations */
   invites: ProjectInviteMutations;
   issues: ProjectIssueMutations;
@@ -5563,8 +6097,8 @@ export enum ProjectPendingVersionsUpdatedMessageType {
 export type ProjectPermissionChecks = {
   __typename?: 'ProjectPermissionChecks';
   canAccessIssuesFeature: PermissionCheckResult;
-  canAccessViewerTableFeature: PermissionCheckResult;
   canArchive: PermissionCheckResult;
+  canAttachGroup: PermissionCheckResult;
   canBroadcastActivity: PermissionCheckResult;
   canCreateAutomation: PermissionCheckResult;
   /** @deprecated Comments were moved to issues. Use canCreateIssue instead. This check will be removed after 01 Jun 2026. */
@@ -5578,7 +6112,13 @@ export type ProjectPermissionChecks = {
   canCreateSavedView: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canDeleteResourceMeta: PermissionCheckResult;
+  canDetachGroup: PermissionCheckResult;
   canInvite: PermissionCheckResult;
+  /**
+   * Every role somebody could be invited into this project as, with the per-role answer.
+   * @see WorkspacePermissionChecks.canInviteAs — same field, project-kind catalog.
+   */
+  canInviteAs: Array<RoleAssignability>;
   canLeave: PermissionCheckResult;
   canListAutomations: PermissionCheckResult;
   canListIssues: PermissionCheckResult;
@@ -5614,7 +6154,7 @@ export type ProjectPermissionChecksCanMoveToWorkspaceArgs = {
 
 
 export type ProjectPermissionChecksCanUpdateRoleArgs = {
-  targetRole?: InputMaybe<StreamRole>;
+  targetRoleId?: InputMaybe<Scalars['String']['input']>;
   targetUserId?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -5631,6 +6171,8 @@ export type ProjectRole = {
   __typename?: 'ProjectRole';
   project: Project;
   role: Scalars['String']['output'];
+  /** The identity behind `role`. */
+  roleDefinition?: Maybe<RoleIdentity>;
 };
 
 export type ProjectSavedViewGroupsUpdatedMessage = {
@@ -6159,6 +6701,14 @@ export type PublicShareTokenInfo = {
   sourceType: ShareSourceType;
 };
 
+/** Input for classifying an Explorer workspace's Team upgrade path. */
+export type QualifyTeamPlanInput = {
+  /** Required for non-target accounts; omitted for target-account reconciliation. */
+  employeeRange?: InputMaybe<WorkspacePlanEmployeeRange>;
+  /** Slug of the Explorer workspace to classify. */
+  workspaceSlug: Scalars['String']['input'];
+};
+
 export type Query = {
   __typename?: 'Query';
   /** Stare into the void. */
@@ -6581,6 +7131,17 @@ export type QueryWorkspaceSsoByEmailArgs = {
   email: Scalars['String']['input'];
 };
 
+/** Heartbeat for an in-flight anonymous turn's parallelism lock. */
+export type RefreshAnonTurnInput = {
+  /** Stable hash identifying the anonymous user, as passed to `startAnonTurn`. */
+  anonUserHash: Scalars['String']['input'];
+  /**
+   * The token returned by `startAnonTurn`. The TTL is only extended while it still
+   * matches the lock's current holder.
+   */
+  lockToken: Scalars['String']['input'];
+};
+
 export type RegisterWorkspaceDatabricksTableInput = {
   columnAllowlist: Array<Scalars['String']['input']>;
   name: Scalars['String']['input'];
@@ -6616,6 +7177,12 @@ export type RemoveWorkspaceDomainInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type RemoveWorkspaceGroupMembersInput = {
+  groupId: Scalars['ID']['input'];
+  userIds: Array<Scalars['ID']['input']>;
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type Report = {
   __typename?: 'Report';
   createdAt: Scalars['DateTime']['output'];
@@ -6629,11 +7196,13 @@ export type Report = {
    */
   layout: Scalars['JSONObject']['output'];
   name: Scalars['String']['output'];
+  /** Auth policy checks for the active user on this report */
+  permissions: ReportPermissionChecks;
   project: Project;
   schemaVersion: Scalars['Int']['output'];
   /**
-   * Active (non-revoked) public share links for this report. Owner-only —
-   * returns an empty list for non-owner viewers.
+   * Active (non-revoked) public share links for this report. Gated by the
+   * report canShare policy — returns an empty list for anyone it denies.
    */
   shareLinks: Array<ShareToken>;
   /**
@@ -6697,7 +7266,8 @@ export type ReportMutations = {
   __typename?: 'ReportMutations';
   create: Report;
   /**
-   * Create a public share link for a report. Owner-only. The token's resource
+   * Create a public share link for a report. Creator-only (canShare policy).
+   * The token's resource
    * access is scoped at the version level to exactly the versions the report's
    * packfile bindings reference, so a leaked link can read only those versions'
    * packfiles — nothing else in the project. The returned ShareToken carries
@@ -6706,8 +7276,9 @@ export type ReportMutations = {
   createShareLink: ShareToken;
   delete: Scalars['Boolean']['output'];
   /**
-   * Toggle the project-members visibility flag. Owner-only. Independent from
-   * any public share links — flipping to `false` does NOT revoke them.
+   * Toggle the project-members visibility flag. Creator-only (canShare policy).
+   * Independent from any public share links — flipping to `false` does NOT
+   * revoke them.
    */
   setShareWithProject: Report;
   update: Report;
@@ -6736,6 +7307,17 @@ export type ReportMutationsSetShareWithProjectArgs = {
 
 export type ReportMutationsUpdateArgs = {
   input: ReportUpdateInput;
+};
+
+/** Auth policy checks for actions on a specific report */
+export type ReportPermissionChecks = {
+  __typename?: 'ReportPermissionChecks';
+  /** Whether the active user can delete the report */
+  canDelete: PermissionCheckResult;
+  /** Whether the active user can share the report (project visibility, share links) */
+  canShare: PermissionCheckResult;
+  /** Whether the active user can update the report (rename, layout changes) */
+  canUpdate: PermissionCheckResult;
 };
 
 export type ReportSetShareWithProjectInput = {
@@ -6852,6 +7434,43 @@ export enum ResourceType {
   Stream = 'stream'
 }
 
+export enum RevitUploadAppendMode {
+  Areas = 'areas',
+  Both = 'both',
+  None = 'none',
+  Rooms = 'rooms'
+}
+
+export enum RevitUploadPublishMethod {
+  Category = 'category',
+  Default = 'default',
+  View = 'view'
+}
+
+export enum RevitUploadReferencePoint {
+  InternalOrigin = 'internalOrigin',
+  ProjectBasePoint = 'projectBasePoint',
+  SharedCoordinates = 'sharedCoordinates',
+  SurveyPoint = 'surveyPoint'
+}
+
+export type RevitUploadSettings = {
+  __typename?: 'RevitUploadSettings';
+  appendRoomsAndAreasMode: RevitUploadAppendMode;
+  categories: Array<Scalars['String']['output']>;
+  publishMethod: RevitUploadPublishMethod;
+  referencePoint: RevitUploadReferencePoint;
+  viewName?: Maybe<Scalars['String']['output']>;
+};
+
+export type RevitUploadSettingsInput = {
+  appendRoomsAndAreasMode: RevitUploadAppendMode;
+  categories: Array<Scalars['String']['input']>;
+  publishMethod: RevitUploadPublishMethod;
+  referencePoint: RevitUploadReferencePoint;
+  viewName?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type RevokeWorkspaceSupportAccessInput = {
   sessionId: Scalars['ID']['input'];
 };
@@ -6861,6 +7480,46 @@ export type Role = {
   description: Scalars['String']['output'];
   name: Scalars['String']['output'];
   resourceTarget: Scalars['String']['output'];
+};
+
+/**
+ * One candidate role a collaborator could be moved to, with the answer for THIS target.
+ *
+ * Carries refused entries as well as permitted ones: a picker shows the option disabled with
+ * `check.errorMessage` as the reason rather than hiding it, so the user learns why.
+ */
+export type RoleAssignability = {
+  __typename?: 'RoleAssignability';
+  check: PermissionCheckResult;
+  role: RoleIdentity;
+};
+
+/**
+ * The name and description behind a role id — built-in or workspace-authored.
+ *
+ * Deliberately NOT the audit shape (`WorkspaceRoleDefinition`): this carries identity only, which is
+ * what lets it resolve in every deployment state. Naming a role someone already holds is membership
+ * information, not the dynamic-roles capability, so it resolves with `FF_DYNAMIC_ROLES_ENABLED` off
+ * and for a workspace that has lost the plan grant — the rows are in the database either way, and
+ * returning a raw `custom:` id there makes a degraded deployment unreadable without protecting
+ * anything.
+ *
+ * What stays gated is USING the capability: authoring (`WorkspaceRoleDefinitionMutations`), the audit
+ * shape (`Workspace.roleDefinitions`), and the set you may hand out (`Workspace.assignableRoles`).
+ */
+export type RoleIdentity = {
+  __typename?: 'RoleIdentity';
+  description?: Maybe<Scalars['String']['output']>;
+  /** The role id as stored, e.g. "workspace:admin" or "custom:6f1c…". */
+  id: Scalars['ID']['output'];
+  /**
+   * False only for workspace-authored roles. Built-ins live in code, have no row behind them, and
+   * cannot be edited or deleted.
+   */
+  isBuiltIn: Scalars['Boolean']['output'];
+  /** Display name — an authored role's own name, or a built-in's canonical title. */
+  name: Scalars['String']['output'];
+  resourceType: WorkspaceRoleResourceType;
 };
 
 export type RootPermissionChecks = {
@@ -6892,6 +7551,16 @@ export type SaveProjectwiseCredentialResult = {
   wsgUrl: Scalars['String']['output'];
 };
 
+export type SaveTrimbleCredentialInput = {
+  accessToken: Scalars['String']['input'];
+  /** Optional label shown in the UI — typically the service account's email. */
+  accountLabel?: InputMaybe<Scalars['String']['input']>;
+  /** Access token lifetime in seconds, as reported by the token endpoint. */
+  expiresIn: Scalars['Int']['input'];
+  refreshToken: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
 export type SavedProjectwiseCredential = {
   __typename?: 'SavedProjectwiseCredential';
   datasourceId: Scalars['String']['output'];
@@ -6916,6 +7585,13 @@ export type SavedView = {
   groupResourceIds: Array<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   isHomeView: Scalars['Boolean']['output'];
+  /**
+   * Markup (sketch) item-bag doc: { version: 1, items: [...] }. Items are opaque
+   * payloads except id + authorId.
+   */
+  markup: Scalars['JSONObject']['output'];
+  /** Measurement item-bag doc, same shape as markup. */
+  measurements: Scalars['JSONObject']['output'];
   name: Scalars['String']['output'];
   permissions: SavedViewPermissionChecks;
   /** For figuring out position in the group */
@@ -7190,7 +7866,17 @@ export type ServerAutomateInfo = {
 /** Server configuration. */
 export type ServerConfiguration = {
   __typename?: 'ServerConfiguration';
-  blobSizeLimitBytes: Scalars['Int']['output'];
+  /**
+   * File types (lowercase extensions, without a leading dot) accepted for model
+   * upload ingestion on this deployment, before any workspace-level routing is
+   * applied. Derived from the conversion paths live in this deployment, so the set
+   * changes with the deployment's feature flags, not a static list. Prefer the
+   * project-scoped Project.acceptedIngestionFileTypes where a project is known: a
+   * workspace pinned to legacy conversions accepts a different set.
+   */
+  acceptedIngestionFileTypes: Array<Scalars['String']['output']>;
+  /** Float because the file size limit can exceed the 32-bit Int range */
+  blobSizeLimitBytes: Scalars['Float']['output'];
   /** Origin URL of the dashboards service */
   dashboardsOrigin?: Maybe<Scalars['String']['output']>;
   /** Email verification code timeout in minutes */
@@ -7199,7 +7885,8 @@ export type ServerConfiguration = {
   featureFlags: Scalars['JSONObject']['output'];
   /** Whether the email feature is enabled on this server */
   isEmailEnabled: Scalars['Boolean']['output'];
-  objectMultipartUploadSizeLimitBytes: Scalars['Int']['output'];
+  /** Float because the file size limit can exceed the 32-bit Int range */
+  objectMultipartUploadSizeLimitBytes: Scalars['Float']['output'];
   objectSizeLimitBytes: Scalars['Int']['output'];
 };
 
@@ -7212,8 +7899,11 @@ export type ServerInfo = {
   automate: ServerAutomateInfo;
   /** Base URL of Speckle Automate, if set */
   automateUrl?: Maybe<Scalars['String']['output']>;
-  /** @deprecated Use the ServerInfo{configuration{blobSizeLimitBytes}} field instead. */
-  blobSizeLimitBytes: Scalars['Int']['output'];
+  /**
+   * Float because the file size limit can exceed the 32-bit Int range
+   * @deprecated Use the ServerInfo{configuration{blobSizeLimitBytes}} field instead.
+   */
+  blobSizeLimitBytes: Scalars['Float']['output'];
   canonicalUrl?: Maybe<Scalars['String']['output']>;
   company?: Maybe<Scalars['String']['output']>;
   /**
@@ -7374,6 +8064,13 @@ export type SetSyncActiveInput = {
   projectId: Scalars['String']['input'];
 };
 
+export type SetWorkspaceGroupMemberRoleInput = {
+  groupId: Scalars['ID']['input'];
+  roleId: Scalars['String']['input'];
+  userId: Scalars['ID']['input'];
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type SetWorkspaceProjectMetadataSchemaInput = {
   /**
    * A JSON Schema 2020-12 document. Server validates against the meta-schema
@@ -7383,12 +8080,11 @@ export type SetWorkspaceProjectMetadataSchemaInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
-export type SetWorkspaceSsoMinimumRoleInput = {
-  /**
-   * Raw workspace role value, e.g. "workspace:member". Members at or above this role (by
-   * weight) are forced to maintain an active SSO session.
-   */
-  minimumSsoRole: Scalars['String']['input'];
+export type SetWorkspaceSsoRoleRequirementInput = {
+  /** Whether holders of this role must maintain an active SSO session. */
+  required: Scalars['Boolean']['input'];
+  /** A workspace-kind role id from this workspace's catalog — built-in or authored. */
+  roleId: Scalars['String']['input'];
   workspaceId: Scalars['ID']['input'];
 };
 
@@ -7567,6 +8263,7 @@ export type SourceData = {
   __typename?: 'SourceData';
   fileName?: Maybe<Scalars['String']['output']>;
   fileSizeBytes?: Maybe<Scalars['BigInt']['output']>;
+  revitUploadSettings?: Maybe<RevitUploadSettings>;
   sourceApplicationSlug?: Maybe<Scalars['String']['output']>;
   sourceApplicationVersion?: Maybe<Scalars['String']['output']>;
 };
@@ -7599,6 +8296,11 @@ export type StartFileImportInput = {
   fileId: Scalars['String']['input'];
   modelId: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
+  /**
+   * Revit-only conversion settings. Omit for other file types and for legacy
+   * clients; the converter then uses its defaults.
+   */
+  revitUploadSettings?: InputMaybe<RevitUploadSettingsInput>;
 };
 
 export type Stream = {
@@ -7657,7 +8359,7 @@ export type Stream = {
   /** Whether the stream can be viewed by non-contributors */
   isPublic: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
-  /** @deprecated Part of the old API surface and will be removed in the future. Use Project.object instead. */
+  /** @deprecated Deprecated as of the 2026.9.0 release: objects in bundle-only versions cannot be queried through this field. Objects/packfile-era versions keep working, but compatibility is no longer guaranteed. */
   object?: Maybe<Object>;
   /**
    * Pending stream access requests
@@ -7766,6 +8468,7 @@ export type StreamCreateInput = {
   withContributors?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
+/** A user's role on a project (stream). */
 export enum StreamRole {
   StreamContributor = 'STREAM_CONTRIBUTOR',
   StreamOwner = 'STREAM_OWNER',
@@ -7825,11 +8528,6 @@ export type Subscription = {
    * Note: Only works in test environment
    */
   ping: Scalars['String']['output'];
-  /**
-   * Subscribe to changes to a project's sync items. Optionally specify lineage urns to subscribe to.
-   * @deprecated Use Subscription.projectSyncsUpdated instead. Covers every integration, not just ACC.
-   */
-  projectAccSyncItemsUpdated: ProjectAccSyncItemsUpdatedMessage;
   /** Subscribe to updates to automations in the project */
   projectAutomationsUpdated: ProjectAutomationsUpdatedMessage;
   /**
@@ -7947,12 +8645,6 @@ export type SubscriptionCommitDeletedArgs = {
 export type SubscriptionCommitUpdatedArgs = {
   commitId?: InputMaybe<Scalars['String']['input']>;
   streamId: Scalars['String']['input'];
-};
-
-
-export type SubscriptionProjectAccSyncItemsUpdatedArgs = {
-  id: Scalars['String']['input'];
-  itemIds?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 
@@ -8165,14 +8857,6 @@ export type SyncMutations = {
   create: Sync;
   delete: Scalars['Boolean']['output'];
   /**
-   * Promote a legacy ACC sync (still in `acc_sync_items`) into the new `syncs`
-   * schema. Surfaced as a user-facing button so people don't have to wait for
-   * the next ACC webhook for trigger-now / pause / edit to work. The lazy
-   * migration that fires on real webhooks does the same job; this is just the
-   * explicit version. Syncs already in the new schema return as-is.
-   */
-  migrateLegacy: Sync;
-  /**
    * Pause or resume a sync. Paused syncs skip polling/webhook-driven executions
    * and reject `update(..., triggerNow: true)`. In-flight executions finish.
    */
@@ -8188,11 +8872,6 @@ export type SyncMutationsCreateArgs = {
 
 export type SyncMutationsDeleteArgs = {
   input: DeleteSyncInput;
-};
-
-
-export type SyncMutationsMigrateLegacyArgs = {
-  input: MigrateLegacySyncInput;
 };
 
 
@@ -8253,10 +8932,139 @@ export type TriggeredAutomationsStatus = {
   statusMessage?: Maybe<Scalars['String']['output']>;
 };
 
-export type UpdateAccSyncItemInput = {
-  id: Scalars['ID']['input'];
-  projectId: Scalars['String']['input'];
-  status: AccSyncItemStatus;
+/** Trimble Connect browsing surface, reached via `TrimbleConnectIntegration.cloud`. */
+export type TrimbleConnectCloudIntegration = {
+  __typename?: 'TrimbleConnectCloudIntegration';
+  /** Resolve a folder by id. `region` is the owning project's `location` code. */
+  folder: TrimbleConnectFolder;
+  /**
+   * Full project details — includes the root folder to start browsing from.
+   * `region` is the project's `location` code from the projects list.
+   */
+  project: TrimbleConnectProject;
+  /** Projects accessible to the authenticated user (minimal info, all regions). */
+  projects: TrimbleConnectProjectCollection;
+  /**
+   * Trimble Connect regions. Projects live in exactly one region; browsing and
+   * downloads for a project go to its region's API.
+   */
+  regions: Array<TrimbleConnectRegion>;
+};
+
+
+/** Trimble Connect browsing surface, reached via `TrimbleConnectIntegration.cloud`. */
+export type TrimbleConnectCloudIntegrationFolderArgs = {
+  folderId: Scalars['String']['input'];
+  region?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+/** Trimble Connect browsing surface, reached via `TrimbleConnectIntegration.cloud`. */
+export type TrimbleConnectCloudIntegrationProjectArgs = {
+  id: Scalars['String']['input'];
+  region?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type TrimbleConnectCredentialInfo = {
+  __typename?: 'TrimbleConnectCredentialInfo';
+  /** Human-readable connection label — typically the service account's email. */
+  accountLabel?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type TrimbleConnectFile = {
+  __typename?: 'TrimbleConnectFile';
+  id: Scalars['ID']['output'];
+  modifiedByName?: Maybe<Scalars['String']['output']>;
+  modifiedOn?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+  parentId?: Maybe<Scalars['String']['output']>;
+  region?: Maybe<Scalars['String']['output']>;
+  revision?: Maybe<Scalars['Int']['output']>;
+  size?: Maybe<Scalars['Int']['output']>;
+  /** Version id of the latest file version. */
+  versionId?: Maybe<Scalars['String']['output']>;
+};
+
+export type TrimbleConnectFileCollection = {
+  __typename?: 'TrimbleConnectFileCollection';
+  items: Array<TrimbleConnectFile>;
+};
+
+export type TrimbleConnectFolder = {
+  __typename?: 'TrimbleConnectFolder';
+  children: TrimbleConnectFolderCollection;
+  files: TrimbleConnectFileCollection;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  /**
+   * Region `location` code carried through the tree so child queries hit the
+   * right regional API.
+   */
+  region?: Maybe<Scalars['String']['output']>;
+};
+
+export type TrimbleConnectFolderCollection = {
+  __typename?: 'TrimbleConnectFolderCollection';
+  items: Array<TrimbleConnectFolder>;
+};
+
+/**
+ * Namespace grouping the Trimble Connect browsing entry points for a single
+ * workspace.
+ */
+export type TrimbleConnectIntegration = {
+  __typename?: 'TrimbleConnectIntegration';
+  /**
+   * Trimble Connect browsing via an OAuth access token obtained by the client
+   * (Trimble Identity, authorization code + PKCE). The token is passed
+   * per-request and never stored server-side.
+   */
+  cloud?: Maybe<TrimbleConnectCloudIntegration>;
+  /**
+   * The workspace's saved Trimble service-account connection used for background
+   * file downloads (Trimble has no client-credentials grant, so backgrounds run
+   * as a stored service-account user). Tokens are never returned.
+   */
+  credential?: Maybe<TrimbleConnectCredentialInfo>;
+};
+
+
+/**
+ * Namespace grouping the Trimble Connect browsing entry points for a single
+ * workspace.
+ */
+export type TrimbleConnectIntegrationCloudArgs = {
+  token: Scalars['String']['input'];
+};
+
+export type TrimbleConnectProject = {
+  __typename?: 'TrimbleConnectProject';
+  id: Scalars['ID']['output'];
+  /** Region `location` code (e.g. "europe") the project lives in. */
+  location?: Maybe<Scalars['String']['output']>;
+  name: Scalars['String']['output'];
+  /**
+   * Root folder of the project's file tree. Null when only minimal project info
+   * was fetched (use `project(id:)` for full details).
+   */
+  rootFolder?: Maybe<TrimbleConnectFolder>;
+  /** Root folder id — populated when the project was fetched via `project(id:)`. */
+  rootId?: Maybe<Scalars['String']['output']>;
+};
+
+export type TrimbleConnectProjectCollection = {
+  __typename?: 'TrimbleConnectProjectCollection';
+  items: Array<TrimbleConnectProject>;
+};
+
+export type TrimbleConnectRegion = {
+  __typename?: 'TrimbleConnectRegion';
+  isMaster: Scalars['Boolean']['output'];
+  location: Scalars['String']['output'];
+  serviceRegion: Scalars['String']['output'];
 };
 
 /** Any null values will be ignored */
@@ -8349,6 +9157,13 @@ export type UpdateSavedViewGroupInput = {
 };
 
 export type UpdateSavedViewInput = {
+  /**
+   * Commutative ink item ops: add markup (sketch) items — upsert-by-id for the
+   * caller's own items; the server stamps authorId.
+   */
+  addMarkup?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
+  /** Add measurement items — same semantics as addMarkup. */
+  addMeasurements?: InputMaybe<Array<Scalars['JSONObject']['input']>>;
   description?: InputMaybe<Scalars['String']['input']>;
   /** New group id, if grouping necessary */
   groupId?: InputMaybe<Scalars['String']['input']>;
@@ -8359,14 +9174,18 @@ export type UpdateSavedViewInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   position?: InputMaybe<ViewPositionInput>;
   projectId: Scalars['ID']['input'];
-  /** New resource targets, if necessary. Must be set together w/ viewerState & screenshot. */
+  /** Remove markup items by id (own items; the view author may remove any). */
+  removeMarkupIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Remove measurement items by id — same semantics as removeMarkupIds. */
+  removeMeasurementIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** New resource targets, if necessary. Must be set together w/ viewerState. */
   resourceIdString?: InputMaybe<Scalars['String']['input']>;
   /** Encoded screenshot of the view. */
   screenshot?: InputMaybe<Scalars['String']['input']>;
   /**
    * SerializedViewerState. If omitted, comment won't render (correctly) inside the
    * viewer, but will still be retrievable through the API.
-   * Must be set together w/ resourceIdString & screenshot.
+   * Must be set together w/ resourceIdString.
    */
   viewerState?: InputMaybe<Scalars['JSONObject']['input']>;
   /** Optionally change visibility of the view */
@@ -8399,6 +9218,13 @@ export type UpdateVersionInput = {
   versionId: Scalars['ID']['input'];
 };
 
+export type UpdateWorkspaceGroupInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  groupId: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  workspaceId: Scalars['ID']['input'];
+};
+
 export type UpdateWorkspaceMicrosoftFabricConnectionInput = {
   authMode?: InputMaybe<WorkspaceMicrosoftFabricAuthMode>;
   clientId?: InputMaybe<Scalars['String']['input']>;
@@ -8407,6 +9233,17 @@ export type UpdateWorkspaceMicrosoftFabricConnectionInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   server?: InputMaybe<Scalars['String']['input']>;
   tenantId?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateWorkspaceRoleDefinitionInput = {
+  actions?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Set to null to drop back to the no-access foundation. */
+  baseRole?: InputMaybe<Scalars['String']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  privacyClearance?: InputMaybe<Array<WorkspacePrivacyType>>;
+  roleId: Scalars['ID']['input'];
+  workspaceId: Scalars['ID']['input'];
 };
 
 export type UpgradePlanInput = {
@@ -8903,7 +9740,20 @@ export type Version = {
   parents?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   permissions: VersionPermissionChecks;
   previewUrl: Scalars['String']['output'];
+  /**
+   * Root object id of the version's legacy object graph. For bundle-only versions there is
+   * no object graph and this carries a bundle reference (`bundle.<projectId>.<modelId>.<versionId>`)
+   * instead; see `packages/server/modules/data/docs/bundle-reference.md` for the contract.
+   * Null when the version is beyond the workspace's version history limit.
+   */
   referencedObject?: Maybe<Scalars['String']['output']>;
+  /**
+   * Storage shape of the version's data — which serving path applies. null ⇒
+   * legacy (v1 objects or v2 single packfile); 3 ⇒ artefact bundle served via
+   * the presigned /v2 artefacts endpoint. NOT the bundle's own format version:
+   * that is the producer's, recorded inside the bundle (meta.schema_version).
+   */
+  schemaVersion?: Maybe<Scalars['Int']['output']>;
   sourceApplication?: Maybe<Scalars['String']['output']>;
   totalChildrenCount?: Maybe<Scalars['Int']['output']>;
 };
@@ -8977,6 +9827,7 @@ export type VersionLoadCollection = {
 
 export type VersionMutations = {
   __typename?: 'VersionMutations';
+  /** @deprecated Publish through the model ingestion rail instead: ProjectModelIngestionMutations.create, then the v1 REST uploads/process endpoint, or the v2 REST uploads/complete endpoint for producer-built bundles. The version is born at bundle complete and the ingestion is the readiness surface, so a version created here is not immediately readable. Migration guide: https://docs.speckle.systems/developers/migration/publish-through-ingestions */
   create: Version;
   delete: Scalars['Boolean']['output'];
   markReceived: Scalars['Boolean']['output'];
@@ -9209,6 +10060,24 @@ export type Workspace = {
   /** Get all join requests for all the workspaces the user is an admin of */
   adminWorkspacesJoinRequests?: Maybe<WorkspaceJoinRequestCollection>;
   /**
+   * The workspace's AI capacity pool. Readable by anyone who can use AI in the
+   * workspace, guests included. Null when the AI chat module is off for the
+   * deployment or the workspace is uncapped (no pool to report).
+   */
+  aiCapacity?: Maybe<WorkspaceAiCapacity>;
+  /**
+   * The workspace's AI rules, admin-managed instructions injected into the
+   * system prompt of every authenticated AI turn in this workspace (enabled
+   * ones only; disabled rules are listed but not applied). Readable by every
+   * member; managed by workspace admins (see
+   * WorkspacePermissionChecks.canManageAiRules). Capped per workspace, so no
+   * pagination. Ordered by creation time, ties broken by id.
+   *
+   * Null when the AI chat module is disabled on this server, or when the caller
+   * cannot read the workspace's rules (see canListAiRules).
+   */
+  aiRules?: Maybe<Array<AiRule>>;
+  /**
    * The AI skills available to the current user in this workspace: their own
    * (any visibility) plus every workspace-shared skill. Summary rows — `messages`
    * -style heavy fields (`instructions`, `knowledgeSources`) are null here and
@@ -9221,9 +10090,41 @@ export type Workspace = {
    * generation). Gated by `canReadBillingSettings` — workspace admins
    * only. Nullable so a gate failure scopes the error to this field
    * rather than nulling the whole Workspace.
+   *
+   * `filter` narrows every sub-field to the usage page's shared scope
+   * (projects, project labels, member) — the same input `usageAnalytics`
+   * takes. Under a project scope, workspace-level chats (no project) drop
+   * out. `monthly` is the one exception: it reads a workspace × month ×
+   * model rollup that has no project or user dimension, so it ignores the
+   * filter. Omitted or empty means the whole workspace.
    */
   aiTokenUsage?: Maybe<AiTokenWorkspaceUsage>;
+  /**
+   * The roles that can be assigned in this workspace right now — built-ins of the requested kind, plus
+   * this workspace's authored roles when those actually resolve.
+   *
+   * The authored half is omitted when `FF_DYNAMIC_ROLES_ENABLED` is off or the workspace does not hold
+   * the dynamic-roles plan feature, because an authored role degrades to a fixed built-in in both
+   * states: offering one would hand out a role that does not do what its name says. This is the
+   * deliberate asymmetry against `RoleIdentity`, which resolves in every state — identity reads
+   * through degradation, assignability does not.
+   *
+   * Never throws, so a role picker needs no `@skip`. Requires workspace membership.
+   */
+  assignableRoles: Array<RoleIdentity>;
   automateFunctions: AutomateFunctionCollection;
+  /**
+   * The built-in roles an authored role of this kind may build on, weakest-first.
+   *
+   * Two entries per kind, never a catalog: admin-tier built-ins already cover their whole menu, so
+   * create refuses them as bases. Server-supplied because a client deriving "non-admin-tier built-in of
+   * this kind" for itself is a second copy of that rule, free to drift into offering a base the
+   * mutation would reject.
+   *
+   * The no-access foundation is `baseRole: null` and is always available — it has no role id, so it is
+   * not an entry here.
+   */
+  baseRoleOptions: Array<RoleIdentity>;
   createdAt: Scalars['DateTime']['output'];
   /**
    * Info about the workspace creation state
@@ -9250,7 +10151,13 @@ export type Workspace = {
   discoverabilityAutoJoinEnabled: Scalars['Boolean']['output'];
   /** Enable/Disable discovery of the workspace */
   discoverabilityEnabled: Scalars['Boolean']['output'];
-  /** Enable/Disable restriction to invite users to workspace as Guests only */
+  /**
+   * Require a verified email on one of the workspace's domains to join it.
+   *
+   * Only the built-in guest is exempt, as the external-collaborator category. A role the workspace
+   * authored is held to the check however little it confers, so it cannot serve as a second external
+   * category while this is on.
+   */
   domainBasedMembershipProtectionEnabled: Scalars['Boolean']['output'];
   /** Verified workspace domains */
   domains?: Maybe<Array<WorkspaceDomain>>;
@@ -9267,6 +10174,14 @@ export type Workspace = {
    * response to page further.
    */
   externalDataSources?: Maybe<ExternalDataSourceCollection>;
+  /**
+   * The capabilities a workspace role of this kind may be built from, derived from the server's
+   * policy registry. Deliberately not a client-side list: a hand-maintained one drifts the day a
+   * feature ships.
+   */
+  grantableFeatures: Array<GrantableFeature>;
+  /** The user groups this workspace has authored. */
+  groups: WorkspaceGroupCollection;
   /** @deprecated Use specific auth policies instead */
   hasAccessToFeature: Scalars['Boolean']['output'];
   id: Scalars['ID']['output'];
@@ -9308,6 +10223,13 @@ export type Workspace = {
   readOnly: Scalars['Boolean']['output'];
   /** Active user's role for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   role?: Maybe<Scalars['String']['output']>;
+  /** The identity behind `role`; null when the active user holds no role here. */
+  roleDefinition?: Maybe<RoleIdentity>;
+  /**
+   * The roles assignable in this workspace — the built-in catalog plus whatever this workspace has
+   * authored.
+   */
+  roleDefinitions: Array<WorkspaceRoleDefinition>;
   scim?: Maybe<WorkspaceScimConfig>;
   /** Active user's seat type for this workspace. `null` if request is not authenticated, or the workspace is not explicitly shared with you. */
   seatType?: Maybe<WorkspaceSeatType>;
@@ -9324,8 +10246,27 @@ export type Workspace = {
    */
   supportSessions: WorkspaceSupportSessionCollection;
   team: WorkspaceCollaboratorCollection;
+  /** @deprecated Only counts the three built-in roles, so anyone holding a role the workspace created itself is counted in none of the buckets and the three do not add up to `team.totalCount`. Use `teamComposition`. */
   teamByRole: WorkspaceTeamByRole;
+  /**
+   * How many members hold each role — one entry per role that somebody actually holds, including
+   * roles this workspace created itself.
+   *
+   * Use this instead of `teamByRole`, whose fixed admin/member/guest buckets cannot count a custom
+   * role: its holders appear in `team.totalCount` and in none of the three buckets, so the breakdown
+   * comes out smaller than the total it is breaking down.
+   *
+   * Roles nobody holds are left out, so these counts always add up to `team.totalCount`.
+   *
+   * Requires workspace membership.
+   */
+  teamComposition: Array<WorkspaceRoleComposition>;
   updatedAt: Scalars['DateTime']['output'];
+  /**
+   * Traction and feature-adoption analytics for this workspace.
+   * Requires workspace admin access.
+   */
+  usageAnalytics?: Maybe<WorkspaceUsageAnalytics>;
 };
 
 
@@ -9342,10 +10283,25 @@ export type WorkspaceAiSkillsArgs = {
 };
 
 
+export type WorkspaceAiTokenUsageArgs = {
+  filter?: InputMaybe<WorkspaceUsageAnalyticsFilter>;
+};
+
+
+export type WorkspaceAssignableRolesArgs = {
+  resourceType: WorkspaceRoleResourceType;
+};
+
+
 export type WorkspaceAutomateFunctionsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<AutomateFunctionsFilter>;
   limit?: Scalars['Int']['input'];
+};
+
+
+export type WorkspaceBaseRoleOptionsArgs = {
+  resourceType: WorkspaceRoleResourceType;
 };
 
 
@@ -9364,6 +10320,18 @@ export type WorkspaceExternalDataSourceArgs = {
 export type WorkspaceExternalDataSourcesArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<ExternalDataSourceFilter>;
+  limit?: Scalars['Int']['input'];
+};
+
+
+export type WorkspaceGrantableFeaturesArgs = {
+  resourceType: WorkspaceRoleResourceType;
+};
+
+
+export type WorkspaceGroupsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<WorkspaceGroupFilter>;
   limit?: Scalars['Int']['input'];
 };
 
@@ -9401,6 +10369,11 @@ export type WorkspaceProjectsArgs = {
 };
 
 
+export type WorkspaceRoleDefinitionsArgs = {
+  filter?: InputMaybe<WorkspaceRoleDefinitionFilter>;
+};
+
+
 export type WorkspaceShareTokensArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<WorkspaceShareTokensFilter>;
@@ -9421,10 +10394,129 @@ export type WorkspaceTeamArgs = {
   limit?: Scalars['Int']['input'];
 };
 
+
+export type WorkspaceUsageAnalyticsArgs = {
+  filter?: InputMaybe<WorkspaceUsageAnalyticsFilter>;
+  range?: WorkspaceUsageAnalyticsRange;
+};
+
+/**
+ * A workspace's AI capacity pool: a one-off credit drawn down at the marked-up
+ * cost of each AI call. Dollar figures are shown to everyone who can use AI in
+ * the workspace, guests included.
+ */
+export type WorkspaceAiCapacity = {
+  __typename?: 'WorkspaceAiCapacity';
+  /**
+   * Effective allowance in USD: the workspace's `aiCreditUsd` limit, i.e. its
+   * plan default with any admin override applied.
+   */
+  allowanceUsd: Scalars['Float']['output'];
+  /**
+   * When the current credit started. Null for a workspace that has never spent,
+   * i.e. an untouched full pot.
+   */
+  initializedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Remaining capacity in USD. Floors at 0. */
+  remainingUsd: Scalars['Float']['output'];
+  /** Coarse health of the pool, derived from usedPercent. */
+  status: WorkspaceAiCapacityStatus;
+  /**
+   * Fraction of the pool used, 0-100. Caps at 100: mid-turn overshoot is allowed
+   * by design and never renders above the pool.
+   */
+  usedPercent: Scalars['Float']['output'];
+  /** Amount drawn down so far, in USD. */
+  usedUsd: Scalars['Float']['output'];
+};
+
+/**
+ * Coarse AI capacity health. `warning` at 80% used, `exhausted` at 100% used (or
+ * a zero allowance).
+ */
+export enum WorkspaceAiCapacityStatus {
+  /** The credit is fully spent; new AI actions are blocked. */
+  Exhausted = 'exhausted',
+  /** Under the warning threshold; AI actions proceed normally. */
+  Ok = 'ok',
+  /** 80% or more of the credit is used; AI actions still proceed. */
+  Warning = 'warning'
+}
+
+/**
+ * Workspace-level AI settings. AI enablement rides the `aiChat` workspace plan
+ * feature and records terms acceptance; provider rollout choices use their own
+ * workspace feature grants.
+ */
+export type WorkspaceAiChatMutations = {
+  __typename?: 'WorkspaceAiChatMutations';
+  /**
+   * Opt the workspace into AI, accepting the current AI terms on its behalf. Any
+   * workspace member may call this, guests excluded (see
+   * WorkspacePermissionChecks.canOptInToAiChat). Fails when the workspace already
+   * has AI. Returns the updated workspace.
+   */
+  optIn: Workspace;
+  /**
+   * Turn AI on or off for the workspace. Workspace admins only, works in both
+   * directions and on every plan (see
+   * WorkspacePermissionChecks.canManageAiChatEnabled). Setting the state the
+   * workspace is already in is a no-op and records nothing. Disabling hides the
+   * feature but keeps stored conversations and the workspace's AI spend. Returns
+   * the updated workspace.
+   */
+  setEnabled: Workspace;
+  /**
+   * Route this workspace's AI chat through OpenRouter using the OpenAI model
+   * ladder. Workspace admins only, and the workspace must already have AI chat
+   * enabled. Returns the updated workspace.
+   */
+  setOpenAIEnabled: Workspace;
+};
+
+
+/**
+ * Workspace-level AI settings. AI enablement rides the `aiChat` workspace plan
+ * feature and records terms acceptance; provider rollout choices use their own
+ * workspace feature grants.
+ */
+export type WorkspaceAiChatMutationsOptInArgs = {
+  workspaceId: Scalars['String']['input'];
+};
+
+
+/**
+ * Workspace-level AI settings. AI enablement rides the `aiChat` workspace plan
+ * feature and records terms acceptance; provider rollout choices use their own
+ * workspace feature grants.
+ */
+export type WorkspaceAiChatMutationsSetEnabledArgs = {
+  enabled: Scalars['Boolean']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
+
+/**
+ * Workspace-level AI settings. AI enablement rides the `aiChat` workspace plan
+ * feature and records terms acceptance; provider rollout choices use their own
+ * workspace feature grants.
+ */
+export type WorkspaceAiChatMutationsSetOpenAiEnabledArgs = {
+  enabled: Scalars['Boolean']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
 export type WorkspaceBillingMutations = {
   __typename?: 'WorkspaceBillingMutations';
+  /** Persist the server-derived Team upgrade qualification for a workspace. */
+  qualifyTeamPlan: WorkspacePlan;
   upgradePlan: Scalars['Boolean']['output'];
   upgradeToPaidPlan: Invoice;
+};
+
+
+export type WorkspaceBillingMutationsQualifyTeamPlanArgs = {
+  input: QualifyTeamPlanInput;
 };
 
 
@@ -9447,6 +10539,8 @@ export type WorkspaceCollaborator = {
   permissions: WorkspaceCollaboratorPermissionChecks;
   projectRoles: Array<ProjectRole>;
   role: Scalars['String']['output'];
+  /** The identity behind `role`. Null only if the id names a definition that no longer exists. */
+  roleDefinition?: Maybe<RoleIdentity>;
   seatType?: Maybe<WorkspaceSeatType>;
   user: LimitedUser;
 };
@@ -9467,6 +10561,14 @@ export type WorkspaceCollaboratorPermissionChecks = {
   canChangeSeatType: PermissionCheckResult;
   canRemove: PermissionCheckResult;
   canUpdateRole: PermissionCheckResult;
+  /**
+   * Every role this collaborator could be moved to, with the per-role answer — the whole picker in one
+   * field, instead of a fixed set of aliased `canUpdateRole` calls that cannot follow a catalog whose
+   * size the workspace decides.
+   *
+   * Follows `Workspace.assignableRoles`, so it shrinks to built-ins in a degraded deployment.
+   */
+  canUpdateRoleTo: Array<RoleAssignability>;
 };
 
 
@@ -9484,7 +10586,7 @@ export type WorkspaceCollaboratorPermissionChecksCanChangeSeatTypeArgs = {
  * The target user is implied by the parent collaborator.
  */
 export type WorkspaceCollaboratorPermissionChecksCanUpdateRoleArgs = {
-  role: WorkspaceRole;
+  roleId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type WorkspaceCollection = {
@@ -9725,38 +10827,147 @@ export type WorkspaceFeatureGrantUpdateInput = {
 export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
   AiChat = 'aiChat',
+  AiChatOpenAi = 'aiChatOpenAI',
   Automate = 'automate',
   BentleyIntegration = 'bentleyIntegration',
-  /** @deprecated Use projectDashboards instead. Value will be dropped after July 19, 2026. */
-  Dashboards = 'dashboards',
   DashboardsExperimental = 'dashboardsExperimental',
   DatabricksIntegration = 'databricksIntegration',
   DomainBasedSecurityPolicies = 'domainBasedSecurityPolicies',
   DomainDiscoverability = 'domainDiscoverability',
-  EmbedPrivateProjects = 'embedPrivateProjects',
+  DynamicRoles = 'dynamicRoles',
   ExclusiveMembership = 'exclusiveMembership',
-  Frontend3 = 'frontend3',
   HelpCenter = 'helpCenter',
   HideSpeckleBranding = 'hideSpeckleBranding',
-  Issues = 'issues',
-  Markup = 'markup',
+  /**
+   * Route all of the workspace's syncs and file uploads onto the legacy conversion
+   * rails, producing old-era version output. Admin-granted; requires the
+   * FF_LEGACY_CONVERSIONS_ENABLED deployment flag.
+   */
+  LegacyConversions = 'legacyConversions',
   MicrosoftFabricIntegration = 'microsoftFabricIntegration',
   ModelValidation = 'modelValidation',
   OidcSso = 'oidcSso',
   PortfolioDashboards = 'portfolioDashboards',
-  Presentation = 'presentation',
-  /** @deprecated Use presentation instead. Value will be dropped after July 19, 2026. */
-  Presentations = 'presentations',
   ProjectArchival = 'projectArchival',
-  ProjectDashboards = 'projectDashboards',
-  ProjectMetadata = 'projectMetadata',
-  SavedViews = 'savedViews',
   Scim2Provisioning = 'scim2Provisioning',
   SnowflakeIntegration = 'snowflakeIntegration',
-  Viewer3 = 'viewer3',
-  ViewerTable = 'viewerTable',
+  TrimbleIntegration = 'trimbleIntegration',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
 }
+
+/**
+ * A named set of workspace members, each carrying the project role they hold wherever the group is
+ * attached. Membership confers nothing on its own — a group reaches a project only once it is attached,
+ * which is what makes a group one action instead of twenty invites rather than twenty hidden ones.
+ */
+export type WorkspaceGroup = {
+  __typename?: 'WorkspaceGroup';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  members: WorkspaceGroupMemberCollection;
+  name: Scalars['String']['output'];
+  permissions: WorkspaceGroupPermissionChecks;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/**
+ * A named set of workspace members, each carrying the project role they hold wherever the group is
+ * attached. Membership confers nothing on its own — a group reaches a project only once it is attached,
+ * which is what makes a group one action instead of twenty invites rather than twenty hidden ones.
+ */
+export type WorkspaceGroupMembersArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+};
+
+export type WorkspaceGroupCollection = {
+  __typename?: 'WorkspaceGroupCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<WorkspaceGroup>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceGroupFilter = {
+  /** Match on group name, case-insensitively. */
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type WorkspaceGroupMember = {
+  __typename?: 'WorkspaceGroupMember';
+  createdAt: Scalars['DateTime']['output'];
+  roleId: Scalars['String']['output'];
+  user: LimitedUser;
+};
+
+export type WorkspaceGroupMemberCollection = {
+  __typename?: 'WorkspaceGroupMemberCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<WorkspaceGroupMember>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceGroupMemberInput = {
+  /**
+   * A project-kind role id — built-in or one this workspace authored. The user must already be a member
+   * of the workspace: adding someone to a group is not an invite and never creates one.
+   */
+  roleId: Scalars['String']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+export type WorkspaceGroupMutations = {
+  __typename?: 'WorkspaceGroupMutations';
+  /** Adds the named users, or re-roles them if already in the group. */
+  addMembers: WorkspaceGroup;
+  create: WorkspaceGroup;
+  delete: Scalars['Boolean']['output'];
+  /**
+   * Removal names its users. There is deliberately no declarative "set the whole membership" form: a
+   * stale client list would silently evict whoever another editor had just added.
+   */
+  removeMembers: WorkspaceGroup;
+  setMemberRole: WorkspaceGroup;
+  update: WorkspaceGroup;
+};
+
+
+export type WorkspaceGroupMutationsAddMembersArgs = {
+  input: AddWorkspaceGroupMembersInput;
+};
+
+
+export type WorkspaceGroupMutationsCreateArgs = {
+  input: CreateWorkspaceGroupInput;
+};
+
+
+export type WorkspaceGroupMutationsDeleteArgs = {
+  input: DeleteWorkspaceGroupInput;
+};
+
+
+export type WorkspaceGroupMutationsRemoveMembersArgs = {
+  input: RemoveWorkspaceGroupMembersInput;
+};
+
+
+export type WorkspaceGroupMutationsSetMemberRoleArgs = {
+  input: SetWorkspaceGroupMemberRoleInput;
+};
+
+
+export type WorkspaceGroupMutationsUpdateArgs = {
+  input: UpdateWorkspaceGroupInput;
+};
+
+export type WorkspaceGroupPermissionChecks = {
+  __typename?: 'WorkspaceGroupPermissionChecks';
+  canDelete: PermissionCheckResult;
+  canManageMembers: PermissionCheckResult;
+  canUpdate: PermissionCheckResult;
+};
 
 /** One of the fields must be set, with id taking precedence */
 export type WorkspaceIdOrSlug = {
@@ -9779,6 +10990,13 @@ export type WorkspaceIntegrations = {
    * is enforced once here; the whole subtree below inherits it.
    */
   projectWise?: Maybe<ProjectWiseIntegration>;
+  /**
+   * Trimble Connect integration entry point for this workspace. Nullable so that
+   * a disabled Trimble module / missing plan feature isolates to this field.
+   * Authorization (workspace membership + the `trimbleIntegration` plan feature)
+   * is enforced once here; the whole subtree below inherits it.
+   */
+  trimbleConnect?: Maybe<TrimbleConnectIntegration>;
 };
 
 
@@ -9789,8 +11007,11 @@ export type WorkspaceIntegrationsAccArgs = {
 export type WorkspaceInviteCreateInput = {
   /** Either this or userId must be filled */
   email?: InputMaybe<Scalars['String']['input']>;
-  /** Defaults to the member role, if not specified */
-  role?: InputMaybe<WorkspaceRole>;
+  /**
+   * A raw workspace role value, e.g. "workspace:member". Takes precedence over `role`.
+   * Defaults to the member role, if neither is specified.
+   */
+  roleId?: InputMaybe<Scalars['String']['input']>;
   /** The workspace seat type to assign to the user upon accepting the invite. */
   seatType?: InputMaybe<WorkspaceSeatType>;
   /** Defaults to User, if not specified */
@@ -9949,6 +11170,8 @@ export enum WorkspaceJoinRequestStatus {
 
 export type WorkspaceLimits = {
   __typename?: 'WorkspaceLimits';
+  /** One-off AI credit in whole USD. Null is uncapped: AI is never blocked on spend. */
+  aiCreditUsd?: Maybe<Scalars['Int']['output']>;
   commentsHistoryInDays?: Maybe<Scalars['Int']['output']>;
   dashboardCount?: Maybe<Scalars['Int']['output']>;
   modelCount?: Maybe<Scalars['Int']['output']>;
@@ -9965,6 +11188,7 @@ export type WorkspaceLimits = {
  * - "unset" to unset override, go back to defaults
  */
 export type WorkspaceLimitsInput = {
+  aiCreditUsd?: InputMaybe<Scalars['String']['input']>;
   commentsHistoryInDays?: InputMaybe<Scalars['String']['input']>;
   dashboardCount?: InputMaybe<Scalars['String']['input']>;
   modelCount?: InputMaybe<Scalars['String']['input']>;
@@ -10034,6 +11258,11 @@ export type WorkspaceMicrosoftFabricConnectionTestResult = {
 export type WorkspaceMutations = {
   __typename?: 'WorkspaceMutations';
   addDomain: Workspace;
+  /**
+   * Namespace for turning the AI assistant on or off for a workspace. Not to be
+   * confused with `aiChatMutations`, which operates on conversations.
+   */
+  aiChat: WorkspaceAiChatMutations;
   billing: WorkspaceBillingMutations;
   create: Workspace;
   dataWarehouses: WorkspaceDataWarehouseMutations;
@@ -10053,10 +11282,17 @@ export type WorkspaceMutations = {
   deleteSsoProvider: Scalars['Boolean']['output'];
   /** Revoke the SSO session for a specific user in a workspace. Only workspace admins can perform this action. */
   deleteSsoSession: Scalars['Boolean']['output'];
+  /**
+   * Delete the workspace's saved Trimble Connect connection. Caller must be the
+   * credential owner or a workspace admin. Background syncs relying on it will
+   * pause on their next poll.
+   */
+  deleteTrimbleCredential: Scalars['Boolean']['output'];
   disableScim: Scalars['Boolean']['output'];
   /** Dismiss a workspace from the discoverable list, behind the scene a join request is created with the status "dismissed" */
   dismiss: Scalars['Boolean']['output'];
   enableScim: WorkspaceScimTokenResult;
+  groups: WorkspaceGroupMutations;
   invites: WorkspaceInviteMutations;
   issueLabels: WorkspaceIssueLabelMutations;
   leave: Scalars['Boolean']['output'];
@@ -10064,20 +11300,29 @@ export type WorkspaceMutations = {
   projects: WorkspaceProjectMutations;
   regenerateScimToken: WorkspaceScimTokenResult;
   requestToJoin: Scalars['Boolean']['output'];
+  roleDefinitions: WorkspaceRoleDefinitionMutations;
   /**
    * Save (upsert) an on-premises ProjectWise Basic Auth credential set for the
    * calling user. Credentials are encrypted server-side before storage.
    */
   saveProjectwiseCredential: SaveProjectwiseCredentialResult;
+  /**
+   * Save (upsert) the workspace's Trimble Connect service-account connection.
+   * The token pair comes from a normal interactive Trimble login in the browser;
+   * it is encrypted server-side and rotated automatically on refresh.
+   */
+  saveTrimbleCredential: TrimbleConnectCredentialInfo;
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
   setProjectMetadataSchema: Workspace;
   /**
-   * Set the minimum workspace role (by weight) at or above which an active SSO session is
-   * forced. Accepts a raw workspace role value (e.g. "workspace:member"). Requires an SSO
-   * provider to already be configured for the workspace.
+   * Turn the SSO session requirement on or off for one workspace role. Requires an SSO provider to
+   * already be configured for the workspace.
+   *
+   * One role per call rather than a whole set: a client that read the catalog before a role was
+   * authored would otherwise write that role back as exempt, defeating the opt-out default.
    */
-  setWorkspaceSsoMinimumRole: Scalars['Boolean']['output'];
+  setWorkspaceSsoRoleRequirement: Workspace;
   /** Support session management mutations */
   support: WorkspaceSupportMutations;
   update: Workspace;
@@ -10133,6 +11378,12 @@ export type WorkspaceMutationsDeleteSsoSessionArgs = {
 };
 
 
+export type WorkspaceMutationsDeleteTrimbleCredentialArgs = {
+  id: Scalars['String']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
+
 export type WorkspaceMutationsDisableScimArgs = {
   workspaceId: Scalars['String']['input'];
 };
@@ -10168,6 +11419,11 @@ export type WorkspaceMutationsSaveProjectwiseCredentialArgs = {
 };
 
 
+export type WorkspaceMutationsSaveTrimbleCredentialArgs = {
+  input: SaveTrimbleCredentialInput;
+};
+
+
 export type WorkspaceMutationsSetDefaultRegionArgs = {
   regionKey: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
@@ -10179,8 +11435,8 @@ export type WorkspaceMutationsSetProjectMetadataSchemaArgs = {
 };
 
 
-export type WorkspaceMutationsSetWorkspaceSsoMinimumRoleArgs = {
-  input: SetWorkspaceSsoMinimumRoleInput;
+export type WorkspaceMutationsSetWorkspaceSsoRoleRequirementArgs = {
+  input: SetWorkspaceSsoRoleRequirementInput;
 };
 
 
@@ -10218,6 +11474,8 @@ export type WorkspacePaidPlanPrices = {
   business: WorkspacePlanPrice;
   /** Price of a single Business plan add-on pack (grants extra projects and versions). */
   businessAddOn: WorkspacePlanPrice;
+  /** Price of a single extra user on the Business plan (raises the user limit by one). */
+  businessExtraUser: WorkspacePlanPrice;
 };
 
 export enum WorkspacePaymentMethod {
@@ -10233,10 +11491,17 @@ export type WorkspacePermissionChecks = {
   /** Whether the current user can access the help center for this workspace, eg. support chats, etc */
   canAccessHelpCenter: PermissionCheckResult;
   canAccessSso: PermissionCheckResult;
-  canAccessViewer3: PermissionCheckResult;
   /** Whether the current user can add additional server admins to their currently-active support session in this workspace. */
   canAddAdminToSupportSession: PermissionCheckResult;
   canChangeSeatType: PermissionCheckResult;
+  /**
+   * Whether the current user can still start new AI work in this workspace: the
+   * `canUseAiChat` gates all pass AND the workspace's AI credit is not spent.
+   * Frontend pre-disables the composer and AI actions on this, with the check's
+   * `errorMessage` as the explanation. Reading past conversations stays gated on
+   * `canUseAiChat` alone.
+   */
+  canConsumeAiCapacity: PermissionCheckResult;
   /**
    * Whether the current user can create an AI skill in this workspace. Member +
    * write, gated on the workspace plan granting `aiChat`. Frontend disables the
@@ -10246,6 +11511,13 @@ export type WorkspacePermissionChecks = {
   canCreateDashboards: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
   canCreateResourceMeta: PermissionCheckResult;
+  /**
+   * Whether a new role may be authored here — the gate on the editor's create route.
+   *
+   * Write-tier where `canListRoles` is read-tier, so the two genuinely differ: authoring is a reserved
+   * capability no authored role can hold, which leaves the built-in workspace admin as its only holder.
+   */
+  canCreateRole: PermissionCheckResult;
   canDelete: PermissionCheckResult;
   canDeleteInvite: PermissionCheckResult;
   canDeleteResourceMeta: PermissionCheckResult;
@@ -10254,10 +11526,45 @@ export type WorkspacePermissionChecks = {
   canEditWorkspaceIssueLabels: PermissionCheckResult;
   canEditWorkspaceProjectLabels: PermissionCheckResult;
   canInvite: PermissionCheckResult;
+  /**
+   * Every role somebody could be invited into this workspace as, with the per-role answer — the
+   * invite picker in one field, for the same reason `canUpdateRoleTo` is one: the catalog's size is
+   * the workspace's to decide, so a fixed set of fields cannot follow it.
+   *
+   * Answers `canInvite` narrowed to one role, so an entry can never offer what the mutation would
+   * refuse. Refused entries are carried rather than dropped, so the picker can show why.
+   */
+  canInviteAs: Array<RoleAssignability>;
   canLeave: PermissionCheckResult;
+  /**
+   * Whether the current user can read this workspace's AI rules. Any member,
+   * guests included, AND the workspace plan granting `aiChat`. Frontend gates the
+   * rules settings page visibility on this.
+   */
+  canListAiRules: PermissionCheckResult;
+  canListArchivedProjects: PermissionCheckResult;
   canListDashboards: PermissionCheckResult;
+  /**
+   * Whether this workspace's role catalog can be listed — the gate on the Roles settings surface.
+   *
+   * Folds in the dynamic-roles plan grant, so a client needs no second entitlement check, and answers
+   * unauthorised rather than throwing when the module is off.
+   */
+  canListRoles: PermissionCheckResult;
   canListShareTokens: PermissionCheckResult;
   canMakeWorkspaceExclusive: PermissionCheckResult;
+  /**
+   * Whether the current user can turn AI on or off for this workspace. Workspace
+   * admins only, independent of the current state — it gates the both-ways
+   * toggle in workspace settings.
+   */
+  canManageAiChatEnabled: PermissionCheckResult;
+  /**
+   * Whether the current user can administer this workspace's AI rules. Workspace
+   * admin AND the workspace plan granting `aiChat`. Drives every management
+   * affordance in the rules settings page, creation included.
+   */
+  canManageAiRules: PermissionCheckResult;
   canManageDomainBasedSecurityPolicies: PermissionCheckResult;
   canManageInvites: PermissionCheckResult;
   canManageJoinRequests: PermissionCheckResult;
@@ -10268,6 +11575,14 @@ export type WorkspacePermissionChecks = {
   canManageSupportSessions: PermissionCheckResult;
   canManageVerifiedDomains: PermissionCheckResult;
   canMoveProjectToWorkspace: PermissionCheckResult;
+  /**
+   * Whether the current user can opt this workspace into AI: a member (guests
+   * excluded) of a workspace that does not have the feature yet. Authorized
+   * becomes `false` again once the workspace has AI, so the frontend can tell
+   * "not on, but you may turn it on" (show the opt-in CTA) apart from "already
+   * on" and "not available on this deployment".
+   */
+  canOptInToAiChat: PermissionCheckResult;
   canReadAutomateFunctions: PermissionCheckResult;
   canReadAutomateSettings: PermissionCheckResult;
   canReadBillingSettings: PermissionCheckResult;
@@ -10281,6 +11596,8 @@ export type WorkspacePermissionChecks = {
   canReadSecuritySettings: PermissionCheckResult;
   /** Whether the current user can read/list support sessions for this workspace */
   canReadSupportSessions: PermissionCheckResult;
+  /** Whether the active user can view workspace usage analytics. */
+  canReadUsageAnalytics: PermissionCheckResult;
   canReadWorkspaceIssueLabels: PermissionCheckResult;
   canReadWorkspaceProjectLabels: PermissionCheckResult;
   canRejectJoinRequest: PermissionCheckResult;
@@ -10309,7 +11626,7 @@ export type WorkspacePermissionChecks = {
   /**
    * Whether the current user can use the AI chat feature in this workspace.
    * Two gates compose:
-   *   - Workspace membership (any role from Guest upward) with a valid SSO
+   *   - Workspace membership of any kind, guests included, with a valid SSO
    *     session and write-mode policy semantics.
    *   - The workspace's plan grants `aiChat`. Default off — operators grant
    *     per workspace until the public plan story is finalised.
@@ -10318,9 +11635,24 @@ export type WorkspacePermissionChecks = {
    * the same policy.
    */
   canUseAiChat: PermissionCheckResult;
+  canUseDatabricksIntegration: PermissionCheckResult;
   canUseExperimentalDashboardFeatures: PermissionCheckResult;
   canUseInvite: PermissionCheckResult;
+  canUseMicrosoftFabricIntegration: PermissionCheckResult;
   canUsePowerTools: PermissionCheckResult;
+  /**
+   * Whether the current user may invoke the query engine of this workspace — the
+   * workspace-anchored gate of the query engine REST endpoint. Two gates compose:
+   *   - Workspace membership (any role from Guest upward) with a valid SSO
+   *     session, in read mode.
+   *   - The workspace's plan grants `aiChat` (the engine is the AI chat's sql
+   *     executor, so its entitlement follows the chat's).
+   * Per-ref data authorization still runs on every engine request; this check is
+   * the endpoint prerequisite, so clients can hide or disable the sql tool
+   * instead of surfacing mid-chat errors.
+   */
+  canUseQueryEngine: PermissionCheckResult;
+  canUseSnowflakeIntegration: PermissionCheckResult;
   canViewUpgradeOptions: PermissionCheckResult;
 };
 
@@ -10342,7 +11674,7 @@ export type WorkspacePermissionChecksCanMoveProjectToWorkspaceArgs = {
 
 
 export type WorkspacePermissionChecksCanUpdateRoleArgs = {
-  targetRole: WorkspaceRole;
+  targetRoleId?: InputMaybe<Scalars['String']['input']>;
   targetUserId: Scalars['String']['input'];
 };
 
@@ -10372,17 +11704,45 @@ export type WorkspacePlan = {
   limits: WorkspaceLimits;
   name: WorkspacePlans;
   paymentMethod: WorkspacePaymentMethod;
+  /** Persisted routing outcome for Explorer-to-Team upgrade intents. */
+  qualification?: Maybe<WorkspacePlanQualification>;
+  /** Time at which the workspace was classified. */
+  qualifiedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** User who classified the workspace. Null when that user has been deleted. */
+  qualifiedByUserId?: Maybe<Scalars['ID']['output']>;
   status: WorkspacePlanStatuses;
   usage: WorkspacePlanUsage;
   /** Set when status is Trial. Indicates when the trial expires. */
   validUntil?: Maybe<Scalars['DateTime']['output']>;
 };
 
+/** Employee-count ranges used to determine Team self-serve eligibility. */
+export enum WorkspacePlanEmployeeRange {
+  /** Between 1 and 20 employees. */
+  Employees1To20 = 'employees1To20',
+  /** Between 21 and 100 employees. */
+  Employees21To100 = 'employees21To100',
+  /** Between 101 and 500 employees. */
+  Employees101To500 = 'employees101To500',
+  /** Between 501 and 1,000 employees. */
+  Employees501To1000 = 'employees501To1000',
+  /** More than 1,000 employees. */
+  Employees1001Plus = 'employees1001Plus'
+}
+
 export type WorkspacePlanPrice = {
   __typename?: 'WorkspacePlanPrice';
   monthly: Price;
   yearly: Price;
 };
+
+/** Routing outcome for Explorer-to-Team upgrade intents. */
+export enum WorkspacePlanQualification {
+  /** The workspace must contact Sales and may not purchase Team directly. */
+  SalesOnly = 'salesOnly',
+  /** The workspace may purchase Team through self-serve checkout. */
+  SelfServe = 'selfServe'
+}
 
 export enum WorkspacePlanStatuses {
   CancelationScheduled = 'cancelationScheduled',
@@ -10417,6 +11777,11 @@ export enum WorkspacePlans {
   Unlimited = 'unlimited'
 }
 
+/** A structural privacy layer a workspace role may be cleared to reach through. */
+export enum WorkspacePrivacyType {
+  ProjectPrivate = 'projectPrivate'
+}
+
 /** Activity-derived signals about workspace projects (e.g. for upgrade-segment heuristics). */
 export type WorkspaceProjectActivity = {
   __typename?: 'WorkspaceProjectActivity';
@@ -10425,6 +11790,12 @@ export type WorkspaceProjectActivity = {
 };
 
 export type WorkspaceProjectActivityTimelineInput = {
+  /**
+   * End of the activity window (exclusive). Defaults to now; future values are
+   * clamped to now. The window is [before - dateRangeDays, before). Used by the
+   * timeline widget to pan back through history. Ignored when cursor is provided.
+   */
+  before?: InputMaybe<Scalars['DateTime']['input']>;
   /**
    * Opaque cursor from a previous response. When provided, withProjectRoleOnly and projectLimit are ignored.
    * Encodes the locked-in project set and next date boundary.
@@ -10437,6 +11808,16 @@ export type WorkspaceProjectActivityTimelineInput = {
    * while this controls how far back from that boundary to look.
    */
   dateRangeDays?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Lock the project set: skip discovery, revalidate access and return a group
+   * for exactly these projects, in the given order (duplicates removed),
+   * including projects with zero versions in the window (inaccessible ids are
+   * dropped). withProjectRoleOnly and projectLimit are ignored. Max 50 ids
+   * (more errors); an empty list returns an empty result. Mutually exclusive
+   * with cursor — cursor wins when both are set. Used while panning so lanes
+   * stay stable.
+   */
+  projectIds?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Max projects to discover by updatedAt DESC. Default: 20. Ignored when cursor is provided. */
   projectLimit?: InputMaybe<Scalars['Int']['input']>;
   /**
@@ -10457,6 +11838,13 @@ export type WorkspaceProjectActivityTimelineResult = {
   __typename?: 'WorkspaceProjectActivityTimelineResult';
   /** Opaque cursor for loading older data. Null when no more data is available. */
   cursor?: Maybe<Scalars['String']['output']>;
+  /**
+   * Timestamp of the oldest version across the returned project set, ignoring
+   * the window. Null when there are no versions. Drives the "beginning of
+   * history" pan clamp. Only computed for discovery requests — null whenever
+   * projectIds or cursor is set.
+   */
+  earliestEventAt?: Maybe<Scalars['DateTime']['output']>;
   /** Projects with their versions, ordered by most recent version DESC. */
   projectGroups: Array<WorkspaceProjectActivityTimelineProjectGroup>;
 };
@@ -10605,12 +11993,22 @@ export type WorkspaceProjectMutationsUpdateRoleArgs = {
 };
 
 export type WorkspaceProjectsFilter = {
-  /** Include archived projects in results. Only respected for workspace admins; silently ignored for non-admins. */
+  /**
+   * Only return archived projects. Only respected for workspace admins of workspaces
+   * with the projectArchival feature; silently ignored otherwise.
+   */
+  archivedOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  /**
+   * Include archived projects in results. Only respected for workspace admins of workspaces
+   * with the projectArchival feature; silently ignored otherwise.
+   */
   includeArchived?: InputMaybe<Scalars['Boolean']['input']>;
   /** Filter projects by label ids (OR logic — returns projects that have any of the given labels) */
   labelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Filter out projects by name */
   search?: InputMaybe<Scalars['String']['input']>;
+  /** Only return projects that have no labels assigned */
+  unlabeledOnly?: InputMaybe<Scalars['Boolean']['input']>;
   /** Only return workspace projects that the active user has an explicit project role in */
   withProjectRoleOnly?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -10636,6 +12034,7 @@ export type WorkspaceRequestToJoinInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+/** A user's role within a workspace. */
 export enum WorkspaceRole {
   Admin = 'ADMIN',
   Guest = 'GUEST',
@@ -10647,10 +12046,119 @@ export type WorkspaceRoleCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/** How many people hold one particular role in this workspace. */
+export type WorkspaceRoleComposition = {
+  __typename?: 'WorkspaceRoleComposition';
+  role: RoleIdentity;
+  totalCount: Scalars['Int']['output'];
+};
+
+/** A named capability bundle a workspace can assign — built-in or authored. */
+export type WorkspaceRoleDefinition = {
+  __typename?: 'WorkspaceRoleDefinition';
+  /**
+   * What the role declares itself — an authored role's delta, or a built-in's whole template. May
+   * contain domain wildcards for a built-in; an authored delta is always concrete.
+   */
+  actions: Array<Scalars['String']['output']>;
+  /**
+   * The built-in role this one builds on, or null for the no-access foundation. Always null for a
+   * built-in. Admin-tier built-ins are not offered as bases: they already cover their whole menu, so a
+   * role based on one would be that role — see `Workspace.baseRoleOptions`.
+   */
+  baseRole?: Maybe<RoleIdentity>;
+  /**
+   * `base ∪ actions` — what the engine will actually use, and identical to `actions` for a built-in.
+   * Exposed separately so a reviewer auditing what a role does never has to re-implement base
+   * expansion.
+   *
+   * Patterns, not concrete actions: an admin-tier built-in's is a bare `project.*.admin`, which reads
+   * as "everything" rather than as a per-area breakdown. Every other template and every authored role
+   * is concrete.
+   */
+  effectiveActions: Array<Scalars['String']['output']>;
+  /** Who holds this role — a sample of them for an avatar stack, and the true total. */
+  holders: WorkspaceRoleHolderCollection;
+  id: Scalars['ID']['output'];
+  /**
+   * Name, description, kind and provenance — the same shape every other surface names a role with, so
+   * a client renders this row, its base and the delete dialog's replacement picker through one
+   * fragment. Built-in and authored roles are listed together, so they must read alike.
+   */
+  identity: RoleIdentity;
+  permissions: WorkspaceRoleDefinitionPermissionChecks;
+  /**
+   * Which privacy layers this role's inherited reach may cross. Workspace-kind roles only: a project
+   * role is assigned at its project, so it reaches nothing by inheritance and has nothing to cross.
+   */
+  privacyClearance: Array<WorkspacePrivacyType>;
+};
+
+
+/** A named capability bundle a workspace can assign — built-in or authored. */
+export type WorkspaceRoleDefinitionHoldersArgs = {
+  limit?: Scalars['Int']['input'];
+};
+
+export type WorkspaceRoleDefinitionFilter = {
+  resourceType?: InputMaybe<WorkspaceRoleResourceType>;
+};
+
+export type WorkspaceRoleDefinitionMutations = {
+  __typename?: 'WorkspaceRoleDefinitionMutations';
+  create: WorkspaceRoleDefinition;
+  delete: Scalars['Boolean']['output'];
+  update: WorkspaceRoleDefinition;
+};
+
+
+export type WorkspaceRoleDefinitionMutationsCreateArgs = {
+  input: CreateWorkspaceRoleDefinitionInput;
+};
+
+
+export type WorkspaceRoleDefinitionMutationsDeleteArgs = {
+  input: DeleteWorkspaceRoleDefinitionInput;
+};
+
+
+export type WorkspaceRoleDefinitionMutationsUpdateArgs = {
+  input: UpdateWorkspaceRoleDefinitionInput;
+};
+
+export type WorkspaceRoleDefinitionPermissionChecks = {
+  __typename?: 'WorkspaceRoleDefinitionPermissionChecks';
+  canDelete: PermissionCheckResult;
+  canUpdate: PermissionCheckResult;
+};
+
 export type WorkspaceRoleDeleteInput = {
   userId: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 };
+
+/**
+ * The people holding one role.
+ *
+ * Deliberately cursor-less: nothing lists holders, so `items` is a capped sample for an avatar stack
+ * while `totalCount` is the real answer. The two resolve independently, so asking for the number alone
+ * costs only the count.
+ */
+export type WorkspaceRoleHolderCollection = {
+  __typename?: 'WorkspaceRoleHolderCollection';
+  items: Array<LimitedUser>;
+  /**
+   * How many distinct people hold this role, counted across every store that can carry one: direct
+   * project roles, workspace roles and group memberships. Someone holding it by two paths counts once.
+   */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Which anchor kind a workspace role is valid at. A role is one or the other, never both. */
+export enum WorkspaceRoleResourceType {
+  Project = 'project',
+  Workspace = 'workspace'
+}
 
 export type WorkspaceRoleUpdateInput = {
   /** Leave role null to revoke access entirely */
@@ -10669,6 +12177,8 @@ export type WorkspaceSandboxCreatedMessage = {
 
 /** Pre-built example a sandbox can be populated from on creation. */
 export enum WorkspaceSandboxExampleInput {
+  /** AI assistant demo example. */
+  AiAssistant = 'AI_ASSISTANT',
   AiReadyDashboards = 'AI_READY_DASHBOARDS',
   CrossToolCollaborations = 'CROSS_TOOL_COLLABORATIONS',
   ModelValidation = 'MODEL_VALIDATION'
@@ -10707,21 +12217,10 @@ export type WorkspaceScimTokenResult = {
   token: Scalars['String']['output'];
 };
 
-export type WorkspaceSeatCollection = {
-  __typename?: 'WorkspaceSeatCollection';
-  totalCount: Scalars['Int']['output'];
-};
-
 export enum WorkspaceSeatType {
   Editor = 'editor',
   Viewer = 'viewer'
 }
-
-export type WorkspaceSeatsByType = {
-  __typename?: 'WorkspaceSeatsByType';
-  editors?: Maybe<WorkspaceSeatCollection>;
-  viewers?: Maybe<WorkspaceSeatCollection>;
-};
 
 export type WorkspaceShareTokensFilter = {
   createdByUserId?: InputMaybe<Scalars['String']['input']>;
@@ -10799,14 +12298,16 @@ export type WorkspaceSnowflakeConnectionTestResult = {
 
 export type WorkspaceSso = {
   __typename?: 'WorkspaceSso';
-  /**
-   * Minimum workspace role (by weight) at or above which an active SSO session is forced.
-   * Raw workspace role value (e.g. "workspace:member"). Defaults to "workspace:member"
-   * (guests bypass SSO).
-   */
-  minimumSsoRole: Scalars['String']['output'];
   /** If null, the workspace does not have SSO configured */
   provider?: Maybe<WorkspaceSsoProvider>;
+  /**
+   * Every workspace role that exists here, with whether its holders must maintain an active SSO
+   * session. The requirement is opt-OUT: a newly authored role is required until it is exempted.
+   *
+   * Lists workspace-authored roles even where the dynamic-roles feature is unavailable, because a
+   * stored role id keeps being enforced in that state.
+   */
+  roleRequirements: Array<WorkspaceSsoRoleRequirement>;
   session?: Maybe<WorkspaceSsoSession>;
 };
 
@@ -10827,6 +12328,13 @@ export type WorkspaceSsoProviderUpdateInput = {
   workspaceId: Scalars['ID']['input'];
 };
 
+export type WorkspaceSsoRoleRequirement = {
+  __typename?: 'WorkspaceSsoRoleRequirement';
+  /** Whether holders of this role must maintain an active SSO session. */
+  required: Scalars['Boolean']['output'];
+  role: RoleIdentity;
+};
+
 export type WorkspaceSsoSession = {
   __typename?: 'WorkspaceSsoSession';
   createdAt: Scalars['DateTime']['output'];
@@ -10840,6 +12348,8 @@ export type WorkspaceSubscription = {
   createdAt: Scalars['DateTime']['output'];
   currency: Currency;
   currentBillingCycleEnd: Scalars['DateTime']['output'];
+  /** Extra-user add-on state of the subscription */
+  extraUserAddOn: WorkspaceSubscriptionExtraUserAddOn;
   seats: WorkspaceSubscriptionSeats;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -10849,6 +12359,15 @@ export type WorkspaceSubscriptionAddOn = {
   /**
    * Total number of add-on packs currently purchased for the workspace (0 if none).
    * Each pack grants a fixed amount of extra projects and versions.
+   */
+  currentQuantity: Scalars['Int']['output'];
+};
+
+export type WorkspaceSubscriptionExtraUserAddOn = {
+  __typename?: 'WorkspaceSubscriptionExtraUserAddOn';
+  /**
+   * Number of extra users currently purchased for the workspace (0 if none). Each
+   * unit raises the workspace's user limit by one once its invoice is paid.
    */
   currentQuantity: Scalars['Int']['output'];
 };
@@ -11004,6 +12523,15 @@ export type WorkspaceTeamByRole = {
 };
 
 export type WorkspaceTeamFilter = {
+  /**
+   * Drop team members holding any of these role(s). Applied after `roles`.
+   *
+   * A deliberate role-IDENTITY exclusion, not a capability filter — its use is splitting the team page
+   * into "the built-in guests" and "everyone else", which is a composition question about named roles.
+   * Anything asking who can DO something takes a catalog from `getWorkspaceAccessRoles` and passes it
+   * as `roles` instead.
+   */
+  excludeRoles?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Limit team members to provided role(s) */
   roles?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Search for team members by name or email */
@@ -11042,6 +12570,441 @@ export type WorkspaceUpdatedMessage = {
   id: Scalars['String']['output'];
   /** Workspace itself */
   workspace: Workspace;
+};
+
+export type WorkspaceUsageAnalytics = {
+  __typename?: 'WorkspaceUsageAnalytics';
+  /** Counts and the redundancy grouping over the whole artifact scope. */
+  artifactSummary: WorkspaceUsageAnalyticsArtifactSummary;
+  /**
+   * Every dashboard and report currently in scope, with its projects and owner. Not limited to
+   * the selected range, which only marks `createdInRange`.
+   */
+  artifacts: WorkspaceUsageAnalyticsArtifactCollection;
+  featureAdoption: Array<WorkspaceUsageAnalyticsFeatureAdoption>;
+  /** Commit counts per ingest integration in the selected range. Web-app pseudo-sources excluded. */
+  integrations: Array<WorkspaceUsageAnalyticsIntegrationStats>;
+  /** Distinct active projects per calendar month. Always 12 months, oldest first, zero-filled. */
+  monthlyActiveProjects: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /** Distinct active users per calendar month. Always 12 months, oldest first, zero-filled. */
+  monthlyActiveUsers: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /**
+   * Distinct active people per project label per month, busiest first, the unlabelled bucket
+   * last. A person active in projects of two labels counts under each.
+   */
+  monthlyLabelActiveUsers: Array<WorkspaceUsageAnalyticsLabelMonthlyActiveUsers>;
+  /**
+   * The same series summed per project label, busiest first, the unlabelled bucket last. A
+   * project with several labels counts under each; group labels never appear since they are
+   * not assignable to projects.
+   */
+  monthlyLabelActivity: Array<WorkspaceUsageAnalyticsLabelMonthlyActivity>;
+  /**
+   * Monthly activity broken down by project: every scoped project active in the last 12
+   * months, busiest first. Same window and zero-fill as `monthlyActiveProjects`.
+   */
+  monthlyProjectActivity: Array<WorkspaceUsageAnalyticsProjectMonthlyActivity>;
+  /**
+   * Monthly activity broken down by actor: every attributed person active in the last 12
+   * months, busiest first. Anonymous operations are not a person and are left out.
+   */
+  monthlyUserActivity: Array<WorkspaceUsageAnalyticsUserMonthlyActivity>;
+  /** The same versions per month grouped by the integration that produced them. */
+  monthlyVersionsByIntegration: Array<WorkspaceUsageAnalyticsIntegrationMonthlyVersions>;
+  /**
+   * The same versions per month grouped by integration and the release of it they were published
+   * with, busiest first.
+   */
+  monthlyVersionsByIntegrationVersion: Array<WorkspaceUsageAnalyticsIntegrationVersionMonthlyVersions>;
+  /**
+   * Versions published per month over the last 12 months, per project, busiest first. Follows
+   * the project and member scope (member = version author), not the range.
+   */
+  monthlyVersionsByProject: Array<WorkspaceUsageAnalyticsProjectMonthlyVersions>;
+  /** Top 25 projects by event count in the selected range. */
+  mostActiveProjects: Array<WorkspaceUsageAnalyticsProjectLeaderboardEntry>;
+  /** Top 25 users by event count in the selected range. */
+  mostActiveUsers: Array<WorkspaceUsageAnalyticsUserLeaderboardEntry>;
+  /** Header figures over the whole sync scope. */
+  syncSummary: WorkspaceUsageAnalyticsSyncSummary;
+  /**
+   * Every CDE sync (ACC and ProjectWise together) in scope, active or not, with its owner and
+   * the range-scoped refresh and view signals.
+   */
+  syncs: WorkspaceUsageAnalyticsSyncCollection;
+  totals: WorkspaceUsageAnalyticsTotals;
+};
+
+
+export type WorkspaceUsageAnalyticsArtifactsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+  sortBy?: WorkspaceUsageAnalyticsArtifactSortBy;
+  sortDirection?: SortOrder;
+};
+
+
+export type WorkspaceUsageAnalyticsSyncsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
+  sortBy?: WorkspaceUsageAnalyticsSyncSortBy;
+  sortDirection?: SortOrder;
+};
+
+/** A dashboard or an AI report that exists in the workspace today. */
+export type WorkspaceUsageAnalyticsArtifact = {
+  __typename?: 'WorkspaceUsageAnalyticsArtifact';
+  createdAt: Scalars['DateTime']['output'];
+  /**
+   * Whether the artifact was created inside the selected range. The list itself is not
+   * range-limited: it always shows every artifact currently in scope.
+   */
+  createdInRange: Scalars['Boolean']['output'];
+  id: Scalars['ID']['output'];
+  kind: WorkspaceUsageAnalyticsArtifactKind;
+  name: Scalars['String']['output'];
+  owner?: Maybe<LimitedUser>;
+  /** Null when the owner has been deleted or the artifact was never attributed. */
+  ownerId?: Maybe<Scalars['ID']['output']>;
+  /**
+   * Projects the artifact is attached to. Dashboards: every linked project. Reports: the home
+   * project first, then every other project a section draws data from.
+   */
+  projects: Array<WorkspaceUsageAnalyticsArtifactProject>;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type WorkspaceUsageAnalyticsArtifactCollection = {
+  __typename?: 'WorkspaceUsageAnalyticsArtifactCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<WorkspaceUsageAnalyticsArtifact>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export enum WorkspaceUsageAnalyticsArtifactKind {
+  Dashboard = 'dashboard',
+  Report = 'report'
+}
+
+export type WorkspaceUsageAnalyticsArtifactProject = {
+  __typename?: 'WorkspaceUsageAnalyticsArtifactProject';
+  /** Null when the project has been deleted. */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+};
+
+/** A scoped project attached to more than one artifact. */
+export type WorkspaceUsageAnalyticsArtifactProjectGroup = {
+  __typename?: 'WorkspaceUsageAnalyticsArtifactProjectGroup';
+  artifacts: Array<WorkspaceUsageAnalyticsArtifact>;
+  /** Null when the project has been deleted. */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+};
+
+export enum WorkspaceUsageAnalyticsArtifactSortBy {
+  CreatedAt = 'createdAt',
+  Kind = 'kind',
+  Name = 'name',
+  UpdatedAt = 'updatedAt'
+}
+
+export type WorkspaceUsageAnalyticsArtifactSummary = {
+  __typename?: 'WorkspaceUsageAnalyticsArtifactSummary';
+  /** Artifacts (of either kind) created inside the selected range. */
+  createdInRange: Scalars['Int']['output'];
+  dashboardCount: Scalars['Int']['output'];
+  /**
+   * Scoped projects with more than one artifact attached, most artifacts first. Whole scope,
+   * independent of the artifacts page.
+   */
+  projectsWithMultipleArtifacts: Array<WorkspaceUsageAnalyticsArtifactProjectGroup>;
+  reportCount: Scalars['Int']['output'];
+};
+
+export enum WorkspaceUsageAnalyticsFeature {
+  AiConversations = 'aiConversations',
+  Automations = 'automations',
+  Comments = 'comments',
+  Dashboards = 'dashboards',
+  Insights = 'insights',
+  Reports = 'reports',
+  SavedViews = 'savedViews',
+  ShareTokens = 'shareTokens'
+}
+
+export type WorkspaceUsageAnalyticsFeatureAdoption = {
+  __typename?: 'WorkspaceUsageAnalyticsFeatureAdoption';
+  feature: WorkspaceUsageAnalyticsFeature;
+  /**
+   * Existing items by the calendar month they were created in, last 12 months, oldest first,
+   * zero-filled. Same surviving-items caveat as `total`.
+   */
+  monthlyCreations: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /**
+   * Count of items that exist today, over all of time. Deleted items are not counted, so this
+   * can go down: it is "how much has been built up", not an immutable all-time creation tally.
+   */
+  total: Scalars['Int']['output'];
+};
+
+/** Narrows every usage analytics figure. Omitted or empty means the whole workspace. */
+export type WorkspaceUsageAnalyticsFilter = {
+  /** Explicit projects. Combined (OR) with projectLabelIds. Ids outside the workspace are ignored. */
+  projectIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /**
+   * Projects carrying any of these workspace project labels. A group label stands for all of
+   * its child labels. Combined (OR) with projectIds.
+   */
+  projectLabelIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /**
+   * Narrow to one workspace member: the actor for activity and version publishes, the owner for
+   * everything that is created (saved views, comments, dashboards, reports, ...).
+   */
+  userId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type WorkspaceUsageAnalyticsIntegrationFileTypeStats = {
+  __typename?: 'WorkspaceUsageAnalyticsIntegrationFileTypeStats';
+  commitCount: Scalars['Int']['output'];
+  /** Lower-case file extension ("rvt", "ifc"). Null when the source did not name a format. */
+  fileType?: Maybe<Scalars['String']['output']>;
+  /** Fraction (0..1) of the parent integration's commits. */
+  share: Scalars['Float']['output'];
+};
+
+export type WorkspaceUsageAnalyticsIntegrationMonthlyVersions = {
+  __typename?: 'WorkspaceUsageAnalyticsIntegrationMonthlyVersions';
+  /**
+   * Same labels as `integrations`, plus "Web app" and "Unattributed" so every version has a
+   * bucket and the series adds up to all versions published.
+   */
+  integration: Scalars['String']['output'];
+  monthlyVersions: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  totalVersions: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsIntegrationStats = {
+  __typename?: 'WorkspaceUsageAnalyticsIntegrationStats';
+  commitCount: Scalars['Int']['output'];
+  /**
+   * The same commits by the format of the file they were ingested from, busiest first, the
+   * unknown-format bucket last. Empty for integrations that do not ingest files (desktop host
+   * applications publish geometry, not files).
+   */
+  fileTypes: Array<WorkspaceUsageAnalyticsIntegrationFileTypeStats>;
+  /**
+   * Normalized integration label: the host application versions were published from (e.g. Revit,
+   * Rhino), or one of the other ingest paths ("File upload", "ACC sync"). "Other" for
+   * unrecognized sources.
+   */
+  integration: Scalars['String']['output'];
+  /** Fraction (0..1) of all commits in the selected range. */
+  share: Scalars['Float']['output'];
+  /**
+   * The same commits by the release of the integration they were published with, busiest first,
+   * the unreported-release bucket last.
+   */
+  versions: Array<WorkspaceUsageAnalyticsIntegrationVersionStats>;
+};
+
+export type WorkspaceUsageAnalyticsIntegrationVersionMonthlyVersions = {
+  __typename?: 'WorkspaceUsageAnalyticsIntegrationVersionMonthlyVersions';
+  /** Same labels as `monthlyVersionsByIntegration`. */
+  integration: Scalars['String']['output'];
+  /**
+   * The release of the integration the versions were published with: the host application
+   * release for desktop integrations ("2024" for Revit 2024), the importer release for file
+   * uploads ("2.21.4"). Null when the publishing client did not report one.
+   */
+  integrationVersion?: Maybe<Scalars['String']['output']>;
+  monthlyVersions: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  totalVersions: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsIntegrationVersionStats = {
+  __typename?: 'WorkspaceUsageAnalyticsIntegrationVersionStats';
+  commitCount: Scalars['Int']['output'];
+  /**
+   * The host application release for desktop integrations ("2024" for Revit 2024), the importer
+   * release for file uploads ("2.21.4"). Null when the publishing client did not report one.
+   */
+  integrationVersion?: Maybe<Scalars['String']['output']>;
+  /** Fraction (0..1) of the parent integration's commits. */
+  share: Scalars['Float']['output'];
+};
+
+export type WorkspaceUsageAnalyticsLabelMonthlyActiveUsers = {
+  __typename?: 'WorkspaceUsageAnalyticsLabelMonthlyActiveUsers';
+  label?: Maybe<WorkspaceProjectLabel>;
+  /** Null for the bucket of projects carrying no label at all. */
+  labelId?: Maybe<Scalars['ID']['output']>;
+  /**
+   * Distinct people active in the label's projects per calendar month. Always 12 months,
+   * oldest first, zero-filled.
+   */
+  monthlyActiveUsers: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /** Distinct people active in the label's projects over the whole 12 months. */
+  totalActiveUsers: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsLabelMonthlyActivity = {
+  __typename?: 'WorkspaceUsageAnalyticsLabelMonthlyActivity';
+  /** Null for the unlabelled bucket, or when the label was deleted mid-request. */
+  label?: Maybe<WorkspaceProjectLabel>;
+  /** Null for the bucket of projects carrying no label at all. */
+  labelId?: Maybe<Scalars['ID']['output']>;
+  /**
+   * Events per calendar month summed over the projects carrying the label. Always 12 months,
+   * oldest first, zero-filled.
+   */
+  monthlyEvents: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  totalEvents: Scalars['Int']['output'];
+};
+
+/** One calendar-month bucket, month formatted as YYYY-MM. */
+export type WorkspaceUsageAnalyticsMonthBucket = {
+  __typename?: 'WorkspaceUsageAnalyticsMonthBucket';
+  count: Scalars['Int']['output'];
+  month: Scalars['String']['output'];
+};
+
+export type WorkspaceUsageAnalyticsProjectLeaderboardEntry = {
+  __typename?: 'WorkspaceUsageAnalyticsProjectLeaderboardEntry';
+  eventCount: Scalars['Int']['output'];
+  /** When the project's most recent counted event happened. */
+  lastActiveAt: Scalars['DateTime']['output'];
+  /**
+   * Null when the project cannot be resolved, e.g. it was deleted while this request was in
+   * flight. Leaderboard entries are drawn from live projects, so this is rare.
+   */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+  /** Fraction (0..1) of all events in the selected range. */
+  share: Scalars['Float']['output'];
+};
+
+export type WorkspaceUsageAnalyticsProjectMonthlyActivity = {
+  __typename?: 'WorkspaceUsageAnalyticsProjectMonthlyActivity';
+  /** Events per calendar month. Always 12 months, oldest first, zero-filled. */
+  monthlyEvents: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /** Null when the project has been deleted. */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+  totalEvents: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsProjectMonthlyVersions = {
+  __typename?: 'WorkspaceUsageAnalyticsProjectMonthlyVersions';
+  /** Versions published per calendar month. Always 12 months, oldest first, zero-filled. */
+  monthlyVersions: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  /** Null when the project has been deleted. */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+  totalVersions: Scalars['Int']['output'];
+};
+
+export enum WorkspaceUsageAnalyticsRange {
+  Days7 = 'days7',
+  Days30 = 'days30',
+  Days90 = 'days90',
+  Months12 = 'months12'
+}
+
+/**
+ * One CDE file wired to a Speckle model (ACC or ProjectWise), with the two "in use" signals
+ * for the selected range. Deliberately no verdict: refreshes are webhook-driven, so a quiet
+ * sync can also mean the file did not change.
+ */
+export type WorkspaceUsageAnalyticsSync = {
+  __typename?: 'WorkspaceUsageAnalyticsSync';
+  active: Scalars['Boolean']['output'];
+  author?: Maybe<LimitedUser>;
+  /** Null when the author has been deleted. */
+  authorId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  fileFolderPath?: Maybe<Array<Scalars['String']['output']>>;
+  fileName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  integration: Integration;
+  /** When the last refresh ran, over all of time. Null when the sync never refreshed. */
+  lastRefreshAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Null when the model has been deleted. */
+  model?: Maybe<Model>;
+  modelId: Scalars['ID']['output'];
+  /** Null when the project has been deleted. */
+  project?: Maybe<Project>;
+  projectId: Scalars['ID']['output'];
+  refreshesInRange: Scalars['Int']['output'];
+  /**
+   * Distinct signed-in people behind `viewsInRange`. Anonymous loads count as views but not
+   * as viewers.
+   */
+  viewersInRange: Scalars['Int']['output'];
+  /** Web viewer loads of any version of the synced model in the selected range. */
+  viewsInRange: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsSyncCollection = {
+  __typename?: 'WorkspaceUsageAnalyticsSyncCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<WorkspaceUsageAnalyticsSync>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsSyncIntegrationCount = {
+  __typename?: 'WorkspaceUsageAnalyticsSyncIntegrationCount';
+  activeCount: Scalars['Int']['output'];
+  integration: Integration;
+};
+
+export enum WorkspaceUsageAnalyticsSyncSortBy {
+  CreatedAt = 'createdAt',
+  LastRefreshAt = 'lastRefreshAt',
+  RefreshesInRange = 'refreshesInRange',
+  ViewsInRange = 'viewsInRange'
+}
+
+export type WorkspaceUsageAnalyticsSyncSummary = {
+  __typename?: 'WorkspaceUsageAnalyticsSyncSummary';
+  activeByIntegration: Array<WorkspaceUsageAnalyticsSyncIntegrationCount>;
+  activeSyncs: Scalars['Int']['output'];
+  /** Distinct authors across every sync in scope. */
+  owners: Scalars['Int']['output'];
+  /** Syncs with at least one refresh in the selected range. */
+  refreshedInRange: Scalars['Int']['output'];
+  /** Syncs whose model was loaded at least once in the selected range. */
+  viewedInRange: Scalars['Int']['output'];
+};
+
+/** Range-scoped totals over workspace project activity. */
+export type WorkspaceUsageAnalyticsTotals = {
+  __typename?: 'WorkspaceUsageAnalyticsTotals';
+  activeProjects: Scalars['Int']['output'];
+  activeUsers: Scalars['Int']['output'];
+  events: Scalars['Int']['output'];
+};
+
+export type WorkspaceUsageAnalyticsUserLeaderboardEntry = {
+  __typename?: 'WorkspaceUsageAnalyticsUserLeaderboardEntry';
+  eventCount: Scalars['Int']['output'];
+  /** When the person's most recent counted event happened. */
+  lastActiveAt: Scalars['DateTime']['output'];
+  /** Fraction (0..1) of all events in the selected range. */
+  share: Scalars['Float']['output'];
+  /** Null when the user has been deleted. */
+  user?: Maybe<LimitedUser>;
+  userId: Scalars['ID']['output'];
+};
+
+export type WorkspaceUsageAnalyticsUserMonthlyActivity = {
+  __typename?: 'WorkspaceUsageAnalyticsUserMonthlyActivity';
+  /** Events per calendar month. Always 12 months, oldest first, zero-filled. */
+  monthlyEvents: Array<WorkspaceUsageAnalyticsMonthBucket>;
+  totalEvents: Scalars['Int']['output'];
+  /** Null when the user has been deleted. */
+  user?: Maybe<LimitedUser>;
+  userId: Scalars['ID']['output'];
 };
 
 export type WorkspaceUserCount = {
