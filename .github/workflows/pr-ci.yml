@@ -29,6 +29,19 @@ jobs:
       contents: read
       id-token: write # Tailscale OAuth federation for the tailnet npm registry
 
+  netlify:
+    uses: ./.github/workflows/netlify.yml
+    with:
+      NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
+      NETLIFY_CONTEXT: deploy-preview
+    secrets:
+      TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+      NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+    permissions:
+      contents: read
+      id-token: write # Tailscale OAuth federation for the tailnet npm registry
+
   build:
     needs:
       - get-version

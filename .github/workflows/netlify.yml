@@ -1,0 +1,80 @@
+name: Netlify Publish
+
+on:
+  workflow_call:
+    inputs:
+      NETLIFY_SITE_ID:
+        required: true
+        type: string
+      NETLIFY_CONTEXT:
+        required: true
+        type: string
+      PUBLISH_TO_PROD:
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      TAILSCALE_OAUTH_CLIENT_ID:
+        required: true
+      TAILSCALE_OAUTH_CLIENT_AUDIENCE:
+        required: true
+      NETLIFY_AUTH_TOKEN:
+        required: true
+
+permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
+
+concurrency:
+  group: ${{ github.workflow }}-netlify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy-netlify:
+    # Built and pushed from CI instead of Netlify's own build: @speckle/*
+    # resolve from the tailnet npm registry, which Netlify's builders cannot
+    # reach. Pattern taken from bashboards' publish.yml.
+    name: Deploy to Netlify
+    runs-on: blacksmith-4vcpu-ubuntu-2404
+    permissions:
+      contents: read
+      id-token: write # Tailscale OAuth federation: @speckle/* resolve from the tailnet npm registry
+
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Enable Corepack
+        run: corepack enable
+      - name: Setup Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
+        with:
+          node-version: '22.14.0'
+          cache: 'yarn'
+
+      - name: Connect to Tailscale (private npm registry)
+        uses: tailscale/github-action@306e68a486fd2350f2bfc3b19fcd143891a4a2d8 # v4.1.2
+        with:
+          oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
+          audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
+          tags: tag:ci
+          ping: npmregistry.mermaid-emperor.ts.net
+
+      - name: Install Dependencies
+        run: yarn install --immutable
+
+      - name: Build site
+        run: yarn generate
+
+      - name: Netlify
+        # We're not using the official Netlify GitHub Action as it appears to be unmaintained
+        # And this issue is a blocker https://github.com/netlify/actions/issues/67
+        # Please undertake a thorough due diligence before changing this to another action or update the commit sha
+        uses: qbtf/action-netlify-cli@532bb95925a49577dd804107894bb1c7886b6b25
+        with:
+          # NOTE: alias cannot be the branch name, see Netlify documentation for details
+          args: deploy --dir .output/public --no-build ${{ inputs.NETLIFY_CONTEXT }} --message \"${{ env.MAYBE_MESSAGE_PREFIX }}Deployed from GitHub Actions\" ${{ env.MAYBE_PUBLISH_TO_PROD_FLAG }}
+        env:
+          MAYBE_PUBLISH_TO_PROD_FLAG: ${{ (inputs.PUBLISH_TO_PROD && '--prod') || '' }}
+          MAYBE_MESSAGE_PREFIX: ${{ github.event.pull_request.number && format('\(#{0} [{1}]\) ', github.event.pull_request.number, github.sha) || '' }}
+          NETLIFY_SITE_ID: ${{ inputs.NETLIFY_SITE_ID }}
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
