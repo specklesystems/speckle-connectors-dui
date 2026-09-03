@@ -28,6 +28,12 @@ import {
   useUpdateConnector,
   type Version
 } from '~/lib/core/composables/updateConnector'
+import {
+  isOutdatedConnectorError,
+  OUTDATED_CONNECTOR_ERROR_MESSAGE,
+  OUTDATED_CONNECTOR_ERROR_TITLE,
+  toUserFacingErrorMessage
+} from '~/lib/common/helpers/outdatedConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
 import type { BaseBridge } from '~/lib/bridge/base'
@@ -89,6 +95,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const setNotification = (notification: Nullable<ToastNotification>) => {
+    // Old connectors may also surface the ENG-9404 serializer error as a global toast; reword it
+    // the same way the card does so the user is told to update instead of reading Newtonsoft output.
+    if (
+      notification &&
+      (isOutdatedConnectorError(notification.description) ||
+        isOutdatedConnectorError(notification.title))
+    ) {
+      currentNotification.value = {
+        ...notification,
+        type: ToastNotificationType.Danger,
+        title: OUTDATED_CONNECTOR_ERROR_TITLE,
+        description: OUTDATED_CONNECTOR_ERROR_MESSAGE
+      }
+      return
+    }
     currentNotification.value = notification
   }
 
@@ -706,13 +727,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       (m) => m.modelCardId === args.modelCardId
     ) as IModelCard
     model.progress = undefined
-    if (typeof args.error === 'string') {
-      model.error = { errorMessage: args.error as string, dismissible: true }
-    } else {
-      model.error = args.error as {
-        errorMessage: string
-        dismissible: boolean
-      }
+
+    // The connector reports what actually went wrong (kept verbatim for the ingestion record
+    // below); the card shows the user-facing version. Today the only rewrite is the ENG-9404
+    // "outdated connector" serializer error, see `toUserFacingErrorMessage`.
+    const rawErrorMessage =
+      typeof args.error === 'string' ? args.error : args.error.errorMessage
+    const dismissible =
+      typeof args.error === 'string' ? true : Boolean(args.error.dismissible)
+    model.error = {
+      errorMessage: toUserFacingErrorMessage(rawErrorMessage),
+      dismissible
     }
 
     // Fail the ingestion if applicable
@@ -722,9 +747,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     ) {
       const ingestionId = activeIngestions.value[args.modelCardId]
       if (ingestionId) {
-        const errorMessage =
-          typeof args.error === 'string' ? args.error : args.error.errorMessage
-        await failIngestion(model as ISenderModelCard, ingestionId, errorMessage)
+        await failIngestion(model as ISenderModelCard, ingestionId, rawErrorMessage)
       }
     }
   }

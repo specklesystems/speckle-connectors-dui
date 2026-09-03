@@ -138,6 +138,7 @@ import type { ApolloClient } from '@apollo/client/core'
 import { setVersionMessageMutation } from '~/lib/graphql/mutationsAndQueries'
 import { workspacePlanUsageUpdatedSubscription } from '~/lib/workspaces/graphql/subscriptions'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
+import { OUTDATED_CONNECTOR_ERROR_MESSAGE } from '~/lib/common/helpers/outdatedConnector'
 
 const store = useHostAppStore()
 const accountStore = useAccountStore()
@@ -365,6 +366,20 @@ const errorNotification = computed(() => {
   notification.level = 'danger'
   notification.text = props.modelCard.error.errorMessage
   notification.report = props.modelCard.report
+
+  // ENG-9404: an outdated connector cannot publish to this server. When we know where the
+  // update lives, put the fix one click away instead of only telling the user about it.
+  if (
+    props.modelCard.error.errorMessage === OUTDATED_CONNECTOR_ERROR_MESSAGE &&
+    store.isDistributedBySpeckle &&
+    store.latestAvailableVersion
+  ) {
+    notification.cta = {
+      name: 'Update',
+      tooltipText: `Download v${store.latestAvailableVersion.Number}`,
+      action: () => store.downloadLatestVersion()
+    }
+  }
   return notification
 })
 
