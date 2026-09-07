@@ -436,7 +436,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     if (shouldHandleIngestion.value && canCreateIngestion.queryAvailable) {
       const sourceData = {
         sourceApplicationSlug: hostAppName.value || 'unknown',
-        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown'
+        sourceApplicationVersion: hostAppVersion.value?.toString() || 'unknown',
+        connectorVersion: connectorVersion.value || null
       }
       if (canCreateIngestion.authorized) {
         const created = await startIngestion(model, 'Starting to publish', sourceData)
