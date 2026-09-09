@@ -28,11 +28,17 @@ export default defineNuxtPlugin(async () => {
 
   if (!hyperdxEnabled) return
 
+  // Own statement, not inline in the argument: Nuxt's async-context transform
+  // wraps every `await` in a plugin, and a nested one ends up inside a
+  // non-async arrow (SyntaxError at load in dev).
+  const extraResourceAttributes = await resolveConnectorResourceAttributes()
+
   await initHyperDX({
     url: hyperdxCollectorUrl,
     apiKey: hyperdxIngestionKey,
     apiOrigin: speckleUrl,
-    resourceAttributes: hyperdxOtelResourceAttributes
+    resourceAttributes: hyperdxOtelResourceAttributes,
+    extraResourceAttributes
   })
 
   // Attach connector / host-app context to every session as it becomes known.
@@ -65,3 +71,34 @@ export default defineNuxtPlugin(async () => {
     { immediate: true }
   )
 })
+
+/**
+ * The connector telemetry gateway drops any record whose *resource* lacks
+ * `connector.slug` (ENG-9546); the span-level copies set via
+ * `setHyperDXAttributes` above do not satisfy it. The resource is fixed at
+ * init, so the three values are read straight off the base binding first —
+ * idempotent bridge calls, milliseconds — rather than waiting on the store's
+ * own fire-and-forget initialisation. Empty values are left out so the gate
+ * sees "missing" rather than "" (both drop, but the row is honest).
+ */
+async function resolveConnectorResourceAttributes(): Promise<Record<string, string>> {
+  const { $baseBinding } = useNuxtApp()
+  if (!$baseBinding) return {}
+
+  try {
+    const [slug, hostAppVersion, connectorVersion] = await Promise.all([
+      $baseBinding.getSourceApplicationName(),
+      $baseBinding.getSourceApplicationVersion(),
+      $baseBinding.getConnectorVersion()
+    ])
+    const attrs: Record<string, string> = {}
+    if (slug) attrs['connector.slug'] = slug
+    if (hostAppVersion) attrs['connector.hostAppVersion'] = hostAppVersion
+    if (connectorVersion) attrs['connector.version'] = connectorVersion
+    return attrs
+  } catch (error) {
+    // Observability setup must never take down the app.
+    console.warn('[HyperDX] Could not resolve connector resource attributes.', error)
+    return {}
+  }
+}
