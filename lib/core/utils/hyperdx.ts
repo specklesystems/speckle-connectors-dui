@@ -19,6 +19,14 @@ export interface HyperDXConfig {
   /** Origin to propagate trace headers to (the Speckle server). Optional. */
   apiOrigin?: string
   resourceAttributes?: string
+  /**
+   * Attributes that must live on the OTel *resource*, not on spans. The
+   * connector telemetry gateway gates on `resource.attributes["connector.slug"]`
+   * (spec 2026-08-clickstack-3x-replatform "Connector telemetry gateway",
+   * ENG-9546); `setGlobalAttributes` only stamps spans, so anything the gate
+   * needs has to be known here, at init, where the resource is fixed.
+   */
+  extraResourceAttributes?: Record<string, string>
 }
 
 export async function initHyperDX(config: HyperDXConfig): Promise<void> {
@@ -36,7 +44,10 @@ export async function initHyperDX(config: HyperDXConfig): Promise<void> {
       apiKey: config.apiKey || 'ffffffff-ffff-ffff-ffff-ffffffffffff',
       service: 'speckle-dui',
       url: config.url,
-      otelResourceAttributes: parseResourceAttributes(config.resourceAttributes),
+      otelResourceAttributes: {
+        ...parseResourceAttributes(config.resourceAttributes),
+        ...(config.extraResourceAttributes ?? {})
+      },
       tracePropagationTargets: originPattern ? [originPattern] : undefined,
       consoleCapture: true,
       advancedNetworkCapture: true,
