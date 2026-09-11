@@ -7,7 +7,12 @@ import type { IRawBridge } from '~/lib/bridge/definitions'
  */
 type EtoMessage = {
   binding: string
-  op: 'GetBindingsMethodNames' | 'RunMethod' | 'GetCallResult' | 'ShowDevTools' | 'OpenUrl'
+  op:
+    | 'GetBindingsMethodNames'
+    | 'RunMethod'
+    | 'GetCallResult'
+    | 'ShowDevTools'
+    | 'OpenUrl'
   callId?: string
   methodName?: string
   requestId?: string
@@ -17,7 +22,9 @@ type EtoMessage = {
 
 declare let globalThis: Record<string, unknown> & {
   eto?: { postMessage: (message: string) => void }
-  webkit?: { messageHandlers?: { __eto__?: { postMessage: (message: string) => void } } }
+  webkit?: {
+    messageHandlers?: { __eto__?: { postMessage: (message: string) => void } }
+  }
 }
 
 /**
