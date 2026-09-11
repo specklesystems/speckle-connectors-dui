@@ -179,7 +179,7 @@ const tryHoistBinding = async <T>(name: string) => {
   let tempBridge: GenericBridge | SketchupBridge | null = null
 
   if (globalThis.chrome && globalThis.chrome.webview && !tempBridge) {
-    tempBridge = new GenericBridge(globalThis.chrome.webview.hostObjects[name])
+    tempBridge = new GenericBridge(globalThis.chrome.webview.hostObjects[name], name)
   }
 
   if (globalThis.sketchup && !tempBridge) {
@@ -188,12 +188,16 @@ const tryHoistBinding = async <T>(name: string) => {
 
   if (globalThis.CefSharp && globalThis.DG && !tempBridge) {
     await globalThis.CefSharp.BindObjectAsync(name)
-    tempBridge = new GenericBridge(globalThis[name] as unknown as IRawBridge, true)
+    tempBridge = new GenericBridge(
+      globalThis[name] as unknown as IRawBridge,
+      name,
+      true
+    )
   }
 
   if (globalThis.CefSharp && !tempBridge) {
     await globalThis.CefSharp.BindObjectAsync(name)
-    tempBridge = new GenericBridge(globalThis[name] as unknown as IRawBridge)
+    tempBridge = new GenericBridge(globalThis[name] as unknown as IRawBridge, name)
   }
 
   const res = await tempBridge?.create()

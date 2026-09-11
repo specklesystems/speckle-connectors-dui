@@ -1,4 +1,6 @@
+import type { Context } from '@opentelemetry/api'
 import { canCreateVersionQuery } from '~/lib/graphql/mutationsAndQueries'
+import { OTEL_APOLLO_CONTEXT_KEY } from '~/lib/core/utils/otelApolloLink'
 import { canCreateModelIngestionQuery } from '~/lib/ingestion/graphql/queries'
 import { useAccountStore } from '~/store/accounts'
 
@@ -12,7 +14,8 @@ export function useCheckGraphql() {
   const canCreateModelIngestion = async (
     projectId: string,
     modelId: string,
-    accountId: string
+    accountId: string,
+    otelContext?: Context
   ) => {
     const accountsStore = useAccountStore()
     const client = accountsStore.getAccountClient(accountId)
@@ -23,7 +26,8 @@ export function useCheckGraphql() {
           projectId,
           modelId
         },
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'network-only',
+        context: otelContext ? { [OTEL_APOLLO_CONTEXT_KEY]: otelContext } : undefined
       })
       return {
         ...result.data.project.model.permissions.canCreateIngestion,
@@ -41,7 +45,8 @@ export function useCheckGraphql() {
   const canCreateVersion = async (
     projectId: string,
     modelId: string,
-    accountId: string
+    accountId: string,
+    otelContext?: Context
   ) => {
     const accountsStore = useAccountStore()
     const client = accountsStore.getAccountClient(accountId)
@@ -53,7 +58,8 @@ export function useCheckGraphql() {
           projectId,
           modelId
         },
-        fetchPolicy: 'network-only'
+        fetchPolicy: 'network-only',
+        context: otelContext ? { [OTEL_APOLLO_CONTEXT_KEY]: otelContext } : undefined
       })
 
       return result.data.project.model.permissions.canCreateVersion

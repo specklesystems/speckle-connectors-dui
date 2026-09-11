@@ -14,6 +14,7 @@ import { WebSocketLink } from '@apollo/client/link/ws'
 import { onError, type ErrorResponse } from '@apollo/client/link/error'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { setContext } from '@apollo/client/link/context'
+import { otelContextLink } from '~/lib/core/utils/otelApolloLink'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
 import { logToSeq } from '~/lib/logger/composables/useLogger'
@@ -236,7 +237,9 @@ export const useAccountStore = defineStore('accountStore', () => {
       return { headers: { ...headers, Authorization: authHeaderValue } }
     })
 
-    const link = authLink.concat(httpLink as unknown as ApolloLink)
+    const link = authLink
+      .concat(otelContextLink)
+      .concat(httpLink as unknown as ApolloLink)
 
     const wsLink = new WebSocketLink({
       uri: serverUrl.replace('http', 'ws'),
