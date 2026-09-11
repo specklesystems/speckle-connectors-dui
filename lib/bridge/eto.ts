@@ -70,21 +70,23 @@ export class EtoRawBridge implements IRawBridge {
     return JSON.parse(result) as string[]
   }
 
-  async RunMethod(methodName: string, requestId: string, args: string): Promise<string> {
+  RunMethod(methodName: string, requestId: string, args: string): Promise<string> {
     this.post({ op: 'RunMethod', methodName, requestId, args })
-    return ''
+    return Promise.resolve('')
   }
 
   GetCallResult(requestId: string): Promise<string> {
     return this.call({ op: 'GetCallResult', requestId })
   }
 
-  async ShowDevTools(): Promise<void> {
+  ShowDevTools(): Promise<void> {
     this.post({ op: 'ShowDevTools' })
+    return Promise.resolve()
   }
 
-  async OpenUrl(url: string): Promise<void> {
+  OpenUrl(url: string): Promise<void> {
     this.post({ op: 'OpenUrl', url })
+    return Promise.resolve()
   }
 }
 
