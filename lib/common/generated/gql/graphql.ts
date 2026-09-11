@@ -730,6 +730,11 @@ export type AiConversation = {
   messages?: Maybe<Array<Scalars['JSONObject']['output']>>;
   metadata: Scalars['JSONObject']['output'];
   preview?: Maybe<Scalars['String']['output']>;
+  /**
+   * The project the conversation is bound to. Null for workspace-level chats or
+   * when the project no longer exists.
+   */
+  project?: Maybe<Project>;
   projectId?: Maybe<Scalars['String']['output']>;
   /**
    * Active (non-revoked) public share links for this conversation. Owner-only —
@@ -756,6 +761,8 @@ export type AiConversation = {
    */
   tokenUsage: AiConversationTokenUsage;
   updatedAt: Scalars['DateTime']['output'];
+  /** The member who owns the conversation. Null if that user was deleted. */
+  user?: Maybe<LimitedUser>;
   userId: Scalars['String']['output'];
   /**
    * Optimistic-concurrency version, bumped on every messages write. Read it on
@@ -3428,6 +3435,13 @@ export type Issue = {
   /** Human-readable unique identifier for the issue within the project */
   identifier: Scalars['String']['output'];
   labels: Array<AssignedLabel>;
+  /**
+   * What the server-side v1 -> v2 viewer-state conversion could not carry over:
+   * { fromVersion, toVersion, migratedAt, dropped: LegacyDropReason[] } (types in
+   * @speckle/shared/saved-views). Null when the issue's state was never converted,
+   * was re-saved since, or is still waiting to be converted.
+   */
+  migrationReport?: Maybe<Scalars['JSONObject']['output']>;
   /** Sequence number for the issue */
   number: Scalars['Int']['output'];
   permissions: IssuePermissionChecks;
@@ -3824,6 +3838,8 @@ export type LimitedWorkspace = {
   __typename?: 'LimitedWorkspace';
   /** Workspace admins ordered by join date */
   adminTeam: Array<LimitedWorkspaceCollaborator>;
+  /** Measurement display unit for views without an override; defaults to meters. */
+  defaultMeasurementUnit: MeasurementUnit;
   /** Workspace description */
   description?: Maybe<Scalars['String']['output']>;
   /** If true, the users with a matching domain may join the workspace directly */
@@ -3907,6 +3923,26 @@ export type MarkReceivedVersionInput = {
   /** Set to true, if the version was received w/ a shared public token */
   withSharedToken?: InputMaybe<Scalars['Boolean']['input']>;
 };
+
+/** Length units used for measurement labels; areas use the squared unit. */
+export enum MeasurementUnit {
+  /** Centimeters. */
+  Cm = 'cm',
+  /** Feet. */
+  Ft = 'ft',
+  /** Inches. */
+  In = 'in',
+  /** Kilometers. */
+  Km = 'km',
+  /** Meters. */
+  M = 'm',
+  /** Miles. */
+  Mi = 'mi',
+  /** Millimeters. */
+  Mm = 'mm',
+  /** Yards. */
+  Yd = 'yd'
+}
 
 export type MicrosoftFabricColumnRef = {
   __typename?: 'MicrosoftFabricColumnRef';
@@ -4035,11 +4071,14 @@ export type ModelExecutionResult = {
 export type ModelIngestion = {
   __typename?: 'ModelIngestion';
   authorUser?: Maybe<LimitedUser>;
+  /** What `requestCancellation` can achieve for this ingestion, derived from its handler. */
+  cancellationMode: ModelIngestionCancellationMode;
   cancellationRequested: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   handler: ModelIngestionHandler;
   id: Scalars['ID']['output'];
   modelId: Scalars['String']['output'];
+  permissions: ModelIngestionPermissionChecks;
   projectId: Scalars['String']['output'];
   sourceData?: Maybe<SourceData>;
   statusData: ModelIngestionStatusData;
@@ -4068,6 +4107,25 @@ export type ModelIngestionAutomateFileUpload = HasHandlerType & {
   blobId: Scalars['String']['output'];
   handlerType: ModelIngestionHandlerType;
 };
+
+/** How a cancellation request reaches the ingestion's executor. */
+export enum ModelIngestionCancellationMode {
+  /**
+   * Only the client running the ingestion can stop it (connector publishes). A request is
+   * recorded, but nothing on the server enforces it.
+   */
+  Client = 'CLIENT',
+  /**
+   * No executor honours a request (Automate-backed and legacy-send ingestions); the
+   * ingestion ends by completing or timing out.
+   */
+  None = 'NONE',
+  /**
+   * The server stops the executor itself when cancellation is requested (conversion
+   * runner and file-import queue rails).
+   */
+  Server = 'SERVER'
+}
 
 export type ModelIngestionCancelledInput = {
   cancellationMessage: Scalars['String']['input'];
@@ -4171,6 +4229,17 @@ export type ModelIngestionInvalidStatus = HasModelIngestionStatus & {
 export type ModelIngestionLegacySendHandler = HasHandlerType & {
   __typename?: 'ModelIngestionLegacySendHandler';
   handlerType: ModelIngestionHandlerType;
+};
+
+export type ModelIngestionPermissionChecks = {
+  __typename?: 'ModelIngestionPermissionChecks';
+  /**
+   * Whether the caller may drive this ingestion's lifecycle: request or land a cancellation,
+   * requeue it. Granted to the ingestion's author (or anyone with write access when it has no
+   * author) and to project owners. Says nothing about whether the executor will honour a
+   * cancellation; see `ModelIngestion.cancellationMode` for that.
+   */
+  canUpdate: PermissionCheckResult;
 };
 
 /**
@@ -6122,6 +6191,8 @@ export type ProjectPermissionChecks = {
   canLeave: PermissionCheckResult;
   canListAutomations: PermissionCheckResult;
   canListIssues: PermissionCheckResult;
+  /** Whether the active user can list reports in this project */
+  canListReports: PermissionCheckResult;
   canListShareTokens: PermissionCheckResult;
   canListUsers: PermissionCheckResult;
   canLoad: PermissionCheckResult;
@@ -7592,6 +7663,13 @@ export type SavedView = {
   markup: Scalars['JSONObject']['output'];
   /** Measurement item-bag doc, same shape as markup. */
   measurements: Scalars['JSONObject']['output'];
+  /**
+   * What the server-side v1 -> v2 viewer-state conversion could not carry over:
+   * { fromVersion, toVersion, migratedAt, dropped: LegacyDropReason[] } (types in
+   * @speckle/shared/saved-views). Null when the view was never converted, was
+   * re-saved since, or is still waiting to be converted.
+   */
+  migrationReport?: Maybe<Scalars['JSONObject']['output']>;
   name: Scalars['String']['output'];
   permissions: SavedViewPermissionChecks;
   /** For figuring out position in the group */
@@ -8261,6 +8339,8 @@ export enum SortOrder {
 
 export type SourceData = {
   __typename?: 'SourceData';
+  /** Version of the Speckle connector / client that ran the ingestion; null when the client did not report it. */
+  connectorVersion?: Maybe<Scalars['String']['output']>;
   fileName?: Maybe<Scalars['String']['output']>;
   fileSizeBytes?: Maybe<Scalars['BigInt']['output']>;
   revitUploadSettings?: Maybe<RevitUploadSettings>;
@@ -8269,9 +8349,15 @@ export type SourceData = {
 };
 
 export type SourceDataInput = {
+  /**
+   * Version of the Speckle connector / client that ran the ingestion, as distinct from the host
+   * application's release. Optional: older clients never report it.
+   */
+  connectorVersion?: InputMaybe<Scalars['String']['input']>;
   fileName?: InputMaybe<Scalars['String']['input']>;
   fileSizeBytes?: InputMaybe<Scalars['BigInt']['input']>;
   sourceApplicationSlug: Scalars['String']['input'];
+  /** Release of the host application (Revit 2024 -> "2024") or of the converter that produced the version. */
   sourceApplicationVersion: Scalars['String']['input'];
 };
 
@@ -10066,6 +10152,16 @@ export type Workspace = {
    */
   aiCapacity?: Maybe<WorkspaceAiCapacity>;
   /**
+   * Every AI conversation in the workspace, across all members and projects —
+   * the admin audit view behind the Conversations settings page. Workspace admin
+   * only (see WorkspacePermissionChecks.canListAiConversations). Returns summary
+   * rows (no `messages`), newest activity first; pass the cursor from the
+   * previous response to page further back.
+   *
+   * Null when the AI chat module is disabled on this server.
+   */
+  aiConversations?: Maybe<WorkspaceAiConversationCollection>;
+  /**
    * The workspace's AI rules, admin-managed instructions injected into the
    * system prompt of every authenticated AI turn in this workspace (enabled
    * ones only; disabled rules are listed but not applied). Readable by every
@@ -10134,6 +10230,8 @@ export type Workspace = {
   customerPortalUrl?: Maybe<Scalars['String']['output']>;
   dashboards: DashboardCollection;
   dataWarehouses: WorkspaceDataWarehouses;
+  /** Measurement display unit for views without an override; defaults to meters. */
+  defaultMeasurementUnit: MeasurementUnit;
   /**
    * The default role workspace members will receive for workspace projects.
    * @deprecated Always the reviewer role. Will be removed in the future.
@@ -10180,6 +10278,14 @@ export type Workspace = {
    * feature ships.
    */
   grantableFeatures: Array<GrantableFeature>;
+  /**
+   * One group by id, or null when the id names no group in this workspace.
+   *
+   * Exists because `groups` is paginated: an editor deep-linked to a group cannot find it by walking
+   * the listing, which is how the role editor resolves its own subject only because that listing is
+   * unpaginated. Same gate as `groups`.
+   */
+  group?: Maybe<WorkspaceGroup>;
   /** The user groups this workspace has authored. */
   groups: WorkspaceGroupCollection;
   /** @deprecated Use specific auth policies instead */
@@ -10277,6 +10383,13 @@ export type WorkspaceAdminWorkspacesJoinRequestsArgs = {
 };
 
 
+export type WorkspaceAiConversationsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<WorkspaceAiConversationsFilter>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
+};
+
+
 export type WorkspaceAiSkillsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   limit?: InputMaybe<Scalars['Int']['input']>;
@@ -10326,6 +10439,11 @@ export type WorkspaceExternalDataSourcesArgs = {
 
 export type WorkspaceGrantableFeaturesArgs = {
   resourceType: WorkspaceRoleResourceType;
+};
+
+
+export type WorkspaceGroupArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -10504,6 +10622,23 @@ export type WorkspaceAiChatMutationsSetEnabledArgs = {
 export type WorkspaceAiChatMutationsSetOpenAiEnabledArgs = {
   enabled: Scalars['Boolean']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+export type WorkspaceAiConversationCollection = {
+  __typename?: 'WorkspaceAiConversationCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<AiConversation>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceAiConversationsFilter = {
+  /**
+   * Only conversations bound to one of these projects. Omit for every project,
+   * workspace-level (project-less) chats included.
+   */
+  projectIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Only conversations from this UI surface (`widget` or `magic`). */
+  surface?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type WorkspaceBillingMutations = {
@@ -10836,6 +10971,11 @@ export enum WorkspaceFeatureName {
   DomainDiscoverability = 'domainDiscoverability',
   DynamicRoles = 'dynamicRoles',
   ExclusiveMembership = 'exclusiveMembership',
+  /**
+   * Full-year CSV report downloads (member/project access, project activity) on the
+   * Usage page for workspace admins. Admin-granted, never part of a plan tier.
+   */
+  FullWorkspaceUsageDownloads = 'fullWorkspaceUsageDownloads',
   HelpCenter = 'helpCenter',
   HideSpeckleBranding = 'hideSpeckleBranding',
   /**
@@ -10862,13 +11002,44 @@ export enum WorkspaceFeatureName {
  */
 export type WorkspaceGroup = {
   __typename?: 'WorkspaceGroup';
+  /**
+   * The projects this group is attached to — its reach, and the impact list a delete dialog needs.
+   *
+   * Scoped to what the caller can already read: `workspace.group.read` is grantable and every
+   * workspace member holds it, so an unscoped list would name private projects to somebody with no
+   * clearance to them. Anyone who may *manage* a group holds the reserved `workspace.group.write`, and
+   * reaches every project in the workspace, so the impact list is exact for everyone who can act on it.
+   *
+   * `totalCount` is batched across a listing; `items` costs one query per group, so select it for one
+   * group at a time.
+   */
+  attachedProjects: ProjectCollection;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   members: WorkspaceGroupMemberCollection;
   name: Scalars['String']['output'];
   permissions: WorkspaceGroupPermissionChecks;
+  /**
+   * Which project roles this group's members carry, and how many hold each. One entry per role
+   * somebody actually holds, so the counts add up to `members.totalCount`.
+   *
+   * Ordered by share, largest first. Deliberately NOT ordered by what the roles confer: grant
+   * containment is a partial order, so two authored roles are routinely incomparable.
+   */
+  roleComposition: Array<WorkspaceRoleComposition>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/**
+ * A named set of workspace members, each carrying the project role they hold wherever the group is
+ * attached. Membership confers nothing on its own — a group reaches a project only once it is attached,
+ * which is what makes a group one action instead of twenty invites rather than twenty hidden ones.
+ */
+export type WorkspaceGroupAttachedProjectsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
 };
 
 
@@ -10897,6 +11068,13 @@ export type WorkspaceGroupFilter = {
 export type WorkspaceGroupMember = {
   __typename?: 'WorkspaceGroupMember';
   createdAt: Scalars['DateTime']['output'];
+  /**
+   * The identity behind `roleId`. Null only if the id names a definition that no longer exists.
+   *
+   * Resolves through degradation, unlike `Workspace.assignableRoles` — which is what lets a member
+   * editor show the name of a role the workspace may no longer hand out, instead of a raw `custom:` id.
+   */
+  roleDefinition?: Maybe<RoleIdentity>;
   roleId: Scalars['String']['output'];
   user: LimitedUser;
 };
@@ -11509,6 +11687,13 @@ export type WorkspacePermissionChecks = {
    */
   canCreateAiSkill: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
+  /**
+   * Whether a new group may be created here — the gate on the create route and its empty-state CTA.
+   *
+   * Write-tier where `canListGroups` is read-tier, so the two genuinely differ: managing a group deals
+   * project access, which makes it a reserved capability no authored role can hold.
+   */
+  canCreateGroup: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
   canCreateResourceMeta: PermissionCheckResult;
   /**
@@ -11522,6 +11707,11 @@ export type WorkspacePermissionChecks = {
   canDeleteInvite: PermissionCheckResult;
   canDeleteResourceMeta: PermissionCheckResult;
   canDeleteSsoSession: PermissionCheckResult;
+  /**
+   * Whether the user can download the full-year usage CSV reports: requires usage
+   * analytics access plus the fullWorkspaceUsageDownloads feature grant.
+   */
+  canDownloadUsageReports: PermissionCheckResult;
   canEditEmbedOptions: PermissionCheckResult;
   canEditWorkspaceIssueLabels: PermissionCheckResult;
   canEditWorkspaceProjectLabels: PermissionCheckResult;
@@ -11537,6 +11727,12 @@ export type WorkspacePermissionChecks = {
   canInviteAs: Array<RoleAssignability>;
   canLeave: PermissionCheckResult;
   /**
+   * Whether the current user can list every AI conversation in this workspace,
+   * across all members and projects. Workspace admin only. Frontend gates the
+   * Conversations settings page on this.
+   */
+  canListAiConversations: PermissionCheckResult;
+  /**
    * Whether the current user can read this workspace's AI rules. Any member,
    * guests included, AND the workspace plan granting `aiChat`. Frontend gates the
    * rules settings page visibility on this.
@@ -11544,6 +11740,13 @@ export type WorkspacePermissionChecks = {
   canListAiRules: PermissionCheckResult;
   canListArchivedProjects: PermissionCheckResult;
   canListDashboards: PermissionCheckResult;
+  /**
+   * Whether this workspace's user groups can be listed — the gate on the Groups tab of the team page.
+   *
+   * Folds in the dynamic-roles plan grant, so a client needs no second entitlement check, and answers
+   * unauthorised rather than throwing when the module is off.
+   */
+  canListGroups: PermissionCheckResult;
   /**
    * Whether this workspace's role catalog can be listed — the gate on the Roles settings surface.
    *
@@ -12046,7 +12249,10 @@ export type WorkspaceRoleCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/** How many people hold one particular role in this workspace. */
+/**
+ * How many people hold one particular role, within whatever set the field returning this describes —
+ * a workspace's membership, a group's, and so on.
+ */
 export type WorkspaceRoleComposition = {
   __typename?: 'WorkspaceRoleComposition';
   role: RoleIdentity;
@@ -12545,6 +12751,8 @@ export type WorkspaceUpdateEmbedOptionsInput = {
 };
 
 export type WorkspaceUpdateInput = {
+  /** Set the default measurement display unit. Omitted or null leaves it unchanged. */
+  defaultMeasurementUnit?: InputMaybe<MeasurementUnit>;
   defaultSeatType?: InputMaybe<WorkspaceSeatType>;
   description?: InputMaybe<Scalars['String']['input']>;
   discoverabilityAutoJoinEnabled?: InputMaybe<Scalars['Boolean']['input']>;
