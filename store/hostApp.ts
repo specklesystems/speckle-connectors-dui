@@ -21,6 +21,7 @@ import type { Nullable } from '@speckle/shared'
 import type { HostAppError } from '~/lib/bridge/errorHandler'
 import type { ConversionResult } from '~/lib/conversions/conversionResult'
 import { defineStore } from 'pinia'
+import { startOperation } from '~/lib/core/utils/otelTrace'
 import type { CardSetting } from '~/lib/models/card/setting'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
@@ -417,6 +418,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * @param modelId
    */
   const sendModel = async (modelCardId: string, actionSource: string) => {
+    const operation = startOperation('publish', { modelCardId, actionSource })
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
@@ -424,7 +426,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     const canCreateIngestion = await canCreateModelIngestion(
       model.projectId,
       model.modelId,
-      model.accountId
+      model.accountId,
+      operation.otelContext
     )
 
     // The DUI-created ingestion handed down to connectors on the 4.0 artifact
@@ -440,7 +443,12 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
         connectorVersion: connectorVersion.value || null
       }
       if (canCreateIngestion.authorized) {
-        const created = await startIngestion(model, 'Starting to publish', sourceData)
+        const created = await startIngestion(
+          model,
+          'Starting to publish',
+          sourceData,
+          operation.otelContext
+        )
         if (created?.id && created.preallocatedVersionId) {
           connectorIngestion = {
             ingestionId: created.id,
@@ -454,6 +462,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
           title: 'Cannot publish',
           description: canCreateIngestion.message
         })
+        operation.end()
         return
       }
     } else {
@@ -461,7 +470,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       const canCreate = await canCreateVersion(
         model.projectId,
         model.modelId,
-        model.accountId
+        model.accountId,
+        operation.otelContext
       )
       if (!canCreate.authorized) {
         setNotification({
@@ -469,6 +479,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
           title: 'Cannot publish',
           description: canCreate.message || 'Workspace limits have been reached'
         })
+        operation.end()
         return
       }
     }
@@ -502,13 +513,16 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       )
     }
 
+    const dispatch = (send: () => Promise<void>) =>
+      operation.run(() => void operation.settle(send()))
+
     // You should stop asking why if you saw anything related autocad..
     // It solves the press "escape" issue.
     // Because probably we don't give enough time to acad complete it's previos task and it stucks.
     const shittyHostApps = ['autocad']
     if (shittyHostApps.includes(hostAppName.value as string)) {
       setTimeout(() => {
-        void app.$sendBinding.send(modelCardId)
+        dispatch(() => app.$sendBinding.send(modelCardId))
       }, 500) // I prefer to sacrifice 500ms
     } else if (
       hostAppName.value === 'sketchup' &&
@@ -522,13 +536,15 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     ) {
       // Sketchup's bridge forwards variadic args to Ruby: the artifact path
       // uploads against this DUI-created ingestion instead of creating its own.
-      void app.$sendBinding.send(
-        modelCardId,
-        connectorIngestion.ingestionId,
-        connectorIngestion.versionId
+      dispatch(() =>
+        app.$sendBinding.send(
+          modelCardId,
+          connectorIngestion.ingestionId,
+          connectorIngestion.versionId
+        )
       )
     } else {
-      void app.$sendBinding.send(modelCardId)
+      dispatch(() => app.$sendBinding.send(modelCardId))
     }
   }
 
@@ -537,10 +553,13 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
    * @param modelId
    */
   const sendModelCancel = async (modelCardId: string) => {
+    const operation = startOperation('publish.cancel', { modelCardId })
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as ISenderModelCard
-    await app.$sendBinding.cancelSend(modelCardId)
+    await operation.run(() =>
+      operation.settle(app.$sendBinding.cancelSend(modelCardId))
+    )
     model.progress = undefined
     model.error = undefined
     model.latestCreatedVersionId = undefined
@@ -614,6 +633,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   /// RECEIVE STUFF
   const receiveModel = async (modelCardId: string, actionSource: string) => {
+    const operation = startOperation('load', { modelCardId, actionSource })
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as IReceiverModelCard
@@ -645,19 +665,26 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     // Because probably we don't give enough time to acad complete it's previos task and it stucks.
     const shittyHostApps = ['autocad']
     if (shittyHostApps.includes(hostAppName.value as string)) {
-      setTimeout(async () => {
-        await app.$receiveBinding.receive(modelCardId)
+      setTimeout(() => {
+        operation.run(
+          () => void operation.settle(app.$receiveBinding.receive(modelCardId))
+        )
       }, 500) // I prefer to sacrifice 500ms
     } else {
-      await app.$receiveBinding.receive(modelCardId)
+      await operation.run(() =>
+        operation.settle(app.$receiveBinding.receive(modelCardId))
+      )
     }
   }
 
   const receiveModelCancel = async (modelCardId: string) => {
+    const operation = startOperation('load.cancel', { modelCardId })
     const model = documentModelStore.value.models.find(
       (m) => m.modelCardId === modelCardId
     ) as IReceiverModelCard
-    await app.$receiveBinding.cancelReceive(modelCardId)
+    await operation.run(() =>
+      operation.settle(app.$receiveBinding.cancelReceive(modelCardId))
+    )
     model.progress = undefined
 
     const account = accountsStore.getAccount(model.accountId)

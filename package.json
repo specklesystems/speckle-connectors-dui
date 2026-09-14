@@ -40,6 +40,7 @@
     "@jsonforms/vue": "3.1.0",
     "@jsonforms/vue-vanilla": "3.1.0",
     "@nuxt/image": "^1.10.0",
+    "@opentelemetry/api": "^1.9.1",
     "@pinia/nuxt": "^0.4.11",
     "@speckle/objectloader": "2026.9.1",
     "@speckle/objectsender": "2026.9.1",

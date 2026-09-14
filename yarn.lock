@@ -16340,6 +16340,7 @@ __metadata:
     "@nuxt/eslint": "npm:^1.3.1"
     "@nuxt/image": "npm:^1.10.0"
     "@nuxtjs/tailwindcss": "npm:^6.14.0"
+    "@opentelemetry/api": "npm:^1.9.1"
     "@parcel/watcher": "npm:^2.5.1"
     "@pinia/nuxt": "npm:^0.4.11"
     "@speckle/objectloader": "npm:2026.9.1"

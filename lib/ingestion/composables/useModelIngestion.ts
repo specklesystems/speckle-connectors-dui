@@ -4,6 +4,8 @@ import {
   useSubscription
 } from '@vue/apollo-composable'
 import { parse } from 'graphql'
+import type { Context } from '@opentelemetry/api'
+import { OTEL_APOLLO_CONTEXT_KEY } from '~/lib/core/utils/otelApolloLink'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import {
@@ -78,23 +80,30 @@ export const useModelIngestion = () => {
   const startIngestion = async (
     senderModelCard: ISenderModelCard,
     progressMessage: string,
-    sourceData: SourceDataInput
+    sourceData: SourceDataInput,
+    otelContext?: Context
   ) => {
+    const apolloContext = otelContext
+      ? { [OTEL_APOLLO_CONTEXT_KEY]: otelContext }
+      : undefined
     const { activeIngestions } = storeToRefs(store)
     const client = accountStore.getAccountClient(senderModelCard.accountId)
     const { mutate } = provideApolloClient(client)(() =>
       useMutation(createModelIngestion)
     )
 
-    const res = await mutate({
-      input: {
-        projectId: senderModelCard.projectId,
-        modelId: senderModelCard.modelId,
-        progressMessage,
-        sourceData,
-        maxIdleTimeoutSeconds: 7200 // 2h
-      }
-    })
+    const res = await mutate(
+      {
+        input: {
+          projectId: senderModelCard.projectId,
+          modelId: senderModelCard.modelId,
+          progressMessage,
+          sourceData,
+          maxIdleTimeoutSeconds: 7200 // 2h
+        }
+      },
+      { context: apolloContext }
+    )
 
     if (res?.errors?.length) {
       const msg = res.errors[0].message
@@ -122,7 +131,8 @@ export const useModelIngestion = () => {
         }>({
           query: preallocatedVersionIdQuery,
           variables: { projectId: senderModelCard.projectId, ingestionId },
-          fetchPolicy: 'network-only'
+          fetchPolicy: 'network-only',
+          context: apolloContext
         })
         preallocatedVersionId =
           versionRes.data?.project?.ingestion?.versionId ?? undefined
