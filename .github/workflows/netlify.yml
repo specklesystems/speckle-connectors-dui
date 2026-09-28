@@ -13,12 +13,23 @@ on:
         required: false
         type: boolean
         default: false
+      SERVICE_VERSION:
+        # Baked into the bundle as OTel `service.version` (the get-version output).
+        required: true
+        type: string
+      DEPLOYMENT_ENVIRONMENT:
+        # Baked into the bundle as OTel `deployment.environment.name`.
+        required: true
+        type: string
     secrets:
       TAILSCALE_OAUTH_CLIENT_ID:
         required: true
       TAILSCALE_OAUTH_CLIENT_AUDIENCE:
         required: true
       NETLIFY_AUTH_TOKEN:
+        required: true
+      HYPERDX_API_KEY:
+        # Browser HyperDX ingestion key, baked into the static bundle at build time.
         required: true
 
 permissions: {} # purposefully empty by default at workflow level, explicitly overridden for specific jobs below
@@ -63,7 +74,14 @@ jobs:
         run: yarn install --immutable
 
       - name: Build site
+        # Browser OpenTelemetry (HyperDX RUM) is baked at build time because the DUI is a
+        # static bundle (no runtime env). Same collector and variables as build.yml.
         run: yarn generate
+        env:
+          NUXT_PUBLIC_HYPERDX_ENABLED: 'true'
+          NUXT_PUBLIC_HYPERDX_COLLECTOR_URL: https://collector.speckle.dev
+          NUXT_PUBLIC_HYPERDX_INGESTION_KEY: ${{ secrets.HYPERDX_API_KEY }}
+          NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES: service.name=speckle-dui,service.version=${{ inputs.SERVICE_VERSION }},deployment.environment.name=${{ inputs.DEPLOYMENT_ENVIRONMENT }}
 
       - name: Netlify
         # We're not using the official Netlify GitHub Action as it appears to be unmaintained

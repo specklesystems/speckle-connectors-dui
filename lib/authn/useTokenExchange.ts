@@ -1,5 +1,6 @@
 import { md5 } from '@speckle/shared'
 import type { Account } from '~/lib/bindings/definitions/IAccountBinding'
+import { registerTracePropagationOrigin } from '~/lib/core/utils/tracePropagation'
 
 /**
  * Checks if the server supports the new /oauth/token endpoint.
@@ -26,6 +27,7 @@ export function useTokenExchange() {
     // Normalize to origin (strips trailing slash, path, etc.)
     // so account IDs stay consistent with connectors
     const serverUrl = new URL(rawServerUrl).origin
+    registerTracePropagationOrigin(serverUrl)
     const tokenHeaders = { 'Content-Type': 'application/json' }
     let tokenResponse: Response
 
