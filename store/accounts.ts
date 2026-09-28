@@ -17,7 +17,11 @@ import { setContext } from '@apollo/client/link/context'
 import { otelContextLink } from '~/lib/core/utils/otelApolloLink'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
-import { logToSeq } from '~/lib/logger/composables/useLogger'
+import { getAppLogger } from '~/lib/core/utils/logger'
+import { GQL_OPERATION_NAME_HEADER } from '~/lib/core/utils/hyperdx'
+import { registerTracePropagationOrigin } from '~/lib/core/utils/tracePropagation'
+
+const logger = getAppLogger('speckle-dui·apollo')
 
 export type DUIAccount = {
   /** account info coming from the host app */
@@ -126,25 +130,26 @@ export const useAccountStore = defineStore('accountStore', () => {
         continue
       }
 
+      registerTracePropagationOrigin(acc.serverInfo.url)
+
       // Handle apollo client errors as top level
       const errorLink = onError((res: ErrorResponse) => {
-        logToSeq('Error', 'Apollo GraphQL Error (DUI3)', {
+        const context = {
           operationName: res.operation?.operationName ?? 'Unknown',
-          serverUrl: res.operation.getContext().url as string,
+          serverUrl: acc.serverInfo.url,
           graphQLErrors: res.graphQLErrors?.map((err) => ({
             message: err.message,
             path: err.path,
             code: err.extensions?.code,
             locations: err.locations
-          })),
-          networkError: res.networkError
-            ? {
-                message: res.networkError.message,
-                name: res.networkError.name,
-                stack: res.networkError.stack
-              }
-            : undefined
-        })
+          }))
+        }
+        if (res.networkError) {
+          // Offline hosts and aborted requests are expected outcomes, not app failures.
+          logger.warn('Apollo network error', { ...context, error: res.networkError })
+        } else {
+          logger.error('Apollo GraphQL error', context)
+        }
 
         if (res.graphQLErrors) {
           if (
@@ -232,9 +237,16 @@ export const useAccountStore = defineStore('accountStore', () => {
       uri: serverUrl
     })
 
-    const authLink = setContext((_, { headers }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      return { headers: { ...headers, Authorization: authHeaderValue } }
+    const authLink = setContext((operation, { headers }) => {
+      return {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        headers: {
+          ...headers,
+          Authorization: authHeaderValue,
+          // Names the browser-side fetch span after the operation (see hyperdx.ts).
+          [GQL_OPERATION_NAME_HEADER]: operation.operationName ?? 'unknown'
+        }
+      }
     })
 
     const link = authLink

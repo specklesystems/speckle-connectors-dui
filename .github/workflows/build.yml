@@ -14,7 +14,7 @@ on:
       HYPERDX_API_KEY:
         # Browser HyperDX ingestion key, baked into the static bundle at build time.
         # Set this as a repository/organisation Actions secret in GitHub.
-        required: false
+        required: true
       TAILSCALE_OAUTH_CLIENT_ID:
         required: true
       TAILSCALE_OAUTH_CLIENT_AUDIENCE:

@@ -31,13 +31,18 @@ jobs:
 
   netlify:
     uses: ./.github/workflows/netlify.yml
+    needs:
+      - get-version
     with:
       NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
       NETLIFY_CONTEXT: deploy-preview
+      SERVICE_VERSION: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
+      DEPLOYMENT_ENVIRONMENT: preview
     secrets:
       TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
       TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      HYPERDX_API_KEY: ${{ secrets.HYPERDX_API_KEY }}
     permissions:
       contents: read
       id-token: write # Tailscale OAuth federation for the tailnet npm registry

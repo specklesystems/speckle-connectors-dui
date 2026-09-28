@@ -5,6 +5,7 @@ import {
   resetHyperDXUser,
   setHyperDXAttributes
 } from '~/lib/core/utils/hyperdx'
+import { registerTracePropagationOrigin } from '~/lib/core/utils/tracePropagation'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 
@@ -43,7 +44,9 @@ export default defineNuxtPlugin(async () => {
 
   // Attach connector / host-app context to every session as it becomes known.
   const hostAppStore = useHostAppStore()
-  const { hostAppName, hostAppVersion, connectorVersion } = storeToRefs(hostAppStore)
+  const { hostAppName, hostAppVersion, connectorVersion, defaultSpeckleServerUrl } =
+    storeToRefs(hostAppStore)
+  watch(defaultSpeckleServerUrl, registerTracePropagationOrigin, { immediate: true })
   watch(
     [hostAppName, hostAppVersion, connectorVersion],
     ([name, hostVersion, version]) => {

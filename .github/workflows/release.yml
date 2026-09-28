@@ -52,15 +52,19 @@ jobs:
     if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/netlify.yml
     needs:
+      - get-version
       - lint
     with:
       NETLIFY_SITE_ID: ${{ vars.NETLIFY_SITE_ID }}
       NETLIFY_CONTEXT: production
       PUBLISH_TO_PROD: true
+      SERVICE_VERSION: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
+      DEPLOYMENT_ENVIRONMENT: production
     secrets:
       TAILSCALE_OAUTH_CLIENT_ID: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
       TAILSCALE_OAUTH_CLIENT_AUDIENCE: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
       NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+      HYPERDX_API_KEY: ${{ secrets.HYPERDX_API_KEY }}
     permissions:
       contents: read
       id-token: write # Tailscale OAuth federation for the tailnet npm registry
