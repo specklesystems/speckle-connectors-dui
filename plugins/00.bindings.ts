@@ -51,6 +51,9 @@ import {
   IRevitMapperBindingKey,
   MockedMapperBinding
 } from '~/lib/bindings/definitions/IRevitMapperBinding'
+import { getAppLogger } from '~/lib/core/utils/logger'
+
+const logger = getAppLogger('speckle-dui·bindings')
 
 // Makes TS happy
 declare let globalThis: Record<string, unknown> & {
@@ -78,9 +81,7 @@ export default defineNuxtPlugin(async () => {
   globalThis['isDev'] = isDev
   if (!isRunningOnConnector) {
     // The state that we wouldn't wanna show any connector related visuals on production like in dui.speckle.systems
-    console.warn(
-      '⚠️ You are a bad boy because you are not running DUI in a connector! ⚠️'
-    )
+    logger.warn('DUI is not running inside a connector')
   }
 
   // Registers a set of non existent bindings as a test.
@@ -204,23 +205,17 @@ const tryHoistBinding = async <T>(name: string) => {
   if (res) bridge = tempBridge
 
   if (!bridge) {
-    console.warn(`Failed to bind ${name} binding.`)
+    logger.debug('Binding not provided by the host app', { binding: name })
     return bridge as unknown as T
   }
 
   globalThis[name] = bridge
-  console.log(
-    `%c✔ ${name} connector binding added succesfully.`,
-    'color: green; font-weight: bold; font-size: small'
-  )
+  logger.debug('Connector binding added', { binding: name })
   return bridge as unknown as T
 }
 
 const hoistMockBinding = <T>(mockBinding: T, name: string) => {
   globalThis[name] = mockBinding
-  console.log(
-    `%c✔ Mocked ${name} binding added succesfully.`,
-    'color: green; font-weight: bold; font-size: small'
-  )
+  logger.debug('Mocked binding added', { binding: name })
   return mockBinding
 }
