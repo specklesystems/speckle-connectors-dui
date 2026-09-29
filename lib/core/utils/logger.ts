@@ -13,7 +13,8 @@ import {
  * Only error records become recorded exceptions. A warn-level record that carries
  * an Error is an expected, handled outcome (offline server, denied permission) —
  * it ships as a `log.warn` action so HyperDX's exception feed only holds failures
- * somebody needs to act on.
+ * somebody needs to act on. `debug` records always print to the console, in every
+ * build, and are never shipped.
  */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -47,14 +48,16 @@ function log(
   message: string,
   properties: LogProperties = {}
 ) {
-  if (level === 'debug' && !import.meta.dev) return
-
   const consoleArgs = isEmpty(properties)
     ? [`[${category}] ${message}`]
     : [`[${category}] ${message}`, properties]
-  originalConsole[level](...consoleArgs)
+  // `debug` is written with console.log, not console.debug: DevTools hides the
+  // "Verbose" level by default and the connector webview's console is the one
+  // place a support engineer can see binding wiring on a user's machine.
+  originalConsole[level === 'debug' ? 'log' : level](...consoleArgs)
 
-  if (!isClickstackEnabled()) return
+  // Debug records are local diagnostics only; they never reach HyperDX.
+  if (level === 'debug' || !isClickstackEnabled()) return
 
   const errorObj = [properties.error, properties.err].find(
     (value): value is Error => value instanceof Error

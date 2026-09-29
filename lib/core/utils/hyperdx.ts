@@ -46,6 +46,8 @@ export async function initHyperDX(config: HyperDXConfig): Promise<void> {
     registerTracePropagationOrigin(config.apiOrigin)
     const propagationTargets = getTracePropagationTargets()
 
+    suppressCrossOriginScriptErrors()
+
     hyperdx.init({
       apiKey: config.apiKey || 'ffffffff-ffff-ffff-ffff-ffffffffffff',
       service: 'speckle-dui',
@@ -56,14 +58,17 @@ export async function initHyperDX(config: HyperDXConfig): Promise<void> {
       },
       tracePropagationTargets: propagationTargets,
       // posthog-js retries its own ingest failures; a PostHog-side 5xx says nothing about
-      // our stack (same exclusion as frontend-3). The Nuxt build-manifest poll is the
-      // DUI's own heartbeat and was 56 % of all DUI spans (ENG-9940).
-      ignoreUrls: [/\.posthog\.com/, /\/_nuxt\/builds\//],
+      // our stack (same exclusion as frontend-3). `/_nuxt/` covers the build-manifest poll
+      // and, through document-load, the DUI's own chunk/asset loads: a `resourceFetch` per
+      // chunk per page load was the bulk of all DUI spans (ENG-9940).
+      ignoreUrls: [/\.posthog\.com/, /\/_nuxt\//],
       consoleCapture: true,
       advancedNetworkCapture: true,
       maskAllInputs: true,
       maskAllText: false,
       instrumentations: {
+        // Resources fetched after load are third-party widgets (Intercom); nothing to act on.
+        postload: false,
         fetch: {
           propagateTraceHeaderCorsUrls: propagationTargets,
           applyCustomAttributesOnSpan: (span, request, result) => {
@@ -95,6 +100,27 @@ export async function initHyperDX(config: HyperDXConfig): Promise<void> {
       error
     )
   }
+}
+
+/**
+ * A cross-origin script that throws reaches `window.onerror` as the literal
+ * "Script error." with no stack, file or error object — the browser withholds
+ * everything. In the connector webviews that is host-injected or third-party
+ * code, never ours, and it was the single largest error signal by far. The
+ * SDK's error instrumentation has no filter, so the
+ * event is stopped before its listener; registered before `init()` and in the
+ * capture phase so it runs first on every Chromium the DUI supports.
+ */
+function suppressCrossOriginScriptErrors(): void {
+  window.addEventListener(
+    'error',
+    (event) => {
+      if (event.message === 'Script error.' && !event.error) {
+        event.stopImmediatePropagation()
+      }
+    },
+    { capture: true }
+  )
 }
 
 export function isClickstackEnabled(): boolean {

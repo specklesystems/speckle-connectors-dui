@@ -33,7 +33,7 @@ export type DUIAccount = {
 }
 
 const accountTestQuery = gql`
-  query AcccountTestQuery {
+  query AccountTestQuery {
     serverInfo {
       version
       name
