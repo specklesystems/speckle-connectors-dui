@@ -205,17 +205,17 @@ const tryHoistBinding = async <T>(name: string) => {
   if (res) bridge = tempBridge
 
   if (!bridge) {
-    logger.debug('Binding not provided by the host app', { binding: name })
+    logger.debug(`Binding not provided by the host app: ${name}`)
     return bridge as unknown as T
   }
 
   globalThis[name] = bridge
-  logger.debug('Connector binding added', { binding: name })
+  logger.debug(`Connector binding added: ${name}`)
   return bridge as unknown as T
 }
 
 const hoistMockBinding = <T>(mockBinding: T, name: string) => {
   globalThis[name] = mockBinding
-  logger.debug('Mocked binding added', { binding: name })
+  logger.debug(`Mocked binding added: ${name}`)
   return mockBinding
 }
