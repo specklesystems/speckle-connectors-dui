@@ -126,7 +126,13 @@
       v-else
       class="flex flex-row items-center px-2 pt-2 text-body-2xs text-foreground-2 truncate text-red-500"
     >
-      <span class="ml-1.5">Error on loading model data.</span>
+      <span class="ml-1.5">
+        {{
+          isModelDeleted
+            ? 'This model no longer exists on the server.'
+            : 'Error on loading model data.'
+        }}
+      </span>
 
       <div class="flex items-center justify-end grow">
         <FormButton
@@ -143,7 +149,7 @@
 
     <!-- Slot to allow senders or receivers to hoist their own buttons/ui -->
     <!-- class="px-2 h-0 group-hover:h-auto transition-all overflow-hidden" -->
-    <div v-if="canEdit" class="px-1">
+    <div v-if="canEdit && !isModelDeleted" class="px-1">
       <slot></slot>
     </div>
 
@@ -167,7 +173,7 @@
         }}
       </div>
     </div>
-    <div v-if="canEdit">
+    <div v-if="canEdit && !isModelDeleted">
       <!-- Card States: Expiry, errors, new version created, etc. -->
       <slot name="states"></slot>
       <div class="relative">
@@ -223,7 +229,7 @@
         </Transition>
       </div>
     </div>
-    <div v-else>
+    <div v-else-if="!isModelDeleted">
       <CommonModelNotification
         :notification="{
           modelCardId: modelCard.modelCardId,
@@ -258,6 +264,8 @@ import { CursorArrowRaysIcon, XCircleIcon, TrashIcon } from '@heroicons/vue/24/o
 import type { AvatarUserWithId } from '@speckle/ui-components'
 import { issuesListQuery } from '~/lib/issues/graphql/queries'
 import { MessageCircleMore } from 'lucide-vue-next'
+import type { ApolloError } from '@apollo/client/core'
+import { isModelNotFoundError } from '~/lib/common/helpers/modelNotFound'
 
 const app = useNuxtApp()
 const store = useHostAppStore()
@@ -303,14 +311,29 @@ const disabledMessage = computed(() =>
 
 const clientId = projectAccount.value.accountInfo.id
 
-const { result: modelResult, loading } = useQuery(
+const isModelDeleted = computed(() =>
+  store.isModelCardDeleted(props.modelCard.modelCardId)
+)
+
+const markIfModelDeleted = (error: ApolloError) => {
+  if (isModelNotFoundError(error))
+    store.markModelCardDeleted(props.modelCard.modelCardId)
+}
+
+const {
+  result: modelResult,
+  loading,
+  onError: onModelDetailsError
+} = useQuery(
   modelDetailsQuery,
   () => ({
     projectId: props.project.projectId,
     modelId: props.modelCard.modelId
   }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: !isModelDeleted.value })
 )
+
+onModelDetailsError(markIfModelDeleted)
 
 const modelData = computed(() => modelResult.value?.project.model)
 const queryData = computed(() => modelResult.value?.project)
@@ -322,14 +345,20 @@ const folderPath = computed(() => {
   return withoutLast.join('/')
 })
 
-const { result: automateResult, refetch } = useQuery(
+const {
+  result: automateResult,
+  refetch,
+  onError: onAutomateStatusError
+} = useQuery(
   automateStatusQuery,
   () => ({
     projectId: props.project.projectId,
     modelId: props.modelCard.modelId
   }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: !isModelDeleted.value })
 )
+
+onAutomateStatusError(markIfModelDeleted)
 
 const automationRuns = computed(
   () => automateResult.value?.project.model.automationsStatus?.automationRuns
@@ -338,7 +367,7 @@ const automationRuns = computed(
 const { onResult: onAutomateRunResult } = useSubscription(
   automateRunsSubscription,
   () => ({ projectId: props.project.projectId }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: !isModelDeleted.value })
 )
 
 onAutomateRunResult(() => {
@@ -360,7 +389,8 @@ const { result: issuesResult, refetch: refetchIssues } = useQuery(
   () => ({
     clientId,
     debounce: 500,
-    fetchPolicy: 'network-only'
+    fetchPolicy: 'network-only',
+    enabled: !isModelDeleted.value
   })
 )
 
@@ -488,7 +518,7 @@ const { onResult: onModelViewingResult } = useSubscription(
       resourceIdString: props.modelCard.modelId
     }
   }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: !isModelDeleted.value })
 )
 
 const currentlyViewingUsersMap = ref<
@@ -530,7 +560,7 @@ const { onResult: onCommentResult } = useSubscription(
       resourceIdString: props.modelCard.modelId
     }
   }),
-  () => ({ clientId })
+  () => ({ clientId, enabled: !isModelDeleted.value })
 )
 
 const latestCommentNotification = ref<ProjectCommentsUpdatedMessage>()
