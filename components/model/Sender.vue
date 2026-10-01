@@ -191,7 +191,10 @@ const { onResult: onWorkspacePlanUsageUpdated } = useSubscription(
       workspaceId: props.modelCard.workspaceId as string
     }
   }),
-  () => ({ clientId: clientId.value })
+  () => ({
+    enabled: !!props.modelCard.workspaceId,
+    clientId: clientId.value
+  })
 )
 
 onWorkspacePlanUsageUpdated(() => {
