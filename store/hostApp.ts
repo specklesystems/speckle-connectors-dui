@@ -137,7 +137,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const shouldHandleIngestion = computed(() => {
-    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'archicad', 'Vectorworks']
+    // Archicad builds with the native artifact send own their ingestion like the sharp
+    // connectors do (ENG-10294). Only the builds that still relay objects through the
+    // browser register 'AfterSendObjects', and those need the DUI's ingestion.
+    if (hostAppName.value === 'archicad') {
+      return ['afterSendObjects', 'AfterSendObjects'].some((name) =>
+        (
+          app.$sendBinding as unknown as BaseBridge | null
+        )?.availableMethodNames?.includes(name)
+      )
+    }
+    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'Vectorworks']
     return hostAppsThatUsesDUIForGraphql.includes(hostAppName.value as string)
   })
 
