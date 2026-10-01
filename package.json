@@ -28,7 +28,8 @@
     "lint:ci": "yarn lint:tsc && yarn lint:css",
     "gqlgen": "graphql-codegen",
     "gqlgen:watch": "graphql-codegen --watch",
-    "prettier:fix": "prettier --config .prettierrc --ignore-path .prettierignore --write ."
+    "prettier:fix": "prettier --config .prettierrc --ignore-path .prettierignore --write .",
+    "test": "vitest run"
   },
   "dependencies": {
     "@apollo/client": "^3.7.14",
@@ -114,6 +115,7 @@
     "type-fest": "^3.5.1",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0",
+    "vitest": "^3.2.4",
     "vue-tsc": "^2.2.2"
   },
   "resolutions": {

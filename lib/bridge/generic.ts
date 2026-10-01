@@ -8,6 +8,14 @@ import {
   serializeTraceContext,
   startBridgeSpan
 } from '~/lib/core/utils/otelTrace'
+import {
+  BridgeTimeoutError,
+  BridgeUnavailableError,
+  MethodCircuitBreaker
+} from '~/lib/bridge/circuitBreaker'
+import { getAppLogger } from '~/lib/core/utils/logger'
+
+const logger = getAppLogger('speckle-dui·bridge')
 
 const OTEL_TRACE_CONTEXT_CAPABILITY = 'otelTraceContext'
 const CAPABILITY_PROBE_TIMEOUT_MS = 750
@@ -76,6 +84,28 @@ export class GenericBridge extends BaseBridge {
   // TOTHINK: as this is a fast timeout, it forces us for long await methods in .net to return results via events. Kind-of not cool, and i'd be in favour of bumping it to "endless", or remove it altogether
   // An example is the send or receive operations: they can take fucking long :D
   private TIMEOUT_MS = 1000 * 60 // 60 sec
+  // Host events (refreshSendFilters, setIdMap) each turn into a bridge call; when the
+  // host stops answering, every call sits for the full timeout and the host keeps
+  // emitting, so the pending pile grows without bound and each timeout is one more
+  // error report. The breaker refuses calls to a method the host has stopped
+  // answering until a probe gets through (ENG-10178).
+  private readonly breaker = new MethodCircuitBreaker({
+    onTransition: ({ methodName, state, cooldownMs, consecutiveTimeouts }) => {
+      const properties = {
+        binding: this.bindingName,
+        methodName,
+        state,
+        cooldownMs,
+        consecutiveTimeouts,
+        pendingCalls: this.countPending(methodName)
+      }
+      if (state === 'open') {
+        logger.warn('Host app stopped answering a bridge method', properties)
+      } else {
+        logger.info('Bridge method circuit changed state', properties)
+      }
+    }
+  })
 
   constructor(
     object: IRawBridge,
@@ -88,6 +118,11 @@ export class GenericBridge extends BaseBridge {
     if (isArchicadBridge) {
       this.archicadBridge = new ArchicadBridge(this.emitter)
     }
+  }
+
+  private countPending(methodName: string) {
+    return Object.values(this.requests).filter((r) => r.methodName === methodName)
+      .length
   }
 
   public async create(): Promise<boolean> {
@@ -152,6 +187,11 @@ export class GenericBridge extends BaseBridge {
     args: unknown[],
     shouldTimeout: boolean = true
   ): Promise<unknown> {
+    const retryInMs = this.breaker.admit(methodName)
+    if (retryInMs > 0) {
+      throw new BridgeUnavailableError(methodName, retryInMs)
+    }
+
     const requestId = (Math.random() + 1).toString(36).substring(2) + '_' + methodName
     const preserializedArgs = args.map((a) => JSON.stringify(a))
     const argsJson = JSON.stringify(preserializedArgs)
@@ -180,6 +220,7 @@ export class GenericBridge extends BaseBridge {
     const request = this.requests[requestId]
     if (!request) return
 
+    this.breaker.recordAnswer(request.methodName)
     failBridgeSpan(request.span, error)
     endBridgeSpan(request.span)
     window.clearTimeout(request.rejectTimerId)
@@ -201,11 +242,12 @@ export class GenericBridge extends BaseBridge {
         span,
         rejectTimerId: window.setTimeout(
           () => {
-            const message = `.NET response timed out for call to ${methodName} - did not receive anything back in good time (${this.TIMEOUT_MS}ms).`
-            failBridgeSpan(span, new Error(message))
+            const error = new BridgeTimeoutError(methodName, this.TIMEOUT_MS)
+            failBridgeSpan(span, error)
             endBridgeSpan(span)
-            reject(message)
             delete this.requests[requestId]
+            this.breaker.recordTimeout(methodName)
+            reject(error)
           },
           shouldTimeout ? this.TIMEOUT_MS : 3600000
         )
@@ -214,12 +256,21 @@ export class GenericBridge extends BaseBridge {
   }
 
   private async responseReady(requestId: string) {
-    if (!this.requests[requestId])
-      throw new Error(
-        `.NET Bridge found no request to resolve with the id of ${requestId}. Something is weird!`
-      )
-
     const request = this.requests[requestId]
+    if (!request) {
+      // An answer to a call we already timed out: the host is slow, not dead, and
+      // that is exactly the signal that lets the breaker close for this method.
+      const methodName = requestId.slice(requestId.indexOf('_') + 1)
+      this.breaker.recordAnswer(methodName)
+      logger.debug('Host app answered a bridge call after it timed out', {
+        binding: this.bindingName,
+        methodName,
+        requestId
+      })
+      return
+    }
+
+    this.breaker.recordAnswer(request.methodName)
     const data = await this.bridge.GetCallResult(requestId)
     try {
       const parsedData = data ? (JSON.parse(data) as Record<string, unknown>) : null // TODO: check if data is undefined
