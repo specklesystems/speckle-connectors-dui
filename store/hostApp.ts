@@ -237,6 +237,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     )
   }
 
+  /**
+   * Model cards whose model the server reported as deleted. Lives in the store rather than the
+   * card so it survives the card remounting (e.g. on document switches), and in memory rather
+   * than on the persisted card so marking it never modifies the host app file.
+   */
+  const deletedModelCardIds = ref<string[]>([])
+
+  const markModelCardDeleted = (modelCardId: string) => {
+    if (deletedModelCardIds.value.includes(modelCardId)) return
+    deletedModelCardIds.value.push(modelCardId)
+  }
+
+  const isModelCardDeleted = (modelCardId: string) =>
+    deletedModelCardIds.value.includes(modelCardId)
+
   const removeAccountModels = async (accountId: string) => {
     const modelsToRemove = documentModelStore.value.models.filter(
       (item) => item.accountId === accountId
@@ -965,7 +980,16 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const getReceiveSettings = async () => {
-    receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
+    const canGetReceiveSettings = ['getReceiveSettings', 'GetReceiveSettings'].some(
+      (name) =>
+        (
+          app.$receiveBinding as unknown as BaseBridge | null
+        )?.availableMethodNames?.includes(name)
+    )
+
+    if (canGetReceiveSettings) {
+      receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
+    }
   }
 
   const tryToUpgradeModelCardSettings = (
@@ -1124,6 +1148,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     addModel,
     patchModel,
     removeModel,
+    markModelCardDeleted,
+    isModelCardDeleted,
     removeAccountModels,
     removeProjectModels,
     sendModel,

@@ -298,7 +298,7 @@ const { result: versionDetailsResult, refetch } = useQuery(
   }),
   () => ({
     clientId: clientId.value,
-    enabled: !!clientId.value
+    enabled: !!clientId.value && !store.isModelCardDeleted(props.modelCard.modelCardId)
   })
 )
 
