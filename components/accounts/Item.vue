@@ -60,13 +60,11 @@
 <script setup lang="ts">
 import type { DUIAccount } from '~~/store/accounts'
 import { TrashIcon } from '@heroicons/vue/24/outline'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 
 const { $accountBinding } = useNuxtApp()
 
-const canRemoveAccount = ['RemoveAccount', 'removeAccount'].some((name) =>
-  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
+const canRemoveAccount = bindingHasMethod($accountBinding, 'removeAccount')
 
 const props = defineProps<{
   account: DUIAccount

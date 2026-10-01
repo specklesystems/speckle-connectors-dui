@@ -75,16 +75,13 @@ import { XMarkIcon } from '@heroicons/vue/20/solid'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 import { useHostAppStore } from '~/store/hostApp'
 
 const app = useNuxtApp()
 const { pingDesktopService } = useDesktopService()
 const { $accountBinding } = useNuxtApp()
-const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
-  (name) =>
-    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
+const canStartAuthAccount = bindingHasMethod($accountBinding, 'authenticateAccount')
 
 const hostAppStore = useHostAppStore()
 const customServerUrl = ref<string>(hostAppStore.defaultSpeckleServerUrl)
