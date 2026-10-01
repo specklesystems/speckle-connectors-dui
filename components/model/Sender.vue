@@ -168,6 +168,7 @@ const canCreateVersionPerm = ref(true)
 const canCreateVersionMessage = ref<string | null>(null)
 
 const checkPermissions = async () => {
+  if (store.isModelCardDeleted(props.modelCard.modelCardId)) return
   const res = await canCreateModelIngestion(
     props.modelCard.projectId,
     props.modelCard.modelId,
