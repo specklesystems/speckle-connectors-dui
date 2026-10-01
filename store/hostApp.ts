@@ -929,7 +929,16 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const getReceiveSettings = async () => {
-    receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
+    const canGetReceiveSettings = ['getReceiveSettings', 'GetReceiveSettings'].some(
+      (name) =>
+        (
+          app.$receiveBinding as unknown as BaseBridge | null
+        )?.availableMethodNames?.includes(name)
+    )
+
+    if (canGetReceiveSettings) {
+      receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
+    }
   }
 
   const tryToUpgradeModelCardSettings = (
