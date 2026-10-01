@@ -1,5 +1,5 @@
 import type { ConnectorConfig } from '~/lib/bindings/definitions/IConfigBinding'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 import { defineStore } from 'pinia'
 
 export const useConfigStore = defineStore('configStore', () => {
@@ -45,9 +45,9 @@ export const useConfigStore = defineStore('configStore', () => {
     const fetchedConfig = await $configBinding.getConfig()
     config.value = { disableCache: false, ...fetchedConfig }
 
-    const canGetWorkspacesConfig = ['getWorkspacesConfig', 'GetWorkspacesConfig'].some(
-      (name) =>
-        ($configBinding as unknown as BaseBridge).availableMethodNames?.includes(name)
+    const canGetWorkspacesConfig = bindingHasMethod(
+      $configBinding,
+      'getWorkspacesConfig'
     )
     if (!canGetWorkspacesConfig) return
 

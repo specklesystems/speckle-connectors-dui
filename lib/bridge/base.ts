@@ -29,3 +29,13 @@ export class BaseBridge {
     this.emitter.emit(eventName, parsedPayload)
   }
 }
+
+/**
+ * Whether a binding implements a method. Takes the camelCase name and also matches its
+ * PascalCase form, because bridges report names exactly as the host registered them.
+ */
+export const bindingHasMethod = (binding: unknown, name: string): boolean => {
+  const pascalName = name.charAt(0).toUpperCase() + name.slice(1)
+  const methodNames = (binding as BaseBridge | null | undefined)?.availableMethodNames
+  return !!methodNames?.some((m) => m === name || m === pascalName)
+}

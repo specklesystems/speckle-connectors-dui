@@ -37,7 +37,7 @@ import {
 } from '~/lib/common/helpers/outdatedConnector'
 import { provideApolloClient, useMutation } from '@vue/apollo-composable'
 import { createVersionMutation } from '~/lib/graphql/mutationsAndQueries'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 import { useModelIngestion } from '~/lib/ingestion/composables/useModelIngestion'
 import { useCheckGraphql } from '~/lib/core/composables/useCheckGraphql'
 import { arraysEqual } from '~/lib/common/helpers/array'
@@ -137,18 +137,17 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const shouldHandleIngestion = computed(() => {
-    // Archicad builds with the native artifact send own their ingestion like the sharp
-    // connectors do (ENG-10294). Only the builds that still relay objects through the
-    // browser register 'AfterSendObjects', and those need the DUI's ingestion.
-    if (hostAppName.value === 'archicad') {
-      return ['afterSendObjects', 'AfterSendObjects'].some((name) =>
-        (
-          app.$sendBinding as unknown as BaseBridge | null
-        )?.availableMethodNames?.includes(name)
-      )
+    switch (hostAppName.value) {
+      case 'sketchup':
+      case 'Vectorworks':
+        return true
+      case 'archicad':
+        // Builds with the native artifact send own their ingestion (ENG-10294); only the
+        // browser-relay builds register 'AfterSendObjects', and those need the DUI's one.
+        return bindingHasMethod(app.$sendBinding, 'afterSendObjects')
+      default:
+        return false
     }
-    const hostAppsThatUsesDUIForGraphql = ['sketchup', 'Vectorworks']
-    return hostAppsThatUsesDUIForGraphql.includes(hostAppName.value as string)
   })
 
   /**
@@ -555,9 +554,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       // Evergreen-DUI guard: only 4.0 connectors register the 'sendArtifacts'
       // command; older connectors have a fixed-arity `send` that would error on
       // extra args, so they keep getting the single-argument call.
-      (app.$sendBinding as unknown as BaseBridge).availableMethodNames?.includes(
-        'sendArtifacts'
-      )
+      bindingHasMethod(app.$sendBinding, 'sendArtifacts')
     ) {
       // Sketchup's bridge forwards variadic args to Ruby: the artifact path
       // uploads against this DUI-created ingestion instead of creating its own.
@@ -839,11 +836,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const getConnectorVersion = async () => {
     connectorVersion.value = await app.$baseBinding.getConnectorVersion()
 
-    const canGetGlobalConfig = ['getGlobalConfig', 'GetGlobalConfig'].some((name) =>
-      (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-    )
-
-    if (canGetGlobalConfig) {
+    if (bindingHasMethod(app.$configBinding, 'getGlobalConfig')) {
       const globalConfig = await app.$configBinding.getGlobalConfig()
       if (globalConfig) {
         isUpdateNotificationDisabled.value = globalConfig.isUpdateNotificationDisabled
@@ -860,11 +853,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const getSessionId = async () => {
-    const canGetSessionId = ['getSessionId', 'GetSessionId'].some((name) =>
-      (app.$configBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-    )
-
-    if (canGetSessionId) {
+    if (bindingHasMethod(app.$configBinding, 'getSessionId')) {
       sessionId.value = await app.$configBinding.getSessionId()
     }
 
@@ -954,14 +943,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   }
 
   const getReceiveSettings = async () => {
-    const canGetReceiveSettings = ['getReceiveSettings', 'GetReceiveSettings'].some(
-      (name) =>
-        (
-          app.$receiveBinding as unknown as BaseBridge | null
-        )?.availableMethodNames?.includes(name)
-    )
-
-    if (canGetReceiveSettings) {
+    if (bindingHasMethod(app.$receiveBinding, 'getReceiveSettings')) {
       receiveSettings.value = await app.$receiveBinding.getReceiveSettings()
     }
   }
