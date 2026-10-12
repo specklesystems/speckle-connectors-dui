@@ -9,6 +9,8 @@ import {
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import type { IModelCard } from '~/lib/models/card'
+import type { SenderModelCard } from '~/lib/models/card/send'
+import type { ParameterUpdateSummary } from '~/lib/bindings/definitions/IParametersBinding'
 import type {
   IssuesItemFragment,
   IssueResourceMetaSearchQuery
@@ -82,12 +84,54 @@ export const useApplyChangeRequests = () => {
   }
 
   /**
-   * Run the full apply workflow.
+   * The application ids the record's changes target, in this model card's
+   * selection when the card has one (a change request can span models).
+   */
+  const affectedApplicationIds = (
+    payload: unknown,
+    modelCard: IModelCard
+  ): string[] => {
+    const changes = (payload as { changes?: Array<{ applicationId?: unknown }> } | null)
+      ?.changes
+    if (!Array.isArray(changes)) return []
+    const ids = new Set<string>()
+    for (const change of changes) {
+      if (typeof change?.applicationId === 'string' && change.applicationId) {
+        ids.add(change.applicationId)
+      }
+    }
+    const selected =
+      modelCard.typeDiscriminator === 'SenderModelCard'
+        ? (modelCard as SenderModelCard).sendFilter?.selectedObjectIds ?? []
+        : []
+    return selected.length ? selected.filter((id) => ids.has(id)) : [...ids]
+  }
+
+  /**
+   * Highlight the objects a change request touches, so the user sees what
+   * "Apply changes" is about to edit. Resolves to the number highlighted.
+   */
+  const highlightChangeRequestObjects = async (
+    issue: IssuesItemFragment,
+    modelCard: IModelCard
+  ): Promise<number> => {
+    const record = await fetchObjectDeltaRecord(issue, modelCard)
+    if (!record) return 0
+    const ids = affectedApplicationIds(record.payload, modelCard)
+    if (ids.length) await app.$baseBinding.highlightObjects(ids)
+    return ids.length
+  }
+
+  /**
+   * Run the full apply workflow. Resolves to the connector's summary, or
+   * null when there was nothing to apply. When the connector reports
+   * failures the record and the issue are left as they are, so the request
+   * can be retried; only a clean apply deletes the record and resolves it.
    */
   const applyChangeRequests = async (
     issue: IssuesItemFragment,
     modelCard: IModelCard
-  ): Promise<void> => {
+  ): Promise<ParameterUpdateSummary | null> => {
     const record = await fetchObjectDeltaRecord(issue, modelCard)
     if (!record) {
       hostAppStore.setNotification({
@@ -95,7 +139,7 @@ export const useApplyChangeRequests = () => {
         title: 'Nothing to apply',
         description: 'No pending change requests were found for this issue.'
       })
-      return
+      return null
     }
 
     // Step Uno: Push the changes into the host app
@@ -110,7 +154,13 @@ export const useApplyChangeRequests = () => {
         ? record.payload
         : JSON.stringify(record.payload)
 
-    await app.$parametersBinding.update(payloadString)
+    // Connectors that predate the summary resolve with nothing: treat as applied.
+    const summary = (await app.$parametersBinding.update(payloadString)) ?? {
+      applied: 0,
+      failed: 0,
+      errors: []
+    }
+    if (summary.failed > 0) return summary
 
     // Step 2 and 3: Delete the record and resolve the issue
     const client = accountStore.getAccountClient(modelCard.accountId)
@@ -145,9 +195,11 @@ export const useApplyChangeRequests = () => {
     if (updateRes?.errors?.length) {
       throw new Error(`Failed to resolve issue: ${updateRes.errors[0].message}`)
     }
+    return summary
   }
 
   return {
-    applyChangeRequests
+    applyChangeRequests,
+    highlightChangeRequestObjects
   }
 }

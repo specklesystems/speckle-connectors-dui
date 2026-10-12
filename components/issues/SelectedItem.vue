@@ -156,7 +156,7 @@ const props = defineProps<{
 
 const app = useNuxtApp()
 const hostAppStore = useHostAppStore()
-const { applyChangeRequests } = useApplyChangeRequests()
+const { applyChangeRequests, highlightChangeRequestObjects } = useApplyChangeRequests()
 
 const isApplying = ref(false)
 const openConfirmDialog = ref(false)
@@ -191,13 +191,36 @@ const hasObjectDeltas = computed<boolean>(() => {
   return Array.isArray(metadata) && metadata.length > 0
 })
 
+// Show what the request will touch as soon as it is known to exist. The
+// issue's viewer state can't drive this: viewer3 anchors carry object
+// indexes, not application ids, so the record's own ids are the source.
+watch(
+  hasObjectDeltas,
+  (has) => {
+    if (!has || isResolved.value) return
+    void highlightChangeRequestObjects(props.issue, props.modelCard).catch((error) =>
+      console.warn('Could not highlight change request objects:', error)
+    )
+  },
+  { immediate: true }
+)
+
 const confirmApply = async () => {
   if (isApplying.value) return
 
   isApplying.value = true
   try {
-    await applyChangeRequests(props.issue, props.modelCard)
+    const summary = await applyChangeRequests(props.issue, props.modelCard)
     openConfirmDialog.value = false
+    if (!summary) return
+    if (summary.failed > 0) {
+      hostAppStore.setNotification({
+        type: ToastNotificationType.Warning,
+        title: 'Change requests partly applied',
+        description: `${summary.applied} applied, ${summary.failed} failed. The request stays open so it can be applied again.`
+      })
+      return
+    }
     hostAppStore.setNotification({
       type: ToastNotificationType.Success,
       title: 'Change requests applied',
