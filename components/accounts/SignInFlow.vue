@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { useAuthManager } from '~/lib/authn/useAuthManager'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 import { useAccountStore } from '~/store/accounts'
 import { useHostAppStore } from '~/store/hostApp'
 import { ToastNotificationType } from '@speckle/ui-components'
@@ -18,13 +18,8 @@ const props = defineProps<{
 const accountStore = useAccountStore()
 const hostAppStore = useHostAppStore()
 const { $accountBinding } = useNuxtApp()
-const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
-  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
-const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
-  (name) =>
-    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
+const canAddAccount = bindingHasMethod($accountBinding, 'addAccount')
+const canStartAuthAccount = bindingHasMethod($accountBinding, 'authenticateAccount')
 
 const { generateChallenge } = useAuthManager()
 
