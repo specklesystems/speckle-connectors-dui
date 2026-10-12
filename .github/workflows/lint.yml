@@ -47,3 +47,6 @@ jobs:
 
       - name: Run Linter
         run: yarn lint
+
+      - name: Run Unit Tests
+        run: yarn test

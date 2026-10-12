@@ -22,6 +22,9 @@ import type { HostAppError } from '~/lib/bridge/errorHandler'
 import type { ConversionResult } from '~/lib/conversions/conversionResult'
 import { defineStore } from 'pinia'
 import { startOperation } from '~/lib/core/utils/otelTrace'
+import { singleFlight } from '~/lib/core/utils/singleFlight'
+import { isBridgeUnavailable } from '~/lib/bridge/circuitBreaker'
+import { getAppLogger } from '~/lib/core/utils/logger'
 import type { CardSetting } from '~/lib/models/card/setting'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
@@ -48,6 +51,22 @@ export type ProjectModelGroup = {
   serverUrl: string
   senders: ISenderModelCard[]
   receivers: IReceiverModelCard[]
+}
+
+const logger = getAppLogger('speckle-dui·hostApp')
+
+/**
+ * A bridge call the host never answered is reported once, here, by the call site
+ * that owns it; one the breaker skipped is routine and stays in the console.
+ */
+const reportBridgeFailure = (what: string, error: unknown) => {
+  if (isBridgeUnavailable(error)) {
+    logger.debug(`${what} skipped: ${error.message}`)
+    return
+  }
+  logger.warn(`${what} failed`, {
+    error: error instanceof Error ? error : new Error(String(error))
+  })
 }
 
 export const useHostAppStore = defineStore('hostAppStore', () => {
@@ -312,7 +331,11 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       }
 
       // https://linear.app/speckle/issue/CNX-1213/revit-when-moving-between-documents-cards-can-get-lost-between-them
-      await patchModel(modelCardId, { sendFilter: newFilter }) // we do not necessarily need to updateModel in revit bc we already do it on .NET - otherwise it is leading cleanup on document store bc of deferred action when we switched to the another doc
+      try {
+        await patchModel(modelCardId, { sendFilter: newFilter }) // we do not necessarily need to updateModel in revit bc we already do it on .NET - otherwise it is leading cleanup on document store bc of deferred action when we switched to the another doc
+      } catch (error) {
+        reportBridgeFailure('Persisting the refreshed object ids', error)
+      }
     }
   )
 
@@ -875,8 +898,21 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
 
   /**
    * Sources the available send filters from the app. This is useful in case of host app layer changes, etc.
+   *
+   * Single-flight: the host emits `refreshSendFilters` per document change, and a
+   * burst of those must not become a burst of `GetSendFilters` calls all waiting on
+   * the same slow host. One call is in flight at a time, with one trailing call so
+   * the last event still gets filters read after it (ENG-10178).
    */
-  const refreshSendFilters = async () => {
+  const refreshSendFilters = singleFlight(async () => {
+    try {
+      await refreshSendFiltersOnce()
+    } catch (error) {
+      reportBridgeFailure('Refreshing the send filters', error)
+    }
+  })
+
+  const refreshSendFiltersOnce = async () => {
     sendFilters.value = await app.$sendBinding?.getSendFilters()
     const revitViews = sendFilters.value.find(
       (f) => f.id === 'revitViews'
@@ -902,7 +938,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
       navisworksAvailableSavedSets.value = navisworksSavedSetsFromSendFilters.items
     }
 
-    tryToUpgradeSelectSendFilters() // in rhino we trigger refresh send filters whenever layer name has changed, this should be done for navis too!
+    await tryToUpgradeSelectSendFilters() // in rhino we trigger refresh send filters whenever layer name has changed, this should be done for navis too!
   }
 
   const tryToUpgradeSelectSendFilters = async () => {
