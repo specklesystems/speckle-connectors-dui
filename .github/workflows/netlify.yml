@@ -74,14 +74,26 @@ jobs:
         run: yarn install --immutable
 
       - name: Build site
-        # Browser OpenTelemetry (HyperDX RUM) is baked at build time because the DUI is a
-        # static bundle (no runtime env). Same collector and variables as build.yml.
+        # Runtime config (PostHog, HyperDX) is baked at build time because the DUI is a
+        # static bundle (no runtime env), and Netlify site env vars never reach this
+        # build (--no-build deploy).
         run: yarn generate
         env:
+          NUXT_PUBLIC_POSTHOG_API_KEY: phc_7zaDwBgrBYb1yUe0Ff3Sn0DUibq0NoPNxYNC90M7cfg
+          NUXT_PUBLIC_POSTHOG_API_HOST: eu.i.posthog.com
           NUXT_PUBLIC_HYPERDX_ENABLED: 'true'
           NUXT_PUBLIC_HYPERDX_COLLECTOR_URL: https://collector.speckle.dev
           NUXT_PUBLIC_HYPERDX_INGESTION_KEY: ${{ secrets.HYPERDX_API_KEY }}
           NUXT_PUBLIC_HYPERDX_OTEL_RESOURCE_ATTRIBUTES: service.name=speckle-dui,service.version=${{ inputs.SERVICE_VERSION }},deployment.environment.name=${{ inputs.DEPLOYMENT_ENVIRONMENT }}
+
+      - name: Check baked runtime config
+        # An empty PostHog config fails silently at runtime (analytics.ts swallows the
+        # fetch error), so it has to be caught here.
+        run: |
+          if grep -qE 'postHogApi(Key|Host):""' .output/public/index.html; then
+            echo "::error::PostHog runtime config is empty in the generated bundle"
+            exit 1
+          fi
 
       - name: Netlify
         # We're not using the official Netlify GitHub Action as it appears to be unmaintained
