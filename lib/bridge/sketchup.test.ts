@@ -48,8 +48,8 @@ const fakeSketchupHost = (commandNames: string[]) => {
   }
 }
 
-const accountsBinding = async (commandNames = ACCOUNTS_BINDING_COMMANDS) => {
-  const host = fakeSketchupHost(commandNames)
+const accountsBinding = async () => {
+  const host = fakeSketchupHost(ACCOUNTS_BINDING_COMMANDS)
   const bridge = new SketchupBridge('accountsBinding')
   await bridge.create()
   return { host, bridge, binding: bridge as unknown as IAccountBinding }

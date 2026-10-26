@@ -66,7 +66,7 @@ export class SketchupBridge extends BaseBridge {
   >
   private bindingName: string
   private TIMEOUT_MS = 1000 * 60 // 60 sec
-  // authenticateAccount waits on the browser for up to the connector's own 5 min login timeout (ENG-11164)
+  // Native sign-in waits on the user's browser; the connector bounds that wait, not the DUI (ENG-11164)
   private NON_TIMEOUT_METHODS = ['send', 'afterGetObjects', 'authenticateAccount']
   public isInitalized: Promise<boolean>
   private resolveIsInitializedPromise!: (v: boolean) => unknown
