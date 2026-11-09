@@ -81,6 +81,7 @@ import {
   countStatusTabs,
   defaultIssueFilters,
   labelOptionsOf,
+  withLateMeId,
   type IssueFilters
 } from '~/lib/issues/filters'
 
@@ -97,15 +98,9 @@ const selectedIssue = ref<IssuesItemFragment | undefined>(undefined)
 const filters = ref<IssueFilters>(defaultIssueFilters(props.meId))
 const resetFilters = () => (filters.value = defaultIssueFilters(props.meId))
 
-// Without the user id there is no Mine option, so the view starts on Everyone;
-// switch to Mine once the account resolves, as long as nothing was chosen yet.
 watch(
   () => props.meId,
-  (id, previous) => {
-    if (id && !previous && !filters.value.assigneeIds.length) {
-      filters.value = { ...filters.value, assigneeIds: [id] }
-    }
-  }
+  (id, previous) => (filters.value = withLateMeId(filters.value, id, previous))
 )
 
 const filteredIssues = computed(() => applyIssueFilters(props.issues, filters.value))

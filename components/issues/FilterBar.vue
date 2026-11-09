@@ -111,20 +111,24 @@
 
 <script setup lang="ts">
 import { AdjustmentsHorizontalIcon } from '@heroicons/vue/24/outline'
-import type { IssueStatus } from '~/lib/common/generated/gql/graphql'
+import type {
+  IssuesItemFragment,
+  IssueStatus
+} from '~/lib/common/generated/gql/graphql'
 import {
   activeStatusTabId,
   priorityOptions,
   statusTabs,
-  type IssueFilters
+  type IssueFilters,
+  type StatusTabId
 } from '~/lib/issues/filters'
 
 const filters = defineModel<IssueFilters>({ required: true })
 
 const props = defineProps<{
   meId?: string
-  statusCounts: Record<string, number>
-  labelOptions: { id: string; name: string; hexColor: string }[]
+  statusCounts: Record<StatusTabId, number>
+  labelOptions: IssuesItemFragment['labels']
 }>()
 
 const showMore = ref(false)

@@ -10,13 +10,16 @@ export type IssueFilters = {
   overdue: boolean
 }
 
-export type StatusTab = { id: string; name: string; statuses: IssueStatus[] }
+const activeStatuses = [IssueStatus.Open, IssueStatus.ReadyForReview]
+
+export type StatusTabId = 'active' | 'review' | 'resolved' | 'all'
+type StatusTab = { id: StatusTabId; name: string; statuses: IssueStatus[] }
 
 export const statusTabs: StatusTab[] = [
   {
     id: 'active',
     name: 'Active',
-    statuses: [IssueStatus.Open, IssueStatus.ReadyForReview]
+    statuses: activeStatuses
   },
   { id: 'review', name: 'In review', statuses: [IssueStatus.ReadyForReview] },
   { id: 'resolved', name: 'Resolved', statuses: [IssueStatus.Resolved] },
@@ -31,7 +34,7 @@ export const priorityOptions: { id: IssuePriority; name: string }[] = [
 ]
 
 export const defaultIssueFilters = (meId?: string): IssueFilters => ({
-  statuses: [...statusTabs[0].statuses],
+  statuses: [...activeStatuses],
   priorities: [],
   assigneeIds: meId ? [meId] : [],
   labelIds: [],
@@ -43,7 +46,7 @@ export const isOverdue = (issue: IssuesItemFragment, now: Date = new Date()) =>
   issue.status !== IssueStatus.Resolved &&
   dayjs(issue.dueDate).isBefore(dayjs(now), 'day')
 
-export const matchesIssueFilters = (
+const matchesIssueFilters = (
   issue: IssuesItemFragment,
   filters: IssueFilters,
   now: Date = new Date()
@@ -69,18 +72,19 @@ export const applyIssueFilters = (
   now?: Date
 ) => issues.filter((issue) => matchesIssueFilters(issue, filters, now))
 
-/** Each tab counts what it would show with every other active filter kept. */
+// FEA-752: a tab's count is what selecting it would show, so the other filters
+// stay applied rather than counting the model's whole issue list.
 export const countStatusTabs = (
   issues: IssuesItemFragment[],
   filters: IssueFilters,
   now?: Date
-): Record<string, number> =>
+): Record<StatusTabId, number> =>
   Object.fromEntries(
     statusTabs.map((tab) => [
       tab.id,
       applyIssueFilters(issues, { ...filters, statuses: tab.statuses }, now).length
     ])
-  )
+  ) as Record<StatusTabId, number>
 
 export const activeStatusTabId = (filters: IssueFilters) =>
   statusTabs.find(
@@ -95,3 +99,14 @@ export const labelOptionsOf = (issues: IssuesItemFragment[]) => {
     for (const label of issue.labels) byId.set(label.id, label)
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name))
 }
+
+// FEA-752: the card's account can resolve after the dialog mounts. Mine applies
+// then, unless the user already picked an assignee scope.
+export const withLateMeId = (
+  filters: IssueFilters,
+  meId: string | undefined,
+  previousMeId: string | undefined
+): IssueFilters =>
+  meId && !previousMeId && !filters.assigneeIds.length
+    ? { ...filters, assigneeIds: [meId] }
+    : filters

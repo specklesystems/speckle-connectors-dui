@@ -7,10 +7,12 @@ import {
   countStatusTabs,
   defaultIssueFilters,
   isOverdue,
+  labelOptionsOf,
+  withLateMeId,
   type IssueFilters
 } from '~/lib/issues/filters'
 
-const NOW = new Date(2026, 10, 9, 15, 0) // 9 Nov 2026, local time
+const NOW = new Date(2026, 10, 9, 15, 0)
 
 const issue = (
   id: string,
@@ -73,14 +75,14 @@ describe('defaultIssueFilters', () => {
 })
 
 describe('applyIssueFilters', () => {
-  it('reaches resolved issues through the status filter', () => {
+  it('lets me find resolved issues through the status filter', () => {
     const issues = [issue('open'), issue('done', { status: IssueStatus.Resolved })]
     expect(
       ids(applyIssueFilters(issues, { ...none, statuses: [IssueStatus.Resolved] }, NOW))
     ).toEqual(['done'])
   })
 
-  it('filters by priority', () => {
+  it('narrows the list to the priorities I pick', () => {
     const issues = [
       issue('high', { priority: IssuePriority.High }),
       issue('low', { priority: IssuePriority.Low })
@@ -90,7 +92,7 @@ describe('applyIssueFilters', () => {
     ).toEqual(['high'])
   })
 
-  it('matches any selected label', () => {
+  it('shows issues carrying any of the labels I pick', () => {
     const mep = { id: 'mep', name: 'MEP', hexColor: '#f00' }
     const qa = { id: 'qa', name: 'QA', hexColor: '#0f0' }
     const issues = [
@@ -103,10 +105,10 @@ describe('applyIssueFilters', () => {
     ).toEqual(['mep', 'both'])
   })
 
-  it('filters to overdue issues', () => {
+  it('narrows the list to overdue issues when I ask for them', () => {
     const issues = [
-      issue('late', { dueDate: new Date(2026, 10, 8, 23, 0).toISOString() }),
-      issue('later', { dueDate: new Date(2026, 10, 20).toISOString() })
+      issue('late', { dueDate: new Date(2026, 9, 1).toISOString() }),
+      issue('undated')
     ]
     expect(ids(applyIssueFilters(issues, { ...none, overdue: true }, NOW))).toEqual([
       'late'
@@ -143,7 +145,7 @@ describe('isOverdue', () => {
 })
 
 describe('countStatusTabs', () => {
-  it('counts each tab with every other active filter kept', () => {
+  it('counts what each status would show with my other filters kept', () => {
     const issues = [
       issue('my-open', { assigneeId: 'me' }),
       issue('my-review', { assigneeId: 'me', status: IssueStatus.ReadyForReview }),
@@ -160,13 +162,47 @@ describe('countStatusTabs', () => {
 })
 
 describe('activeStatusTabId', () => {
-  it('matches a tab regardless of status order', () => {
+  it('highlights Active whatever order its statuses were picked in', () => {
     expect(
       activeStatusTabId({
         ...none,
         statuses: [IssueStatus.ReadyForReview, IssueStatus.Open]
       })
     ).toBe('active')
+  })
+
+  it('highlights All when no status is picked', () => {
     expect(activeStatusTabId(none)).toBe('all')
+  })
+
+  it('highlights nothing for a status set no tab offers', () => {
+    expect(activeStatusTabId({ ...none, statuses: [IssueStatus.Open] })).toBeUndefined()
+  })
+})
+
+describe('labelOptionsOf', () => {
+  it('offers each label on the model once, by name', () => {
+    const qa = { id: 'qa', name: 'QA', hexColor: '#0f0' }
+    const mep = { id: 'mep', name: 'MEP', hexColor: '#f00' }
+    const issues = [issue('a', { labels: [qa, mep] }), issue('b', { labels: [qa] })]
+    expect(labelOptionsOf(issues).map((l) => l.id)).toEqual(['mep', 'qa'])
+  })
+})
+
+describe('withLateMeId', () => {
+  it('switches to my issues once my account loads', () => {
+    expect(withLateMeId(defaultIssueFilters(), 'me', undefined).assigneeIds).toEqual([
+      'me'
+    ])
+  })
+
+  it('keeps an assignee scope I already picked', () => {
+    const picked = { ...defaultIssueFilters(), assigneeIds: ['ana'] }
+    expect(withLateMeId(picked, 'me', undefined)).toBe(picked)
+  })
+
+  it('leaves Everyone alone when the account was already known', () => {
+    const everyone = { ...defaultIssueFilters('me'), assigneeIds: [] }
+    expect(withLateMeId(everyone, 'me', 'me')).toBe(everyone)
   })
 })
