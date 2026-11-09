@@ -68,7 +68,7 @@ const isWebview = () => !!(globalThis.chrome && globalThis.chrome.webview)
 const isSketchup = () => !!globalThis.sketchup
 const isCefSharp = () => !!globalThis.CefSharp
 const isArchicad = () => isCefSharp() && !!globalThis.DG
-const isConnector = () =>
+export const isConnector = () =>
   isWebview() || isSketchup() || isCefSharp() || isArchicad() || isEto()
 
 /**
@@ -189,9 +189,8 @@ const tryHoistBinding = async <T>(name: string) => {
     tempBridge = new SketchupBridge(name)
   }
 
-  // Rhino 8 Mac: Eto WebView (WKWebView) — no host objects, messages instead
   if (isEto() && !tempBridge) {
-    tempBridge = new GenericBridge(new EtoRawBridge(name))
+    tempBridge = new GenericBridge(new EtoRawBridge(name), name)
   }
 
   if (globalThis.CefSharp && globalThis.DG && !tempBridge) {

@@ -20,33 +20,59 @@ type EtoMessage = {
   url?: string
 }
 
+type EtoPostTarget = { postMessage: (message: string) => void }
+
 declare let globalThis: Record<string, unknown> & {
-  eto?: { postMessage: (message: string) => void }
+  eto?: EtoPostTarget
   webkit?: {
-    messageHandlers?: { __eto__?: { postMessage: (message: string) => void } }
+    messageHandlers?: { __eto__?: EtoPostTarget }
   }
+  __speckleEto?: { resolve: (callId: string, value: string) => boolean }
 }
 
 /**
- * Eto wraps its WKScriptMessageHandler as `window.eto.postMessage` via a user script whose injection can land after
- * Nuxt's plugins have run; the raw handler `window.webkit.messageHandlers.__eto__` is registered on the WebView
- * configuration before any navigation, so it is the reliable target.
+ * Bindings are probed in sequence by the Nuxt bindings plugin before the app mounts, so an
+ * unanswered call must fail fast or the whole UI stays blank (FEA-124).
  */
-const etoHandler = () =>
+const DEFAULT_CALL_TIMEOUT_MS = 5_000
+/**
+ * GetCallResult is only sent after the host signalled `responseReady`, but the payload can be large;
+ * GenericBridge still bounds the overall method call at 60s.
+ */
+const CALL_RESULT_TIMEOUT_MS = 30_000
+
+/**
+ * `window.eto.postMessage` is Eto's user-script wrapper around the raw `__eto__` WKScriptMessageHandler
+ * (picoe/Eto WKWebViewHandler); both raise the same MessageReceived on .NET, so either one identifies an Eto host.
+ */
+const etoHandler = (): EtoPostTarget | null =>
   globalThis.eto?.postMessage
     ? globalThis.eto
     : globalThis.webkit?.messageHandlers?.__eto__ ?? null
 
-const pending = new Map<string, (value: string) => void>()
+export const isEto = () => etoHandler() !== null
+
+type PendingCall = {
+  resolve: (value: string) => void
+  reject: (reason: Error) => void
+  timerId: ReturnType<typeof setTimeout>
+}
+
+const pending = new Map<string, PendingCall>()
 let seq = 0
 
-/** Called by .NET: `window.__speckleEto.resolve('<callId>', '<json string>')`. */
-;(globalThis as Record<string, unknown>)['__speckleEto'] = {
-  resolve: (callId: string, value: string) => {
-    const resolver = pending.get(callId)
-    if (!resolver) return
-    pending.delete(callId)
-    resolver(value)
+/** Only Eto hosts get the `window.__speckleEto` global that .NET answers through. */
+const installResolver = () => {
+  if (globalThis.__speckleEto || !isEto()) return
+  globalThis.__speckleEto = {
+    resolve: (callId: string, value: string) => {
+      const call = pending.get(callId)
+      if (!call) return false
+      pending.delete(callId)
+      clearTimeout(call.timerId)
+      call.resolve(value)
+      return true
+    }
   }
 }
 
@@ -55,17 +81,41 @@ let seq = 0
  * so it plugs into GenericBridge unchanged.
  */
 export class EtoRawBridge implements IRawBridge {
-  constructor(private readonly binding: string) {}
-
-  private post(message: Omit<EtoMessage, 'binding'>) {
-    etoHandler()!.postMessage(JSON.stringify({ binding: this.binding, ...message }))
+  constructor(private readonly binding: string) {
+    installResolver()
   }
 
-  private call(message: Omit<EtoMessage, 'binding' | 'callId'>): Promise<string> {
+  private post(message: Omit<EtoMessage, 'binding'>) {
+    const handler = etoHandler()
+    if (!handler)
+      throw new Error(
+        `Cannot reach the Eto host for ${this.binding}: neither window.eto.postMessage nor window.webkit.messageHandlers.__eto__ is available.`
+      )
+    handler.postMessage(JSON.stringify({ binding: this.binding, ...message }))
+  }
+
+  private call(
+    message: Omit<EtoMessage, 'binding' | 'callId'>,
+    timeoutMs = DEFAULT_CALL_TIMEOUT_MS
+  ): Promise<string> {
     const callId = `${this.binding}_${++seq}`
-    return new Promise<string>((resolve) => {
-      pending.set(callId, resolve)
-      this.post({ ...message, callId })
+    return new Promise<string>((resolve, reject) => {
+      const timerId = setTimeout(() => {
+        pending.delete(callId)
+        reject(
+          new Error(
+            `Eto host did not answer ${message.op} for ${this.binding} within ${timeoutMs}ms.`
+          )
+        )
+      }, timeoutMs)
+      pending.set(callId, { resolve, reject, timerId })
+      try {
+        this.post({ ...message, callId })
+      } catch (error) {
+        clearTimeout(timerId)
+        pending.delete(callId)
+        reject(error as Error)
+      }
     })
   }
 
@@ -77,24 +127,33 @@ export class EtoRawBridge implements IRawBridge {
     return JSON.parse(result) as string[]
   }
 
-  RunMethod(methodName: string, requestId: string, args: string): Promise<string> {
-    this.post({ op: 'RunMethod', methodName, requestId, args })
-    return Promise.resolve('')
+  // Fire-and-forget posts reject rather than throw, so GenericBridge's host-rejection handling
+  // settles the request immediately instead of waiting out its 60s timeout.
+  private send(message: Omit<EtoMessage, 'binding' | 'callId'>): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.post(message)
+      resolve()
+    })
+  }
+
+  async RunMethod(
+    methodName: string,
+    requestId: string,
+    args: string
+  ): Promise<string> {
+    await this.send({ op: 'RunMethod', methodName, requestId, args })
+    return ''
   }
 
   GetCallResult(requestId: string): Promise<string> {
-    return this.call({ op: 'GetCallResult', requestId })
+    return this.call({ op: 'GetCallResult', requestId }, CALL_RESULT_TIMEOUT_MS)
   }
 
   ShowDevTools(): Promise<void> {
-    this.post({ op: 'ShowDevTools' })
-    return Promise.resolve()
+    return this.send({ op: 'ShowDevTools' })
   }
 
   OpenUrl(url: string): Promise<void> {
-    this.post({ op: 'OpenUrl', url })
-    return Promise.resolve()
+    return this.send({ op: 'OpenUrl', url })
   }
 }
-
-export const isEto = () => etoHandler() !== null
