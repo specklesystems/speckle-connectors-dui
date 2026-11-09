@@ -126,8 +126,8 @@ export class EtoRawBridge implements IRawBridge {
     })
   }
 
-  // Never rejects: a host that predates the op answers "" or not at all, and GenericBridge's probe has already
-  // moved on by then; a late rejection would surface as an unhandled one (FEA-124).
+  // Never rejects: callers race this probe, so a host that predates the op (answers "" or nothing) must not
+  // surface later as an unhandled rejection (FEA-124).
   async GetBridgeCapabilities(): Promise<string[]> {
     try {
       const result = await this.call({ op: 'GetBridgeCapabilities' })

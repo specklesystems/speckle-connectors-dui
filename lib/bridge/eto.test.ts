@@ -7,6 +7,7 @@ type EtoEnvelope = {
   methodName?: string
   requestId?: string
   args?: string
+  otelTraceContext?: string
   url?: string
 }
 
@@ -78,6 +79,7 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
   afterEach(() => {
     vi.useRealTimers()
     vi.unstubAllGlobals()
+    vi.doUnmock('~/lib/core/utils/otelTrace')
     delete (globalThis as Record<string, unknown>).__speckleEto
   })
 
@@ -143,21 +145,28 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
       args: '[]',
       otelTraceContext: traceContext
     })
-    vi.doUnmock('~/lib/core/utils/otelTrace')
   })
 
-  it('reports no capabilities, without rejecting, when the host does not know the probe', async () => {
+  it('reports no capabilities when the host answers the probe with an empty payload', async () => {
     const host = fakeEtoHost()
     const { EtoRawBridge } = await importEto()
     const bridge = new EtoRawBridge('accountsBinding')
 
-    const answeredEmpty = bridge.GetBridgeCapabilities()
+    const capabilities = bridge.GetBridgeCapabilities()
     host.resolve(host.lastCall().callId!, '')
-    await expect(answeredEmpty).resolves.toEqual([])
 
-    const unanswered = bridge.GetBridgeCapabilities()
+    await expect(capabilities).resolves.toEqual([])
+  })
+
+  it('reports no capabilities, instead of rejecting, when the host never answers the probe', async () => {
+    fakeEtoHost()
+    const { EtoRawBridge } = await importEto()
+    const bridge = new EtoRawBridge('accountsBinding')
+
+    const capabilities = bridge.GetBridgeCapabilities()
     await vi.advanceTimersByTimeAsync(5 * SECOND)
-    await expect(unanswered).resolves.toEqual([])
+
+    await expect(capabilities).resolves.toEqual([])
   })
 
   it('rejects a call the host never answers and forgets it', async () => {
