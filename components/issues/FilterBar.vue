@@ -4,42 +4,24 @@
       <template v-if="meId">
         <FormButton
           size="sm"
-          :color="isMine ? 'primary' : 'subtle'"
+          :color="isMine ? 'outline' : 'subtle'"
           @click="setAssignee(meId)"
         >
           Mine
         </FormButton>
         <FormButton
           size="sm"
-          :color="isMine ? 'subtle' : 'primary'"
+          :color="isMine ? 'subtle' : 'outline'"
           @click="setAssignee(undefined)"
         >
           Everyone
-        </FormButton>
-      </template>
-      <template v-if="kindsAvailable">
-        <div class="w-px h-4 bg-outline-3 mx-1" />
-        <FormButton
-          v-for="option in kindButtons"
-          :key="option.id"
-          v-tippy="
-            kindsLoading && option.id !== 'all'
-              ? 'Checking for parameter updates'
-              : undefined
-          "
-          size="sm"
-          :color="kind === option.id ? 'primary' : 'subtle'"
-          :disabled="kindsLoading && option.id !== 'all'"
-          @click="setKind(option.id)"
-        >
-          {{ option.name }}
         </FormButton>
       </template>
       <div class="grow" />
       <FormButton
         v-tippy="extraCount ? `More filters (${extraCount} active)` : 'More filters'"
         size="sm"
-        :color="extraCount ? 'primary' : 'subtle'"
+        :color="extraCount || showMore ? 'outline' : 'subtle'"
         hide-text
         :icon-left="AdjustmentsHorizontalIcon"
         @click="showMore = !showMore"
@@ -51,7 +33,7 @@
         v-for="tab in statusTabs"
         :key="tab.id"
         size="sm"
-        :color="activeTab === tab.id ? 'primary' : 'subtle'"
+        :color="activeTab === tab.id ? 'outline' : 'subtle'"
         @click="setStatuses(tab.statuses)"
       >
         {{ tab.name }}
@@ -134,8 +116,7 @@ import {
   activeStatusTabId,
   priorityOptions,
   statusTabs,
-  type IssueFilters,
-  type IssueKind
+  type IssueFilters
 } from '~/lib/issues/filters'
 
 const filters = defineModel<IssueFilters>({ required: true })
@@ -144,8 +125,6 @@ const props = defineProps<{
   meId?: string
   statusCounts: Record<string, number>
   labelOptions: { id: string; name: string; hexColor: string }[]
-  kindsAvailable: boolean
-  kindsLoading: boolean
 }>()
 
 const showMore = ref(false)
@@ -158,16 +137,6 @@ const isMine = computed(
   () => !!props.meId && filters.value.assigneeIds.includes(props.meId)
 )
 const setAssignee = (id: string | undefined) => patch({ assigneeIds: id ? [id] : [] })
-
-const kindButtons: { id: 'all' | IssueKind; name: string }[] = [
-  { id: 'all', name: 'All' },
-  { id: 'issue', name: 'Issues' },
-  { id: 'parameterUpdate', name: 'Params' }
-]
-const kind = computed(() =>
-  filters.value.kinds.length === 1 ? filters.value.kinds[0] : 'all'
-)
-const setKind = (id: 'all' | IssueKind) => patch({ kinds: id === 'all' ? [] : [id] })
 
 const activeTab = computed(() => activeStatusTabId(filters.value))
 const setStatuses = (statuses: IssueStatus[]) => patch({ statuses: [...statuses] })

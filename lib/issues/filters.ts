@@ -2,21 +2,12 @@ import dayjs from 'dayjs'
 import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
 import { IssuePriority, IssueStatus } from '~/lib/common/generated/gql/graphql'
 
-export type IssueKind = 'issue' | 'parameterUpdate'
-
 export type IssueFilters = {
   statuses: IssueStatus[]
   priorities: IssuePriority[]
   assigneeIds: string[]
   labelIds: string[]
-  kinds: IssueKind[]
   overdue: boolean
-}
-
-export type IssueFilterContext = {
-  /** undefined while the issue's change-request lookup is pending or failed. */
-  kindOf: (issueId: string) => IssueKind | undefined
-  now?: Date
 }
 
 export type StatusTab = { id: string; name: string; statuses: IssueStatus[] }
@@ -44,7 +35,6 @@ export const defaultIssueFilters = (meId?: string): IssueFilters => ({
   priorities: [],
   assigneeIds: meId ? [meId] : [],
   labelIds: [],
-  kinds: [],
   overdue: false
 })
 
@@ -56,7 +46,7 @@ export const isOverdue = (issue: IssuesItemFragment, now: Date = new Date()) =>
 export const matchesIssueFilters = (
   issue: IssuesItemFragment,
   filters: IssueFilters,
-  ctx: IssueFilterContext
+  now: Date = new Date()
 ): boolean => {
   if (filters.statuses.length && !filters.statuses.includes(issue.status)) return false
   if (filters.priorities.length && !filters.priorities.includes(issue.priority))
@@ -69,30 +59,26 @@ export const matchesIssueFilters = (
   if (filters.labelIds.length) {
     if (!issue.labels.some((l) => filters.labelIds.includes(l.id))) return false
   }
-  if (filters.kinds.length) {
-    const kind = ctx.kindOf(issue.id)
-    if (!kind || !filters.kinds.includes(kind)) return false
-  }
-  if (filters.overdue && !isOverdue(issue, ctx.now)) return false
+  if (filters.overdue && !isOverdue(issue, now)) return false
   return true
 }
 
 export const applyIssueFilters = (
   issues: IssuesItemFragment[],
   filters: IssueFilters,
-  ctx: IssueFilterContext
-) => issues.filter((issue) => matchesIssueFilters(issue, filters, ctx))
+  now?: Date
+) => issues.filter((issue) => matchesIssueFilters(issue, filters, now))
 
 /** Each tab counts what it would show with every other active filter kept. */
 export const countStatusTabs = (
   issues: IssuesItemFragment[],
   filters: IssueFilters,
-  ctx: IssueFilterContext
+  now?: Date
 ): Record<string, number> =>
   Object.fromEntries(
     statusTabs.map((tab) => [
       tab.id,
-      applyIssueFilters(issues, { ...filters, statuses: tab.statuses }, ctx).length
+      applyIssueFilters(issues, { ...filters, statuses: tab.statuses }, now).length
     ])
   )
 

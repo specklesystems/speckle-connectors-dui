@@ -37,33 +37,25 @@
             :me-id="meId"
             :status-counts="statusCounts"
             :label-options="labelOptions"
-            :kinds-available="kinds.available.value"
-            :kinds-loading="kinds.loading.value"
           />
           <div
             v-if="filteredIssues.length === 0"
             class="flex flex-col items-center space-y-2 py-4 text-body-2xs text-foreground-2"
           >
-            <template v-if="filters.kinds.length && kinds.loading.value">
-              <CommonLoadingIcon />
-              <span>Checking for parameter updates…</span>
-            </template>
-            <template v-else>
-              <span>No issues match these filters.</span>
-              <div class="flex gap-1">
-                <FormButton
-                  v-if="filters.assigneeIds.length"
-                  size="sm"
-                  color="outline"
-                  @click="filters = { ...filters, assigneeIds: [] }"
-                >
-                  Show everyone
-                </FormButton>
-                <FormButton size="sm" color="subtle" @click="resetFilters">
-                  Reset filters
-                </FormButton>
-              </div>
-            </template>
+            <span>No issues match these filters.</span>
+            <div class="flex gap-1">
+              <FormButton
+                v-if="filters.assigneeIds.length"
+                size="sm"
+                color="outline"
+                @click="filters = { ...filters, assigneeIds: [] }"
+              >
+                Show everyone
+              </FormButton>
+              <FormButton size="sm" color="subtle" @click="resetFilters">
+                Reset filters
+              </FormButton>
+            </div>
           </div>
           <IssuesItem
             v-for="issue in filteredIssues"
@@ -89,10 +81,8 @@ import {
   countStatusTabs,
   defaultIssueFilters,
   labelOptionsOf,
-  type IssueFilterContext,
   type IssueFilters
 } from '~/lib/issues/filters'
-import { useIssueKinds } from '~/lib/issues/composables/useIssueKinds'
 
 const props = defineProps<{
   issues: IssuesItemFragment[]
@@ -118,21 +108,8 @@ watch(
   }
 )
 
-const kinds = useIssueKinds({
-  issues: toRef(props, 'issues'),
-  modelCard: props.modelCard,
-  active: showIssuesDialog
-})
-
-const filterContext = computed<IssueFilterContext>(() => ({
-  kindOf: kinds.kindOf
-}))
-const filteredIssues = computed(() =>
-  applyIssueFilters(props.issues, filters.value, filterContext.value)
-)
-const statusCounts = computed(() =>
-  countStatusTabs(props.issues, filters.value, filterContext.value)
-)
+const filteredIssues = computed(() => applyIssueFilters(props.issues, filters.value))
+const statusCounts = computed(() => countStatusTabs(props.issues, filters.value))
 const labelOptions = computed(() => labelOptionsOf(props.issues))
 
 const toggleDialog = () => {

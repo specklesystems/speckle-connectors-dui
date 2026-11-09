@@ -7,9 +7,7 @@ import {
   countStatusTabs,
   defaultIssueFilters,
   isOverdue,
-  type IssueFilterContext,
-  type IssueFilters,
-  type IssueKind
+  type IssueFilters
 } from '~/lib/issues/filters'
 
 const NOW = new Date(2026, 10, 9, 15, 0) // 9 Nov 2026, local time
@@ -40,17 +38,11 @@ const issue = (
   }
 }
 
-const ctx = (kinds: Record<string, IssueKind> = {}): IssueFilterContext => ({
-  kindOf: (id) => kinds[id],
-  now: NOW
-})
-
 const none: IssueFilters = {
   statuses: [],
   priorities: [],
   assigneeIds: [],
   labelIds: [],
-  kinds: [],
   overdue: false
 }
 
@@ -65,7 +57,7 @@ describe('defaultIssueFilters', () => {
       issue('theirs-open', { assigneeId: 'ana' }),
       issue('unassigned')
     ]
-    expect(ids(applyIssueFilters(issues, defaultIssueFilters('me'), ctx()))).toEqual([
+    expect(ids(applyIssueFilters(issues, defaultIssueFilters('me'), NOW))).toEqual([
       'mine-open',
       'mine-review'
     ])
@@ -73,7 +65,7 @@ describe('defaultIssueFilters', () => {
 
   it("shows everyone's active issues when the user is unknown", () => {
     const issues = [issue('a', { assigneeId: 'ana' }), issue('b')]
-    expect(ids(applyIssueFilters(issues, defaultIssueFilters(), ctx()))).toEqual([
+    expect(ids(applyIssueFilters(issues, defaultIssueFilters(), NOW))).toEqual([
       'a',
       'b'
     ])
@@ -84,9 +76,7 @@ describe('applyIssueFilters', () => {
   it('reaches resolved issues through the status filter', () => {
     const issues = [issue('open'), issue('done', { status: IssueStatus.Resolved })]
     expect(
-      ids(
-        applyIssueFilters(issues, { ...none, statuses: [IssueStatus.Resolved] }, ctx())
-      )
+      ids(applyIssueFilters(issues, { ...none, statuses: [IssueStatus.Resolved] }, NOW))
     ).toEqual(['done'])
   })
 
@@ -96,9 +86,7 @@ describe('applyIssueFilters', () => {
       issue('low', { priority: IssuePriority.Low })
     ]
     expect(
-      ids(
-        applyIssueFilters(issues, { ...none, priorities: [IssuePriority.High] }, ctx())
-      )
+      ids(applyIssueFilters(issues, { ...none, priorities: [IssuePriority.High] }, NOW))
     ).toEqual(['high'])
   })
 
@@ -111,33 +99,8 @@ describe('applyIssueFilters', () => {
       issue('bare')
     ]
     expect(
-      ids(applyIssueFilters(issues, { ...none, labelIds: ['qa', 'mep'] }, ctx()))
+      ids(applyIssueFilters(issues, { ...none, labelIds: ['qa', 'mep'] }, NOW))
     ).toEqual(['mep', 'both'])
-  })
-
-  it('separates parameter updates from plain issues', () => {
-    const issues = [issue('plain'), issue('change')]
-    const kinds = { plain: 'issue', change: 'parameterUpdate' } as const
-    expect(
-      ids(
-        applyIssueFilters(issues, { ...none, kinds: ['parameterUpdate'] }, ctx(kinds))
-      )
-    ).toEqual(['change'])
-    expect(
-      ids(applyIssueFilters(issues, { ...none, kinds: ['issue'] }, ctx(kinds)))
-    ).toEqual(['plain'])
-  })
-
-  it('leaves issues of unknown type out of a type filter, but not out of the list', () => {
-    const issues = [issue('known'), issue('pending')]
-    const kinds = { known: 'issue' } as const
-    expect(
-      ids(applyIssueFilters(issues, { ...none, kinds: ['issue'] }, ctx(kinds)))
-    ).toEqual(['known'])
-    expect(ids(applyIssueFilters(issues, none, ctx(kinds)))).toEqual([
-      'known',
-      'pending'
-    ])
   })
 
   it('filters to overdue issues', () => {
@@ -145,7 +108,7 @@ describe('applyIssueFilters', () => {
       issue('late', { dueDate: new Date(2026, 10, 8, 23, 0).toISOString() }),
       issue('later', { dueDate: new Date(2026, 10, 20).toISOString() })
     ]
-    expect(ids(applyIssueFilters(issues, { ...none, overdue: true }, ctx()))).toEqual([
+    expect(ids(applyIssueFilters(issues, { ...none, overdue: true }, NOW))).toEqual([
       'late'
     ])
   })
@@ -187,7 +150,7 @@ describe('countStatusTabs', () => {
       issue('my-done', { assigneeId: 'me', status: IssueStatus.Resolved }),
       issue('their-open', { assigneeId: 'ana' })
     ]
-    expect(countStatusTabs(issues, defaultIssueFilters('me'), ctx())).toEqual({
+    expect(countStatusTabs(issues, defaultIssueFilters('me'), NOW)).toEqual({
       active: 2,
       review: 1,
       resolved: 1,
