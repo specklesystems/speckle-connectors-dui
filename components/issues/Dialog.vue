@@ -35,7 +35,6 @@
           <IssuesFilterBar
             v-model="filters"
             :me-id="meId"
-            :workspaced="workspaced"
             :status-counts="statusCounts"
             :label-options="labelOptions"
             :kinds-available="kinds.available.value"
@@ -105,7 +104,6 @@ const app = useNuxtApp()
 const showIssuesDialog = ref(false)
 const selectedIssue = ref<IssuesItemFragment | undefined>(undefined)
 
-const workspaced = computed(() => !!props.modelCard.workspaceId)
 const filters = ref<IssueFilters>(defaultIssueFilters(props.meId))
 const resetFilters = () => (filters.value = defaultIssueFilters(props.meId))
 
@@ -127,7 +125,6 @@ const kinds = useIssueKinds({
 })
 
 const filterContext = computed<IssueFilterContext>(() => ({
-  workspaced: workspaced.value,
   kindOf: kinds.kindOf
 }))
 const filteredIssues = computed(() =>

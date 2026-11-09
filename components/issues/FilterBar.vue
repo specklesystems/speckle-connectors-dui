@@ -17,7 +17,7 @@
           Everyone
         </FormButton>
       </template>
-      <template v-if="workspaced && kindsAvailable">
+      <template v-if="kindsAvailable">
         <div class="w-px h-4 bg-outline-3 mx-1" />
         <FormButton
           v-for="option in kindButtons"
@@ -89,7 +89,7 @@
         </template>
       </FormSelectBase>
       <FormSelectBase
-        v-if="workspaced && labelOptions.length"
+        v-if="labelOptions.length"
         v-model="selectedLabels"
         name="issueLabelFilter"
         label="Labels"
@@ -142,7 +142,6 @@ const filters = defineModel<IssueFilters>({ required: true })
 
 const props = defineProps<{
   meId?: string
-  workspaced: boolean
   statusCounts: Record<string, number>
   labelOptions: { id: string; name: string; hexColor: string }[]
   kindsAvailable: boolean
@@ -189,7 +188,7 @@ const overdue = computed({
 const extraCount = computed(
   () =>
     filters.value.priorities.length +
-    (props.workspaced ? filters.value.labelIds.length : 0) +
+    filters.value.labelIds.length +
     (filters.value.overdue ? 1 : 0)
 )
 

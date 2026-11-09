@@ -40,11 +40,7 @@ const issue = (
   }
 }
 
-const ctx = (
-  kinds: Record<string, IssueKind> = {},
-  workspaced = true
-): IssueFilterContext => ({
-  workspaced,
+const ctx = (kinds: Record<string, IssueKind> = {}): IssueFilterContext => ({
   kindOf: (id) => kinds[id],
   now: NOW
 })
@@ -117,12 +113,6 @@ describe('applyIssueFilters', () => {
     expect(
       ids(applyIssueFilters(issues, { ...none, labelIds: ['qa', 'mep'] }, ctx()))
     ).toEqual(['mep', 'both'])
-  })
-
-  it('ignores a kept label or type filter in a project without a workspace', () => {
-    const issues = [issue('a'), issue('b')]
-    const filters = { ...none, labelIds: ['qa'], kinds: ['parameterUpdate' as const] }
-    expect(ids(applyIssueFilters(issues, filters, ctx({}, false)))).toEqual(['a', 'b'])
   })
 
   it('separates parameter updates from plain issues', () => {

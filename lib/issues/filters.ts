@@ -14,8 +14,6 @@ export type IssueFilters = {
 }
 
 export type IssueFilterContext = {
-  /** Labels and change requests only exist in workspaced projects. */
-  workspaced: boolean
   /** undefined while the issue's change-request lookup is pending or failed. */
   kindOf: (issueId: string) => IssueKind | undefined
   now?: Date
@@ -68,10 +66,10 @@ export const matchesIssueFilters = (
     !filters.assigneeIds.includes(issue.assignee?.user.id ?? '')
   )
     return false
-  if (ctx.workspaced && filters.labelIds.length) {
+  if (filters.labelIds.length) {
     if (!issue.labels.some((l) => filters.labelIds.includes(l.id))) return false
   }
-  if (ctx.workspaced && filters.kinds.length) {
+  if (filters.kinds.length) {
     const kind = ctx.kindOf(issue.id)
     if (!kind || !filters.kinds.includes(kind)) return false
   }
