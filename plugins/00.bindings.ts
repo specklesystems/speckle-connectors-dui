@@ -1,5 +1,6 @@
 import type { IRawBridge } from '~/lib/bridge/definitions'
 import { GenericBridge } from '~/lib/bridge/generic'
+import { EtoRawBridge, isEto } from '~/lib/bridge/eto'
 import { SketchupBridge } from '~/lib/bridge/sketchup'
 
 import type { IBasicConnectorBinding } from '~/lib/bindings/definitions/IBasicConnectorBinding'
@@ -67,7 +68,8 @@ const isWebview = () => !!(globalThis.chrome && globalThis.chrome.webview)
 const isSketchup = () => !!globalThis.sketchup
 const isCefSharp = () => !!globalThis.CefSharp
 const isArchicad = () => isCefSharp() && !!globalThis.DG
-const isConnector = () => isWebview() || isSketchup() || isCefSharp() || isArchicad()
+export const isConnector = () =>
+  isWebview() || isSketchup() || isCefSharp() || isArchicad() || isEto()
 
 /**
  * Here we are loading any bindings that we expect to have from all
@@ -185,6 +187,10 @@ const tryHoistBinding = async <T>(name: string) => {
 
   if (globalThis.sketchup && !tempBridge) {
     tempBridge = new SketchupBridge(name)
+  }
+
+  if (isEto() && !tempBridge) {
+    tempBridge = new GenericBridge(new EtoRawBridge(name), name)
   }
 
   if (globalThis.CefSharp && globalThis.DG && !tempBridge) {
