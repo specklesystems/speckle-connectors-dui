@@ -70,6 +70,41 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
     await expect(methodNames).resolves.toEqual(['GetAccounts'])
   })
 
+  it('runs a binding method through GenericBridge: RunMethod, responseReady, GetCallResult', async () => {
+    const host = fakeEtoHost()
+    const { EtoRawBridge } = await importEto()
+    const { GenericBridge } = await import('~/lib/bridge/generic')
+    const bridge = new GenericBridge(
+      new EtoRawBridge('accountsBinding'),
+      'accountsBinding'
+    )
+
+    const created = bridge.create()
+    host.resolve(host.lastCall().callId!, JSON.stringify(['GetAccounts']))
+    await expect(created).resolves.toBe(true)
+
+    const accounts = (
+      bridge as unknown as { getAccounts: () => Promise<unknown> }
+    ).getAccounts()
+    const run = host.lastCall()
+    expect(run).toMatchObject({
+      binding: 'accountsBinding',
+      op: 'RunMethod',
+      methodName: 'GetAccounts',
+      args: '[]'
+    })
+
+    const ready = (
+      bridge as unknown as { responseReady: (id: string) => Promise<void> }
+    ).responseReady(run.requestId!)
+    const fetch = host.lastCall()
+    expect(fetch).toMatchObject({ op: 'GetCallResult', requestId: run.requestId })
+    host.resolve(fetch.callId!, JSON.stringify([{ id: 'acc-1' }]))
+    await ready
+
+    await expect(accounts).resolves.toEqual([{ id: 'acc-1' }])
+  })
+
   it('rejects a call the host never answers and forgets it', async () => {
     const host = fakeEtoHost()
     const { EtoRawBridge } = await importEto()

@@ -1,9 +1,8 @@
 import type { IRawBridge } from '~/lib/bridge/definitions'
 
 /**
- * Message envelope posted to .NET through Eto's `window.eto.postMessage` (Rhino 8 Mac, WKWebView).
  * Eto has no host-object injection, so every IRawBridge call becomes a one-way message; calls that
- * return a value carry a `callId` that .NET answers via `window.__speckleEto.resolve(callId, json)`.
+ * return a value carry a `callId` that .NET answers via `window.__speckleEto.resolve(callId, json)` (FEA-124).
  */
 type EtoMessage = {
   binding: string
@@ -20,6 +19,8 @@ type EtoMessage = {
   url?: string
 }
 
+type EtoRequest = Omit<EtoMessage, 'binding' | 'callId'>
+
 type EtoPostTarget = { postMessage: (message: string) => void }
 
 declare let globalThis: Record<string, unknown> & {
@@ -35,16 +36,10 @@ declare let globalThis: Record<string, unknown> & {
  * unanswered call must fail fast or the whole UI stays blank (FEA-124).
  */
 const DEFAULT_CALL_TIMEOUT_MS = 5_000
-/**
- * GetCallResult is only sent after the host signalled `responseReady`, but the payload can be large;
- * GenericBridge still bounds the overall method call at 60s.
- */
+/** GetCallResult is only sent after the host signalled `responseReady`, but a send/receive result can be large (FEA-124). */
 const CALL_RESULT_TIMEOUT_MS = 30_000
 
-/**
- * `window.eto.postMessage` is Eto's user-script wrapper around the raw `__eto__` WKScriptMessageHandler
- * (picoe/Eto WKWebViewHandler); both raise the same MessageReceived on .NET, so either one identifies an Eto host.
- */
+/** Either Eto entry point identifies the host: `window.eto` is a user-script wrapper around the raw `__eto__` handler (FEA-124). */
 const etoHandler = (): EtoPostTarget | null =>
   globalThis.eto?.postMessage
     ? globalThis.eto
@@ -54,14 +49,12 @@ export const isEto = () => etoHandler() !== null
 
 type PendingCall = {
   resolve: (value: string) => void
-  reject: (reason: Error) => void
   timerId: ReturnType<typeof setTimeout>
 }
 
 const pending = new Map<string, PendingCall>()
-let seq = 0
+let callSeq = 0
 
-/** Only Eto hosts get the `window.__speckleEto` global that .NET answers through. */
 const installResolver = () => {
   if (globalThis.__speckleEto || !isEto()) return
   globalThis.__speckleEto = {
@@ -76,10 +69,6 @@ const installResolver = () => {
   }
 }
 
-/**
- * IRawBridge over Eto WebView script messages. Same contract as the WebView2/CefSharp host objects,
- * so it plugs into GenericBridge unchanged.
- */
 export class EtoRawBridge implements IRawBridge {
   constructor(private readonly binding: string) {
     installResolver()
@@ -95,10 +84,10 @@ export class EtoRawBridge implements IRawBridge {
   }
 
   private call(
-    message: Omit<EtoMessage, 'binding' | 'callId'>,
+    message: EtoRequest,
     timeoutMs = DEFAULT_CALL_TIMEOUT_MS
   ): Promise<string> {
-    const callId = `${this.binding}_${++seq}`
+    const callId = `${this.binding}_${++callSeq}`
     return new Promise<string>((resolve, reject) => {
       const timerId = setTimeout(() => {
         pending.delete(callId)
@@ -108,7 +97,7 @@ export class EtoRawBridge implements IRawBridge {
           )
         )
       }, timeoutMs)
-      pending.set(callId, { resolve, reject, timerId })
+      pending.set(callId, { resolve, timerId })
       try {
         this.post({ ...message, callId })
       } catch (error) {
@@ -121,15 +110,13 @@ export class EtoRawBridge implements IRawBridge {
 
   async GetBindingsMethodNames(): Promise<string[]> {
     const result = await this.call({ op: 'GetBindingsMethodNames' })
-    // .NET answers an unknown binding with an empty payload; rejecting here lets GenericBridge.create() report
-    // "Failed to bind" exactly as it does when a WebView2 host object is missing.
+    // The host answers an unknown binding with an empty payload; rejecting marks the binding absent (FEA-124).
     if (result === '') throw new Error(`No ${this.binding} binding on the .NET side`)
     return JSON.parse(result) as string[]
   }
 
-  // Fire-and-forget posts reject rather than throw, so GenericBridge's host-rejection handling
-  // settles the request immediately instead of waiting out its 60s timeout.
-  private send(message: Omit<EtoMessage, 'binding' | 'callId'>): Promise<void> {
+  // Reject rather than throw so a dead host fails the request at once instead of on the bridge timeout (FEA-124).
+  private send(message: EtoRequest): Promise<void> {
     return new Promise<void>((resolve) => {
       this.post(message)
       resolve()
