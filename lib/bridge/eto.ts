@@ -8,7 +8,9 @@ type EtoMessage = {
   binding: string
   op:
     | 'GetBindingsMethodNames'
+    | 'GetBridgeCapabilities'
     | 'RunMethod'
+    | 'RunMethodTraced'
     | 'GetCallResult'
     | 'ShowDevTools'
     | 'OpenUrl'
@@ -16,6 +18,7 @@ type EtoMessage = {
   methodName?: string
   requestId?: string
   args?: string
+  otelTraceContext?: string
   url?: string
 }
 
@@ -121,6 +124,33 @@ export class EtoRawBridge implements IRawBridge {
       this.post(message)
       resolve()
     })
+  }
+
+  // Never rejects: a host that predates the op answers "" or not at all, and GenericBridge's probe has already
+  // moved on by then; a late rejection would surface as an unhandled one (FEA-124).
+  async GetBridgeCapabilities(): Promise<string[]> {
+    try {
+      const result = await this.call({ op: 'GetBridgeCapabilities' })
+      return result === '' ? [] : (JSON.parse(result) as string[])
+    } catch {
+      return []
+    }
+  }
+
+  async RunMethodTraced(
+    methodName: string,
+    requestId: string,
+    args: string,
+    otelTraceContext: string
+  ): Promise<string> {
+    await this.send({
+      op: 'RunMethodTraced',
+      methodName,
+      requestId,
+      args,
+      otelTraceContext
+    })
+    return ''
   }
 
   async RunMethod(

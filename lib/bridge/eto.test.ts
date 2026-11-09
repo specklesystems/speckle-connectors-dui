@@ -41,6 +41,33 @@ const fakeEtoHost = () => {
 /** Fresh module state per test: the pending-call map and the installed resolver are module-level. */
 const importEto = () => import('~/lib/bridge/eto')
 
+/** Answers the two calls GenericBridge.create() makes: the method names, then the capability probe. */
+const createAccountsBridge = async (
+  host: ReturnType<typeof fakeEtoHost>,
+  capabilities: string[]
+) => {
+  const { EtoRawBridge } = await importEto()
+  const { GenericBridge } = await import('~/lib/bridge/generic')
+  const bridge = new GenericBridge(
+    new EtoRawBridge('accountsBinding'),
+    'accountsBinding'
+  )
+
+  const created = bridge.create()
+  host.resolve(host.lastCall().callId!, JSON.stringify(['GetAccounts']))
+  await vi.advanceTimersByTimeAsync(0)
+  const probe = host.lastCall()
+  expect(probe.op).toBe('GetBridgeCapabilities')
+  host.resolve(probe.callId!, JSON.stringify(capabilities))
+  await expect(created).resolves.toBe(true)
+
+  return {
+    bridge,
+    getAccounts: () =>
+      (bridge as unknown as { getAccounts: () => Promise<unknown> }).getAccounts()
+  }
+}
+
 describe('Eto (Rhino 8 Mac) bridge', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -72,20 +99,9 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
 
   it('runs a binding method through GenericBridge: RunMethod, responseReady, GetCallResult', async () => {
     const host = fakeEtoHost()
-    const { EtoRawBridge } = await importEto()
-    const { GenericBridge } = await import('~/lib/bridge/generic')
-    const bridge = new GenericBridge(
-      new EtoRawBridge('accountsBinding'),
-      'accountsBinding'
-    )
+    const { bridge, getAccounts } = await createAccountsBridge(host, [])
 
-    const created = bridge.create()
-    host.resolve(host.lastCall().callId!, JSON.stringify(['GetAccounts']))
-    await expect(created).resolves.toBe(true)
-
-    const accounts = (
-      bridge as unknown as { getAccounts: () => Promise<unknown> }
-    ).getAccounts()
+    const accounts = getAccounts()
     const run = host.lastCall()
     expect(run).toMatchObject({
       binding: 'accountsBinding',
@@ -103,6 +119,45 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
     await ready
 
     await expect(accounts).resolves.toEqual([{ id: 'acc-1' }])
+  })
+
+  it('sends the DUI trace context when the host advertises otelTraceContext', async () => {
+    const traceContext = JSON.stringify({
+      traceparent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+    })
+    vi.doMock('~/lib/core/utils/otelTrace', () => ({
+      startBridgeSpan: () => ({}),
+      serializeTraceContext: () => traceContext,
+      endBridgeSpan: () => undefined,
+      failBridgeSpan: () => undefined
+    }))
+    const host = fakeEtoHost()
+    const { getAccounts } = await createAccountsBridge(host, ['otelTraceContext'])
+
+    void getAccounts()
+
+    expect(host.lastCall()).toMatchObject({
+      binding: 'accountsBinding',
+      op: 'RunMethodTraced',
+      methodName: 'GetAccounts',
+      args: '[]',
+      otelTraceContext: traceContext
+    })
+    vi.doUnmock('~/lib/core/utils/otelTrace')
+  })
+
+  it('reports no capabilities, without rejecting, when the host does not know the probe', async () => {
+    const host = fakeEtoHost()
+    const { EtoRawBridge } = await importEto()
+    const bridge = new EtoRawBridge('accountsBinding')
+
+    const answeredEmpty = bridge.GetBridgeCapabilities()
+    host.resolve(host.lastCall().callId!, '')
+    await expect(answeredEmpty).resolves.toEqual([])
+
+    const unanswered = bridge.GetBridgeCapabilities()
+    await vi.advanceTimersByTimeAsync(5 * SECOND)
+    await expect(unanswered).resolves.toEqual([])
   })
 
   it('rejects a call the host never answers and forgets it', async () => {
