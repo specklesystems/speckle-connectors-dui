@@ -32,8 +32,33 @@
         </div>
 
         <div v-if="!selectedIssue" class="flex flex-col space-y-2">
+          <IssuesFilterBar
+            v-model="filters"
+            :me-id="meId"
+            :status-counts="statusCounts"
+            :label-options="labelOptions"
+          />
+          <div
+            v-if="filteredIssues.length === 0"
+            class="flex flex-col items-center space-y-2 py-4 text-body-2xs text-foreground-2"
+          >
+            <span>No issues match these filters.</span>
+            <div class="flex gap-1">
+              <FormButton
+                v-if="filters.assigneeIds.length"
+                size="sm"
+                color="outline"
+                @click="filters = { ...filters, assigneeIds: [] }"
+              >
+                Show everyone
+              </FormButton>
+              <FormButton size="sm" color="subtle" @click="resetFilters">
+                Reset filters
+              </FormButton>
+            </div>
+          </div>
           <IssuesItem
-            v-for="issue in issues"
+            v-for="issue in filteredIssues"
             :key="issue.id"
             :issue="issue"
             :model-card="modelCard"
@@ -51,15 +76,36 @@ import type { IssuesItemFragment } from '~/lib/common/generated/gql/graphql'
 import type { IModelCard } from '~/lib/models/card'
 import { ArrowLeft } from 'lucide-vue-next'
 import { ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/solid'
+import {
+  applyIssueFilters,
+  countStatusTabs,
+  defaultIssueFilters,
+  labelOptionsOf,
+  withLateMeId,
+  type IssueFilters
+} from '~/lib/issues/filters'
 
 const props = defineProps<{
   issues: IssuesItemFragment[]
   modelCard: IModelCard
+  meId?: string
 }>()
 
 const app = useNuxtApp()
 const showIssuesDialog = ref(false)
 const selectedIssue = ref<IssuesItemFragment | undefined>(undefined)
+
+const filters = ref<IssueFilters>(defaultIssueFilters(props.meId))
+const resetFilters = () => (filters.value = defaultIssueFilters(props.meId))
+
+watch(
+  () => props.meId,
+  (id, previous) => (filters.value = withLateMeId(filters.value, id, previous))
+)
+
+const filteredIssues = computed(() => applyIssueFilters(props.issues, filters.value))
+const statusCounts = computed(() => countStatusTabs(props.issues, filters.value))
+const labelOptions = computed(() => labelOptionsOf(props.issues))
 
 const toggleDialog = () => {
   showIssuesDialog.value = !showIssuesDialog.value

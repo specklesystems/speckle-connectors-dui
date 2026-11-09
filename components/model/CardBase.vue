@@ -75,6 +75,7 @@
             v-if="issues && issues.length > 0"
             :model-card="modelCard"
             :issues="issues"
+            :me-id="cardAccountUserId"
           >
             <template #activator="{ toggle }">
               <FormButton
@@ -397,10 +398,13 @@ const { result: issuesResult, refetch: refetchIssues } = useQuery(
 const issues = computed(() =>
   issuesResult?.value?.project.issues.items.filter(
     (issue) =>
-      issue.status !== 'resolved' &&
       issue.resourceIdString &&
       (issue.resourceIdString as string).includes(props.modelCard.modelId)
   )
+)
+
+const cardAccountUserId = computed(
+  () => accStore.getAccount(props.modelCard.accountId)?.accountInfo.userInfo.id
 )
 
 provide<IModelCard>('cardBase', props.modelCard)
