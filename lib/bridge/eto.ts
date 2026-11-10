@@ -1,4 +1,7 @@
-import type { IRawBridge } from '~/lib/bridge/definitions'
+import {
+  OTEL_TRACE_CONTEXT_CAPABILITY,
+  type IRawBridge
+} from '~/lib/bridge/definitions'
 
 /**
  * Eto has no host-object injection, so every IRawBridge call becomes a one-way message; calls that
@@ -8,7 +11,8 @@ type EtoMessage = {
   binding: string
   op:
     | 'GetBindingsMethodNames'
-    | 'RunMethod'
+    | 'GetBridgeCapabilities'
+    | 'RunMethodTraced'
     | 'GetCallResult'
     | 'ShowDevTools'
     | 'OpenUrl'
@@ -16,6 +20,8 @@ type EtoMessage = {
   methodName?: string
   requestId?: string
   args?: string
+  /** W3C carrier as `{"traceparent":..,"tracestate":..}`; absent when the call has no span to propagate. */
+  otelTraceContext?: string
   url?: string
 }
 
@@ -115,6 +121,20 @@ export class EtoRawBridge implements IRawBridge {
     return JSON.parse(result) as string[]
   }
 
+  /**
+   * Only Windows connectors predate trace-context support, and none of them runs under Eto, so an
+   * Eto host that does not advertise it is a mismatch worth failing loudly rather than a legacy case.
+   */
+  async GetBridgeCapabilities(): Promise<string[]> {
+    const result = await this.call({ op: 'GetBridgeCapabilities' })
+    const capabilities = JSON.parse(result || '[]') as string[]
+    if (!capabilities.includes(OTEL_TRACE_CONTEXT_CAPABILITY))
+      throw new Error(
+        `The Eto host for ${this.binding} does not advertise '${OTEL_TRACE_CONTEXT_CAPABILITY}', but the DUI only drives Eto hosts through RunMethodTraced.`
+      )
+    return capabilities
+  }
+
   // Reject rather than throw so a dead host fails the request at once instead of on the bridge timeout (FEA-124).
   private send(message: EtoRequest): Promise<void> {
     return new Promise<void>((resolve) => {
@@ -123,13 +143,25 @@ export class EtoRawBridge implements IRawBridge {
     })
   }
 
-  async RunMethod(
+  async RunMethodTraced(
     methodName: string,
     requestId: string,
-    args: string
+    args: string,
+    otelTraceContext?: string
   ): Promise<string> {
-    await this.send({ op: 'RunMethod', methodName, requestId, args })
+    await this.send({
+      op: 'RunMethodTraced',
+      methodName,
+      requestId,
+      args,
+      otelTraceContext
+    })
     return ''
+  }
+
+  /** There is no untraced op: GenericBridge lands here when it has no span to propagate, and the host takes a null context. */
+  RunMethod(methodName: string, requestId: string, args: string): Promise<string> {
+    return this.RunMethodTraced(methodName, requestId, args)
   }
 
   GetCallResult(requestId: string): Promise<string> {

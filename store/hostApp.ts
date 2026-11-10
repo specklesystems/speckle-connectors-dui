@@ -4,6 +4,7 @@ import type {
 } from '~/lib/bindings/definitions/IBasicConnectorBinding'
 import type { IModelCard, ModelCardProgress } from '~/lib/models/card'
 import { useAnalytics } from '~/lib/core/composables/analytics'
+import { isEto } from '~/lib/bridge/eto'
 import type { IReceiverModelCard } from '~/lib/models/card/receiver'
 import type {
   IDirectSelectionSendFilter,
@@ -50,6 +51,12 @@ export type ProjectModelGroup = {
   receivers: IReceiverModelCard[]
 }
 
+/**
+ * Rhino Mac (Eto) reloads the model cards before it raises documentChanged, so the delay Windows Rhino needs only
+ * keeps the previous document's cards on screen after a window switch (FEA-124).
+ */
+const documentChangedRefreshDelayMs = () => (isEto() ? 0 : 500)
+
 export const useHostAppStore = defineStore('hostAppStore', () => {
   const app = useNuxtApp()
   const { trackEvent } = useAnalytics()
@@ -77,6 +84,8 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   const connectorVersion = ref<string>()
   const documentInfo = ref<DocumentInfo>()
   const documentModelStore = ref<DocumentModelStore>({ models: [] })
+  /** True from an Eto host's documentChanged until the new document's model cards have loaded (FEA-124). */
+  const isLoadingDocumentState = ref(false)
 
   const availableViews = ref<string[]>() // TODO: later we can align views with -> const revitAvailableViews = ref<ISendFilterSelectItem[]>()
   const navisworksAvailableSavedSets = ref<ISendFilterSelectItem[]>()
@@ -1032,17 +1041,22 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
     })
   }
 
-  app.$baseBinding?.on(
-    'documentChanged',
-    () =>
-      setTimeout(async () => {
+  app.$baseBinding?.on('documentChanged', () => {
+    // On Rhino Mac this follows a switch to another document window, where the previous document's cards would
+    // otherwise show until the new ones arrive (FEA-124).
+    if (isEto()) isLoadingDocumentState.value = true
+    setTimeout(async () => {
+      try {
         // void trackEvent('DUI3 Action', { name: 'Document changed' }) // noisy
         void refreshDocumentInfo()
         await refreshDocumentModelStore() // need to awaited since upgrading the card settings need documentModelStore in place
-        void refreshSendFilters()
-        void tryToUpgradeModelCardSettings(sendSettings.value || [], 'SenderModelCard')
-      }, 500) // timeout exists because of rhino
-  )
+      } finally {
+        isLoadingDocumentState.value = false
+      }
+      void refreshSendFilters()
+      void tryToUpgradeModelCardSettings(sendSettings.value || [], 'SenderModelCard')
+    }, documentChangedRefreshDelayMs()) // timeout exists because of rhino
+  })
 
   const initializeApp = async () => {
     await getHostAppName()
@@ -1078,6 +1092,7 @@ export const useHostAppStore = defineStore('hostAppStore', () => {
   initializeApp()
 
   return {
+    isLoadingDocumentState,
     hostAppName,
     hostAppVersion,
     connectorVersion,
