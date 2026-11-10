@@ -1,5 +1,6 @@
 import { useHostAppStore } from '~/store/hostApp'
 import type { Account } from '~/lib/bindings/definitions/IAccountBinding'
+import { detectPlatform } from '~/lib/core/utils/connectorFeed'
 interface CustomProperties {
   [key: string]: object | string | boolean | number | undefined | null
 }
@@ -34,16 +35,9 @@ export function useAnalytics() {
         return
       }
 
-      // Get os info from userAgent text
-      // taken from original mixpanel implementation
-      // https://github.com/mixpanel/mixpanel-js/blob/master/examples/commonjs-browserify/bundle.js#L1576
-      const userAgent = navigator.userAgent
-      let os = 'unknown'
-      if (/Windows/i.test(userAgent)) {
-        os = 'Windows'
-      } else if (/Mac/i.test(userAgent)) {
-        os = 'Mac OS X'
-      }
+      const os = { windows: 'Windows', mac: 'Mac OS X', unknown: 'unknown' }[
+        detectPlatform(navigator.userAgent)
+      ]
       const [major, minor, patch] = _parseVersion(hostApp.connectorVersion)
 
       /* eslint-disable camelcase */
