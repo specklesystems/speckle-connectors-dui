@@ -25,10 +25,8 @@ import { startOperation } from '~/lib/core/utils/otelTrace'
 import type { CardSetting } from '~/lib/models/card/setting'
 import type { DUIAccount } from '~/store/accounts'
 import { useAccountStore } from '~/store/accounts'
-import {
-  useUpdateConnector,
-  type Version
-} from '~/lib/core/composables/updateConnector'
+import { useUpdateConnector } from '~/lib/core/composables/updateConnector'
+import type { Version } from '~/lib/core/utils/connectorFeed'
 import {
   isOutdatedConnectorError,
   OUTDATED_CONNECTOR_ERROR_MESSAGE,
