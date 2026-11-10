@@ -7,12 +7,16 @@ type EtoEnvelope = {
   methodName?: string
   requestId?: string
   args?: string
+  otelTraceContext?: string
   url?: string
 }
 
 type SpeckleEto = { resolve: (callId: string, value: string) => boolean }
 
 const SECOND = 1000
+const TRACE_CONTEXT = JSON.stringify({
+  traceparent: '00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01'
+})
 
 /**
  * Stands in for Rhino 8 Mac's `DUI3EtoWebView`: Eto registers the raw WKScriptMessageHandler
@@ -41,6 +45,37 @@ const fakeEtoHost = () => {
 /** Fresh module state per test: the pending-call map and the installed resolver are module-level. */
 const importEto = () => import('~/lib/bridge/eto')
 
+/** Lets the bridge post its next message: GenericBridge only probes capabilities once the method names are in. */
+const flush = () => vi.advanceTimersByTimeAsync(0)
+
+/**
+ * Drives `GenericBridge.create()` against the fake host: answers the method-name call and then
+ * the capability probe, which is what an Eto host that supports traced calls does.
+ */
+const createGenericBridge = async (host: ReturnType<typeof fakeEtoHost>) => {
+  const { EtoRawBridge } = await importEto()
+  const { GenericBridge } = await import('~/lib/bridge/generic')
+  const bridge = new GenericBridge(
+    new EtoRawBridge('accountsBinding'),
+    'accountsBinding'
+  )
+
+  const created = bridge.create()
+  host.resolve(host.lastCall().callId!, JSON.stringify(['GetAccounts']))
+  await flush()
+  expect(host.lastCall()).toMatchObject({
+    binding: 'accountsBinding',
+    op: 'GetBridgeCapabilities'
+  })
+  host.resolve(host.lastCall().callId!, JSON.stringify(['otelTraceContext']))
+  await expect(created).resolves.toBe(true)
+
+  return bridge as unknown as {
+    getAccounts: () => Promise<unknown>
+    responseReady: (id: string) => Promise<void>
+  }
+}
+
 describe('Eto (Rhino 8 Mac) bridge', () => {
   beforeEach(() => {
     vi.resetModules()
@@ -49,6 +84,7 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
   })
 
   afterEach(() => {
+    vi.doUnmock('~/lib/core/utils/otelTrace')
     vi.useRealTimers()
     vi.unstubAllGlobals()
     delete (globalThis as Record<string, unknown>).__speckleEto
@@ -70,39 +106,83 @@ describe('Eto (Rhino 8 Mac) bridge', () => {
     await expect(methodNames).resolves.toEqual(['GetAccounts'])
   })
 
-  it('runs a binding method through GenericBridge: RunMethod, responseReady, GetCallResult', async () => {
+  it('runs a binding method through GenericBridge: RunMethodTraced, responseReady, GetCallResult', async () => {
     const host = fakeEtoHost()
-    const { EtoRawBridge } = await importEto()
-    const { GenericBridge } = await import('~/lib/bridge/generic')
-    const bridge = new GenericBridge(
-      new EtoRawBridge('accountsBinding'),
-      'accountsBinding'
-    )
+    const bridge = await createGenericBridge(host)
 
-    const created = bridge.create()
-    host.resolve(host.lastCall().callId!, JSON.stringify(['GetAccounts']))
-    await expect(created).resolves.toBe(true)
-
-    const accounts = (
-      bridge as unknown as { getAccounts: () => Promise<unknown> }
-    ).getAccounts()
+    const accounts = bridge.getAccounts()
     const run = host.lastCall()
     expect(run).toMatchObject({
       binding: 'accountsBinding',
-      op: 'RunMethod',
+      op: 'RunMethodTraced',
       methodName: 'GetAccounts',
       args: '[]'
     })
+    // No tracer is registered here, so there is no span: the host gets the traced op with a null context.
+    expect(run.otelTraceContext).toBeUndefined()
 
-    const ready = (
-      bridge as unknown as { responseReady: (id: string) => Promise<void> }
-    ).responseReady(run.requestId!)
+    const ready = bridge.responseReady(run.requestId!)
     const fetch = host.lastCall()
     expect(fetch).toMatchObject({ op: 'GetCallResult', requestId: run.requestId })
     host.resolve(fetch.callId!, JSON.stringify([{ id: 'acc-1' }]))
     await ready
 
     await expect(accounts).resolves.toEqual([{ id: 'acc-1' }])
+  })
+
+  it('propagates the trace context of an active span through RunMethodTraced', async () => {
+    vi.doMock('~/lib/core/utils/otelTrace', () => ({
+      startBridgeSpan: () => ({ spanContext: () => ({}) }),
+      serializeTraceContext: () => TRACE_CONTEXT,
+      failBridgeSpan: () => undefined,
+      endBridgeSpan: () => undefined
+    }))
+    const host = fakeEtoHost()
+    const bridge = await createGenericBridge(host)
+
+    void bridge.getAccounts()
+    expect(host.lastCall()).toMatchObject({
+      op: 'RunMethodTraced',
+      methodName: 'GetAccounts',
+      otelTraceContext: TRACE_CONTEXT
+    })
+  })
+
+  it('never posts the legacy RunMethod op', async () => {
+    const host = fakeEtoHost()
+    const { EtoRawBridge } = await importEto()
+    const bridge = new EtoRawBridge('accountsBinding')
+
+    await bridge.RunMethod('GetAccounts', 'r1', '[]')
+    expect(host.lastCall()).toMatchObject({
+      op: 'RunMethodTraced',
+      methodName: 'GetAccounts',
+      requestId: 'r1',
+      args: '[]'
+    })
+    expect(host.lastCall().otelTraceContext).toBeUndefined()
+
+    await bridge.RunMethodTraced('GetAccounts', 'r2', '[]', TRACE_CONTEXT)
+    expect(host.lastCall()).toMatchObject({
+      op: 'RunMethodTraced',
+      requestId: 'r2',
+      otelTraceContext: TRACE_CONTEXT
+    })
+
+    expect(host.posted.map((m) => m.op)).not.toContain('RunMethod')
+  })
+
+  it('rejects the capability probe when the host does not advertise trace context', async () => {
+    const host = fakeEtoHost()
+    const { EtoRawBridge } = await importEto()
+    const bridge = new EtoRawBridge('accountsBinding')
+
+    const capabilities = bridge.GetBridgeCapabilities()
+    host.resolve(host.lastCall().callId!, JSON.stringify([]))
+
+    await expect(capabilities).rejects.toThrow(
+      "The Eto host for accountsBinding does not advertise 'otelTraceContext'"
+    )
   })
 
   it('rejects a call the host never answers and forgets it', async () => {
