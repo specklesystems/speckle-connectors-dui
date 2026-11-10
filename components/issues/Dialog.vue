@@ -10,7 +10,7 @@
                 color="outline"
                 hide-text
                 :icon-left="ArrowLeft"
-                @click="selectedIssue = undefined"
+                @click="selectedIssueId = undefined"
               />
             </div>
 
@@ -62,7 +62,7 @@
             :key="issue.id"
             :issue="issue"
             :model-card="modelCard"
-            @select="selectedIssue = issue"
+            @select="selectedIssueId = issue.id"
             @open-on-web="(issueId) => openIssueOnWeb(issueId)"
           />
         </div>
@@ -93,7 +93,12 @@ const props = defineProps<{
 
 const app = useNuxtApp()
 const showIssuesDialog = ref(false)
-const selectedIssue = ref<IssuesItemFragment | undefined>(undefined)
+// FEA-775: hold the id and read the issue from the live list, so edits made
+// in the detail view show there once the cache updates.
+const selectedIssueId = ref<string>()
+const selectedIssue = computed(() =>
+  props.issues.find((issue) => issue.id === selectedIssueId.value)
+)
 
 const filters = ref<IssueFilters>(defaultIssueFilters(props.meId))
 const resetFilters = () => (filters.value = defaultIssueFilters(props.meId))
@@ -118,6 +123,6 @@ const openIssueOnWeb = (issueId: string) => {
 }
 
 watch(showIssuesDialog, (open) => {
-  if (!open) selectedIssue.value = undefined
+  if (!open) selectedIssueId.value = undefined
 })
 </script>

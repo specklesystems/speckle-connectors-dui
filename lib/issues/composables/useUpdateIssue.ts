@@ -21,14 +21,16 @@ export const useUpdateIssue = (modelCard: IModelCard) => {
         variables: { input: { issueId, projectId: modelCard.projectId, ...changes } }
       })
       if (!result.data?.projectMutations.issues.updateIssue) {
-        throw new Error(result.errors?.[0]?.message ?? 'The server did not save it.')
+        throw new Error('updateIssue returned no issue')
       }
       return true
     } catch (error) {
+      console.error('Failed to update issue:', error)
       hostAppStore.setNotification({
         type: ToastNotificationType.Danger,
         title: 'Could not update the issue',
-        description: error instanceof Error ? error.message : 'Unknown error'
+        description:
+          'Your change was not saved. Try again, or edit the issue on the web.'
       })
       return false
     }

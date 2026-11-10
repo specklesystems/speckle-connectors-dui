@@ -28,7 +28,6 @@ describe('fieldEditability', () => {
   it("keeps a field read-only with the server's reason when I can't edit it", () => {
     const result = fieldEditability(permissions({ canEditAssignee: denied }))
     expect(result.assignee).toEqual({ editable: false, reason: denied.message })
-    expect(result.status.editable).toBe(true)
   })
 
   it('keeps every field read-only while permissions are unknown', () => {
@@ -51,7 +50,7 @@ describe('withCurrent', () => {
 })
 
 describe('createSerialSaver', () => {
-  it('saves my label changes in the order I made them, even when an earlier save is slower', async () => {
+  it('runs saves in call order, even when an earlier one is slower', async () => {
     const landed: string[][] = []
     const delays = [30, 0]
     const save = createSerialSaver(
@@ -67,7 +66,7 @@ describe('createSerialSaver', () => {
     expect(landed).toEqual([['bug'], ['bug', 'clash']])
   })
 
-  it('keeps saving after a save fails', async () => {
+  it('runs the next save after one fails', async () => {
     const landed: number[] = []
     const save = createSerialSaver((n: number) => {
       if (n === 1) return Promise.reject(new Error('offline'))

@@ -57,11 +57,10 @@
       :model-value="assigneeDraft"
       name="issueAssignee"
       label="Assignee"
-      :items="assigneeOptions"
       by="id"
       size="sm"
       search
-      :filter-predicate="matchesName"
+      :get-search-results="searchAssignees"
       search-placeholder="Search people"
       mount-menu-on-body
       clearable
@@ -106,7 +105,7 @@
       multiple
       size="sm"
       search
-      :filter-predicate="matchesName"
+      :filter-predicate="labelMatches"
       search-placeholder="Search labels"
       mount-menu-on-body
     >
@@ -147,7 +146,9 @@ import {
 } from '~/lib/issues/edit'
 import { priorityOptions } from '~/lib/issues/filters'
 import { useUpdateIssue } from '~/lib/issues/composables/useUpdateIssue'
+import type { IssueFieldChanges } from '~/lib/issues/composables/useUpdateIssue'
 import type { IModelCard } from '~/lib/models/card'
+import { useAccountStore } from '~/store/accounts'
 
 type Issue = IssuesItemFragment
 type Assignee = NonNullable<Issue['assignee']>
@@ -161,6 +162,7 @@ const props = defineProps<{
 }>()
 
 const updateIssue = useUpdateIssue(props.modelCard)
+const accountStore = useAccountStore()
 const clientId = props.modelCard.accountId
 const projectId = props.modelCard.projectId
 
@@ -173,22 +175,10 @@ const editability = computed(() =>
   fieldEditability(permissionsResult.value?.project.issue?.permissions)
 )
 
-const { result: assigneesResult } = useQuery(
-  issueAssigneesQuery,
-  () => ({ projectId }),
-  () => ({ clientId, enabled: editability.value.assignee.editable })
-)
 const { result: labelsResult } = useQuery(
   issueLabelsQuery,
   () => ({ projectId }),
   () => ({ clientId, enabled: editability.value.labels.editable })
-)
-
-const assigneeOptions = computed(() =>
-  withCurrent<Assignee>(
-    assigneesResult.value?.project.allowedIssueAssignees.items ?? [],
-    props.issue.assignee ? [props.issue.assignee] : []
-  )
 )
 const labelOptions = computed(() =>
   withCurrent<Label>(
@@ -196,13 +186,24 @@ const labelOptions = computed(() =>
     props.issue.labels
   )
 )
+const labelMatches = (label: Label, search: string) =>
+  label.name.toLowerCase().includes(search.toLowerCase())
+
+const searchAssignees = async (search: string) => {
+  const current = props.issue.assignee ? [props.issue.assignee] : []
+  try {
+    const { data } = await accountStore.getAccountClient(clientId).query({
+      query: issueAssigneesQuery,
+      variables: { projectId, search: search || undefined }
+    })
+    return withCurrent<Assignee>(data.project.allowedIssueAssignees.items, current)
+  } catch (error) {
+    console.warn('Could not load assignees:', error)
+    return current
+  }
+}
 
 const singleValue = <T>(value: T | T[]) => (Array.isArray(value) ? value[0] : value)
-const matchesName = (
-  item: { name?: string; user?: { name: string } },
-  search: string
-) => (item.name ?? item.user?.name ?? '').toLowerCase().includes(search.toLowerCase())
-
 const statusOf = (issue: Issue) => statusOptions.find((o) => o.id === issue.status)
 const priorityOf = (issue: Issue) =>
   priorityOptions.find((o) => o.id === issue.priority)
@@ -212,57 +213,73 @@ const priorityDraft = ref(priorityOf(props.issue))
 const assigneeDraft = ref<Assignee | undefined>(props.issue.assignee ?? undefined)
 const labelsDraft = ref<Label[]>([...props.issue.labels])
 
+let labelSaveQueued = false
+let labelSavesInFlight = 0
+
 watch(
   () => props.issue,
   (issue) => {
     statusDraft.value = statusOf(issue)
     priorityDraft.value = priorityOf(issue)
     assigneeDraft.value = issue.assignee ?? undefined
+    if (!labelSaveQueued && !labelSavesInFlight) labelsDraft.value = [...issue.labels]
   }
 )
 
-const onStatusChange = async (value: StatusOption | StatusOption[] | undefined) => {
+const saveField = async <T>(
+  draft: Ref<T>,
+  next: T,
+  changes: IssueFieldChanges,
+  saved: () => T
+) => {
+  draft.value = next
+  if (!(await updateIssue(props.issue.id, changes))) draft.value = saved()
+}
+
+const onStatusChange = (value: StatusOption | StatusOption[] | undefined) => {
   const next = value && singleValue(value)
   if (!next || next.id === props.issue.status) return
-  statusDraft.value = next
-  if (!(await updateIssue(props.issue.id, { status: next.id }))) {
-    statusDraft.value = statusOf(props.issue)
-  }
+  void saveField(statusDraft, next, { status: next.id }, () => statusOf(props.issue))
 }
 
-const onPriorityChange = async (
-  value: PriorityOption | PriorityOption[] | undefined
-) => {
+const onPriorityChange = (value: PriorityOption | PriorityOption[] | undefined) => {
   const next = value && singleValue(value)
   if (!next || next.id === props.issue.priority) return
-  priorityDraft.value = next
-  if (!(await updateIssue(props.issue.id, { priority: next.id }))) {
-    priorityDraft.value = priorityOf(props.issue)
-  }
+  void saveField(priorityDraft, next, { priority: next.id }, () =>
+    priorityOf(props.issue)
+  )
 }
 
-const onAssigneeChange = async (value: Assignee | Assignee[] | undefined) => {
+const onAssigneeChange = (value: Assignee | Assignee[] | undefined) => {
   const next = value ? singleValue(value) : undefined
   if (next?.id === props.issue.assignee?.id) return
-  assigneeDraft.value = next
-  if (!(await updateIssue(props.issue.id, { assigneeId: next?.id ?? null }))) {
-    assigneeDraft.value = props.issue.assignee ?? undefined
-  }
+  void saveField(
+    assigneeDraft,
+    next,
+    { assigneeId: next?.id ?? null },
+    () => props.issue.assignee ?? undefined
+  )
 }
 
 const saveLabels = createSerialSaver(async (labelIds: string[]) => {
-  if (!(await updateIssue(props.issue.id, { labelIds }))) {
-    labelsDraft.value = [...props.issue.labels]
+  labelSavesInFlight++
+  try {
+    if (!(await updateIssue(props.issue.id, { labelIds }))) {
+      labelsDraft.value = [...props.issue.labels]
+    }
+  } finally {
+    labelSavesInFlight--
   }
 })
-const saveLabelsSoon = useDebounceFn(
-  () => saveLabels(labelsDraft.value.map((l) => l.id)),
-  600
-)
-watch(labelsDraft, (labels, previous) => {
-  if (labels === previous) return
+const saveLabelsSoon = useDebounceFn(() => {
+  labelSaveQueued = false
+  return saveLabels(labelsDraft.value.map((l) => l.id))
+}, 600)
+watch(labelsDraft, (labels) => {
   const ids = labels.map((l) => l.id).sort()
   const saved = props.issue.labels.map((l) => l.id).sort()
-  if (ids.join() !== saved.join()) void saveLabelsSoon()
+  if (ids.join() === saved.join()) return
+  labelSaveQueued = true
+  void saveLabelsSoon()
 })
 </script>
