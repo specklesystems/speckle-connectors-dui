@@ -21,16 +21,8 @@
           }}
         </FormButton>
       </div>
+      <IssuesEditableFields :issue="issue" :model-card="modelCard" />
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <IssuesStatusIcon :status="issue.status" show-label />
-        <IssuesPriorityIcon :priority="issue.priority" show-label />
-        <div class="flex items-center justify-between space-x-1">
-          <UserAvatar :user="issue.assignee?.user" size="xs" />
-          <span class="text-body-3xs text-foreground-2 font-medium">
-            {{ issue.assignee ? issue.assignee?.user.name : 'No assignee' }}
-          </span>
-        </div>
-        <IssuesLabels :labels="issue.labels" />
         <div v-if="formattedDate" class="flex items-center gap-1 h-6">
           <Calendar class="text-foreground-2 shrink-0" :stroke-width="1.5" :size="12" />
           <span class="text-body-3xs text-foreground-2 font-medium">
