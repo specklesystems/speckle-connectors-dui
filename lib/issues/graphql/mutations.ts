@@ -11,11 +11,6 @@ export const deleteResourceMetaMutation = graphql(`
   }
 `)
 
-/**
- * Update an issue. We only use this to move status → Resolved when applying
- * change requests, but the mutation accepts the full UpdateIssueInput so it
- * could be reused for other status / field changes later.
- */
 export const updateIssueMutation = graphql(`
   mutation UpdateIssue($input: UpdateIssueInput!) {
     projectMutations {
@@ -23,6 +18,20 @@ export const updateIssueMutation = graphql(`
         updateIssue(input: $input) {
           id
           status
+          priority
+          assignee {
+            id
+            user {
+              id
+              avatar
+              name
+            }
+          }
+          labels {
+            hexColor
+            id
+            name
+          }
         }
       }
     }

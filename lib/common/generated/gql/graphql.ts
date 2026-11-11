@@ -64,6 +64,12 @@ export type AccIntegration = {
   hubs: AccHubCollection;
   item: AccItem;
   project: AccProject;
+  /**
+   * Checks the files picked to sync with an AVEVA/PDMS Review model (.rvm): whether the
+   * attribute export belongs to the model and which P&IDs it cites. Reads the files'
+   * heads from ACC with the caller's token; a file that cannot be read is "unchecked".
+   */
+  rvmLinkedFilesCheck: AccRvmLinkedFilesCheck;
 };
 
 
@@ -87,6 +93,11 @@ export type AccIntegrationItemArgs = {
 export type AccIntegrationProjectArgs = {
   hubId: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
+};
+
+
+export type AccIntegrationRvmLinkedFilesCheckArgs = {
+  input: AccRvmLinkedFilesCheckInput;
 };
 
 export type AccItem = {
@@ -134,6 +145,65 @@ export type AccProjectCollection = {
   __typename?: 'AccProjectCollection';
   cursor?: Maybe<Scalars['String']['output']>;
   items: Array<AccProject>;
+};
+
+/** Whether a file is the model's attribute export. */
+export type AccRvmAttributeFileCheck = {
+  __typename?: 'AccRvmAttributeFileCheck';
+  /** Lineage URN of the checked file. */
+  itemId: Scalars['ID']['output'];
+  /** Where the export names another model; empty unless status is otherModel. */
+  mismatches: Array<AccRvmAttributeFileMismatch>;
+  /** `RvmLinkedFileStatus` from @speckle/shared/rvm: ok, notAttributeFile, otherModel or unchecked. */
+  status: Scalars['String']['output'];
+};
+
+/** A header field on which the attribute export and the model disagree. */
+export type AccRvmAttributeFileMismatch = {
+  __typename?: 'AccRvmAttributeFileMismatch';
+  /** The value in the attribute export. */
+  attributeFile: Scalars['String']['output'];
+  /** Element or MDB. */
+  field: Scalars['String']['output'];
+  /** The value in the model. */
+  model: Scalars['String']['output'];
+};
+
+/** What the checks found for the files picked to sync with an .rvm. */
+export type AccRvmLinkedFilesCheck = {
+  __typename?: 'AccRvmLinkedFilesCheck';
+  /** Null when no attribute export was checked. */
+  attributeFile?: Maybe<AccRvmAttributeFileCheck>;
+  /** The P&ID drawing numbers the attribute export cites; null when unknown. */
+  citedDrawings?: Maybe<Array<Scalars['String']['output']>>;
+  /** One check per P&ID, in input order. */
+  pidFiles: Array<AccRvmPidFileCheck>;
+};
+
+/** The ACC files to check, by lineage URN. */
+export type AccRvmLinkedFilesCheckInput = {
+  /** The attribute export (.txt or .att), if one was picked. */
+  attributeFileItemId?: InputMaybe<Scalars['String']['input']>;
+  /** The .rvm file. */
+  hostItemId: Scalars['String']['input'];
+  /** DEXPI P&IDs (.xml), at most 100. */
+  pidFileItemIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** ACC project id. */
+  projectId: Scalars['String']['input'];
+};
+
+/** Whether a file is a DEXPI P&ID, and whether the attribute export cites it. */
+export type AccRvmPidFileCheck = {
+  __typename?: 'AccRvmPidFileCheck';
+  /**
+   * The drawing number, or the file name without extension when the P&ID carries none.
+   * Null unless the file is a P&ID.
+   */
+  drawingNumber?: Maybe<Scalars['String']['output']>;
+  /** Lineage URN of the checked file. */
+  itemId: Scalars['ID']['output'];
+  /** `RvmLinkedFileStatus` from @speckle/shared/rvm: cited, notCited, pid, notDexpi or unchecked. */
+  status: Scalars['String']['output'];
 };
 
 export type ActiveUserMutations = {
@@ -349,6 +419,8 @@ export type AdminMutations = {
   requestPasswordReset: SentEmailInfo;
   revokeWorkspaceFeature: Scalars['Boolean']['output'];
   sendDeliverabilityTestEmail: SentEmailInfo;
+  /** Override Team checkout eligibility for an Explorer workspace. */
+  setWorkspacePlanQualification: WorkspacePlan;
   /**
    * A server administrator can update the verification status of an user's email.
    * The server administrator is recommended to confirm ownership of the email address
@@ -400,6 +472,12 @@ export type AdminMutationsSendDeliverabilityTestEmailArgs = {
 };
 
 
+export type AdminMutationsSetWorkspacePlanQualificationArgs = {
+  qualification?: InputMaybe<WorkspacePlanQualification>;
+  workspaceId: Scalars['String']['input'];
+};
+
+
 export type AdminMutationsUpdateEmailVerificationArgs = {
   input: AdminUpdateEmailVerificationInput;
 };
@@ -414,11 +492,12 @@ export type AdminMutationsUpdateWorkspacePlanArgs = {
   input: AdminUpdateWorkspacePlanInput;
 };
 
+/** An active password-reset token for one of the user's email addresses */
 export type AdminPasswordResetToken = {
   __typename?: 'AdminPasswordResetToken';
   createdAt: Scalars['DateTime']['output'];
   email: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
+  /** A fixed mask; nothing of the token itself is exposed */
   obfuscatedToken: Scalars['String']['output'];
 };
 
@@ -589,6 +668,13 @@ export type AiChatMutations = {
    */
   recordTokenEvent: Scalars['Boolean']['output'];
   /**
+   * Record the owner's consent to share the chat's consent-requiring tool data
+   * with every audience the chat is shared with now: project members if project
+   * sharing is on, and link holders if it has a link. Owner-only. Returns the
+   * updated conversation.
+   */
+  renewShareConsent: AiConversation;
+  /**
    * Toggle mode #1 sharing (share with project members). Owner-only. Requires a
    * project-scoped conversation. Returns the updated conversation.
    */
@@ -629,6 +715,11 @@ export type AiChatMutationsDetachDataSourceArgs = {
 
 export type AiChatMutationsRecordTokenEventArgs = {
   input: AiTokenEventInput;
+};
+
+
+export type AiChatMutationsRenewShareConsentArgs = {
+  input: AiConversationRenewShareConsentInput;
 };
 
 
@@ -730,7 +821,32 @@ export type AiConversation = {
   messages?: Maybe<Array<Scalars['JSONObject']['output']>>;
   metadata: Scalars['JSONObject']['output'];
   preview?: Maybe<Scalars['String']['output']>;
+  /**
+   * The project the conversation is bound to. Null for workspace-level chats or
+   * when the project no longer exists.
+   */
+  project?: Maybe<Project>;
   projectId?: Maybe<Scalars['String']['output']>;
+  /**
+   * True when an audience the chat is shared with now lacks current consent:
+   * project members, or (seen by the owner only) holders of an active link.
+   * Consent is recorded per audience. An audience lacks it when such data was
+   * added after its last consent; links also lack it when a Databricks source the
+   * chat references changed its table or columns after the link consent. While
+   * the server runs with `FF_AI_DATABRICKS_TOOLS_ENABLED`, that audience can't
+   * open the chat, or a link gets no snapshot of the changed source, until the
+   * owner renews consent with `renewShareConsent`. False for a chat shared with
+   * nobody.
+   */
+  shareConsentMissing: Scalars['Boolean']['output'];
+  /**
+   * True when the chat holds tool data that needs the owner's consent to share:
+   * Databricks results, or a Databricks warehouse source the chat references.
+   * While the server runs with `FF_AI_DATABRICKS_TOOLS_ENABLED`, turning on
+   * project sharing or creating a public link then needs
+   * `consentToShareRestrictedData: true`.
+   */
+  shareConsentRequired: Scalars['Boolean']['output'];
   /**
    * Active (non-revoked) public share links for this conversation. Owner-only —
    * returns an empty list for non-owner viewers.
@@ -756,6 +872,8 @@ export type AiConversation = {
    */
   tokenUsage: AiConversationTokenUsage;
   updatedAt: Scalars['DateTime']['output'];
+  /** The member who owns the conversation. Null if that user was deleted. */
+  user?: Maybe<LimitedUser>;
   userId: Scalars['String']['output'];
   /**
    * Optimistic-concurrency version, bumped on every messages write. Read it on
@@ -799,6 +917,14 @@ export type AiConversationCreateInput = {
 };
 
 export type AiConversationCreateShareLinkInput = {
+  /**
+   * The owner consents to share the chat's consent-requiring tool data (see
+   * `AiConversation.shareConsentRequired`) with anyone holding a link, and the
+   * consent is recorded for links once the link exists; it doesn't cover project
+   * members. With `FF_AI_DATABRICKS_TOOLS_ENABLED` on, required to create a link
+   * on such a chat.
+   */
+  consentToShareRestrictedData?: InputMaybe<Scalars['Boolean']['input']>;
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   id: Scalars['ID']['input'];
   label?: InputMaybe<Scalars['String']['input']>;
@@ -826,7 +952,29 @@ export type AiConversationDetachDataSourceInput = {
   workspaceId: Scalars['String']['input'];
 };
 
+/** The conversation whose sharing consent the owner renews. */
+export type AiConversationRenewShareConsentInput = {
+  /** Conversation id. */
+  id: Scalars['ID']['input'];
+  /**
+   * Project scope. Must match how the conversation was created (omit for
+   * workspace-only conversations).
+   */
+  projectId?: InputMaybe<Scalars['String']['input']>;
+  /** Workspace scope, for region routing and authorization. */
+  workspaceId: Scalars['String']['input'];
+};
+
 export type AiConversationSetShareWithProjectInput = {
+  /**
+   * The owner consents to share the chat's consent-requiring tool data (see
+   * `AiConversation.shareConsentRequired`) with project members, and the consent
+   * is recorded for them; it doesn't cover public links. With
+   * `FF_AI_DATABRICKS_TOOLS_ENABLED` on, required to turn
+   * sharing on for such a chat, or to keep it on after new such data arrived.
+   * Ignored when turning sharing off.
+   */
+  consentToShareRestrictedData?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
   /**
    * Project scope. Required — mode #1 sharing only applies to project-scoped
@@ -990,7 +1138,8 @@ export type AiSkill = {
    * actual uploads. Both the chat client (which mounts each tabular file's
    * queryable database) and the agent loop (which needs the per-table schema to
    * write SQL) read this, so they can't drift apart. Refs to deleted or
-   * foreign-workspace sources are dropped rather than erroring. Warehouse-kind
+   * foreign-workspace sources, and to files the caller cannot read (another
+   * user's private chat upload), are dropped rather than erroring. Warehouse-kind
    * refs are not included — read those from `knowledgeSources`.
    */
   knowledgeFiles: Array<ExternalDataSource>;
@@ -1230,7 +1379,7 @@ export type AiTokenEventInput = {
    * events; null on model calls. Not a billed figure.
    */
   resultTokens?: InputMaybe<Scalars['Int']['input']>;
-  /** Agent-loop tier: 'fast' | 'reasoning' | 'reasoning-escalated'. */
+  /** Model tier: 'fast' | 'reasoning' | 'reasoning-escalated' | 'extraction'. */
   tier: Scalars['String']['input'];
   /**
    * Tool a spend is attributable to (e.g. the summarised tool on a
@@ -2092,6 +2241,25 @@ export type CommitsMoveInput = {
   targetBranch: Scalars['String']['input'];
 };
 
+/** Input for completing a Google sign-in. */
+export type ConnectGoogleDriveInput = {
+  /** The `googleDriveAuthState` value the sign-in redirect returned. */
+  authState: Scalars['String']['input'];
+  /**
+   * The workspace the member is connecting from; it must have the Google Drive
+   * integration.
+   */
+  workspaceId: Scalars['String']['input'];
+};
+
+/** Template blobs to copy into a workspace */
+export type CopyTemplateBlobsInput = {
+  /** Blob ids from the demo dashboards workspace; between 1 and 20 */
+  blobIds: Array<Scalars['String']['input']>;
+  /** The workspace receiving the copies */
+  workspaceId: Scalars['String']['input'];
+};
+
 /**
  * Can be used instead of a full item collection, when the implementation doesn't call for it yet. Because
  * of the structure, it can be swapped out to a full item collection in the future
@@ -2286,6 +2454,24 @@ export type CreateServerRegionInput = {
   name: Scalars['String']['input'];
 };
 
+/**
+ * Where the SharePoint file of a new sync lives, and the member's sign-in to
+ * check it with.
+ */
+export type CreateSharePointSyncInput = {
+  /** Drive id of the document library holding the file. */
+  driveId: Scalars['String']['input'];
+  /** Graph site id, in the `host,siteId,webId` form. */
+  siteId: Scalars['String']['input'];
+  /** Microsoft 365 tenant id of the member's organization. */
+  tenantId: Scalars['String']['input'];
+  /**
+   * The member's delegated access token. The server reads the chosen file with
+   * it once, at creation, and never stores it.
+   */
+  token: Scalars['String']['input'];
+};
+
 export type CreateSyncInput = {
   context?: InputMaybe<Scalars['JSONObject']['input']>;
   fileExtension: Scalars['String']['input'];
@@ -2295,6 +2481,11 @@ export type CreateSyncInput = {
   fileParentFolderId?: InputMaybe<Scalars['String']['input']>;
   integration: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
+  /**
+   * Required for a SharePoint sync, ignored otherwise. `fileId` is the file's
+   * drive-item id.
+   */
+  sharePoint?: InputMaybe<CreateSharePointSyncInput>;
 };
 
 export type CreateUserEmailInput = {
@@ -2389,6 +2580,13 @@ export type DashboardCreateInput = {
 
 export type DashboardMutations = {
   __typename?: 'DashboardMutations';
+  /**
+   * Copies workspace blobs referenced by a demo dashboard template into the target workspace and
+   * returns the new blob id for each source id. Sources must live in the server's configured demo
+   * dashboards workspace. Requires permission to create dashboards and upload blobs in the target
+   * workspace.
+   */
+  copyTemplateBlobs: Array<TemplateBlobCopy>;
   create: Dashboard;
   createToken: CreateDashboardTokenReturn;
   delete: Scalars['Boolean']['output'];
@@ -2402,6 +2600,11 @@ export type DashboardMutations = {
   /** @deprecated Use sharingMutations.createDashboardShareToken / revokeShareToken. Field will be deleted on November 1st, 2026. */
   share: DashboardShareLink;
   update: Dashboard;
+};
+
+
+export type DashboardMutationsCopyTemplateBlobsArgs = {
+  input: CopyTemplateBlobsInput;
 };
 
 
@@ -2537,18 +2740,57 @@ export type DataSourceTable = {
   rowCount: Scalars['Int']['output'];
 };
 
+/** How a snapshot read may refresh a stale or missing warehouse snapshot. */
+export enum DataWarehouseSnapshotRefresh {
+  /** Serve what exists and refresh a stale or missing snapshot in the background. */
+  Background = 'background',
+  /**
+   * Never refresh a source whose `refreshRequiresApproval` is true; the caller
+   * asks a person first. Other sources refresh as under `background`.
+   */
+  OnRequest = 'on_request'
+}
+
 export type DataWarehouseSource = {
   __typename?: 'DataWarehouseSource';
   columnAllowlist: Array<Scalars['String']['output']>;
   columns: Array<WarehouseColumn>;
   connectionId?: Maybe<Scalars['String']['output']>;
   createdAt: Scalars['DateTime']['output'];
+  /**
+   * How current the snapshot is. Checks catalog metadata over REST and never
+   * starts a SQL warehouse. Schema, property and drop-and-recreate changes are
+   * detected, and so are writes Speckle itself made; other data-only changes
+   * (INSERT, MERGE, UPDATE, DELETE) are not, because the catalog does not expose
+   * them without warehouse compute.
+   */
+  freshness: DataWarehouseSourceFreshness;
   id: Scalars['String']['output'];
   kind: Scalars['String']['output'];
   lastRefreshedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** When Speckle last wrote to this table through the same connection. */
+  lastWriteAt?: Maybe<Scalars['DateTime']['output']>;
+  /**
+   * Delta table version after the latest write Speckle made to this table
+   * through the same connection. Null when Speckle never wrote to it or the
+   * version could not be read.
+   */
+  lastWriteVersion?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
+  /**
+   * Whether a refresh of this source's snapshot waits for a person's approval
+   * under the `on_request` refresh policy. When false, reads under that policy
+   * still refresh a stale snapshot lazily.
+   */
+  refreshRequiresApproval: Scalars['Boolean']['output'];
   rowCount: Scalars['Int']['output'];
   snapshotUrl?: Maybe<Scalars['String']['output']>;
+  /**
+   * Delta table version the current snapshot was read at. Null when it is not
+   * known: a non-Delta source, a view, or a snapshot built before versions were
+   * recorded.
+   */
+  snapshotVersion?: Maybe<Scalars['String']['output']>;
   status: Scalars['String']['output'];
   statusError?: Maybe<Scalars['String']['output']>;
   tableFqn: Scalars['String']['output'];
@@ -2556,6 +2798,85 @@ export type DataWarehouseSource = {
   updatedAt: Scalars['DateTime']['output'];
   workspaceId: Scalars['String']['output'];
 };
+
+
+export type DataWarehouseSourceSnapshotUrlArgs = {
+  refreshIfStale?: InputMaybe<Scalars['Boolean']['input']>;
+  snapshotRefresh?: InputMaybe<DataWarehouseSnapshotRefresh>;
+};
+
+/**
+ * A source configuration a refresh was approved for, as read from
+ * `DataWarehouseSource.tableFqn` and `DataWarehouseSource.columnAllowlist`.
+ */
+export type DataWarehouseSourceExpectedConfiguration = {
+  /** Column allowlist; compared as a set, so order does not matter. */
+  columnAllowlist: Array<Scalars['String']['input']>;
+  /** Fully-qualified table name; compared exactly. */
+  tableFqn: Scalars['String']['input'];
+};
+
+/** Result of comparing a registered source's snapshot with the warehouse catalog. */
+export type DataWarehouseSourceFreshness = {
+  __typename?: 'DataWarehouseSourceFreshness';
+  /** Catalog metadata version right now. Null when not checked. */
+  catalogMetadataVersion?: Maybe<Scalars['String']['output']>;
+  /** When this verdict was computed. */
+  checkedAt: Scalars['DateTime']['output'];
+  /**
+   * Whether schema and property changes were checked, which needs a catalog
+   * metadata version on both the snapshot and the catalog. False for warehouse
+   * kinds without a catalog check, for snapshots built before catalog tracking,
+   * when the catalog was unreachable, and when either metadata version is
+   * missing (a recreated table is still detected then).
+   */
+  detectsSchemaChanges: Scalars['Boolean']['output'];
+  /** Error from the last failed refresh. Cleared by the next successful refresh. */
+  lastRefreshError?: Maybe<Scalars['String']['output']>;
+  /** One sentence explaining the verdict, written for the end user. */
+  reason: Scalars['String']['output'];
+  /**
+   * Automatic refreshes are skipped until this time after a failure. Explicit
+   * refreshes ignore it.
+   */
+  refreshRetryAfter?: Maybe<Scalars['DateTime']['output']>;
+  /** Catalog metadata version recorded with the snapshot. */
+  snapshotMetadataVersion?: Maybe<Scalars['String']['output']>;
+  /** Overall verdict. */
+  state: DataWarehouseSourceFreshnessState;
+};
+
+/** Freshness verdict for a registered warehouse source. */
+export enum DataWarehouseSourceFreshnessState {
+  /**
+   * Within its TTL, and the catalog checks that could run found no change
+   * (see detectsSchemaChanges). Data-only changes may still exist.
+   */
+  Current = 'current',
+  /**
+   * Speckle wrote to the table after the snapshot was read (see
+   * `DataWarehouseSource.lastWriteVersion`).
+   */
+  DataChanged = 'data_changed',
+  /** Its warehouse connection was removed; the last snapshot is served read-only. */
+  Disconnected = 'disconnected',
+  /** Older than its TTL. */
+  Expired = 'expired',
+  /** No snapshot has been built yet. */
+  Pending = 'pending',
+  /**
+   * The table was dropped, renamed or recreated since the snapshot, or no longer
+   * exists.
+   */
+  Replaced = 'replaced',
+  /**
+   * The table's catalog metadata (schema or properties) changed since the
+   * snapshot.
+   */
+  SchemaChanged = 'schema_changed',
+  /** Within its TTL, but the catalog could not be checked. */
+  Unknown = 'unknown'
+}
 
 export type DatabricksColumnRef = {
   __typename?: 'DatabricksColumnRef';
@@ -2571,6 +2892,144 @@ export type DatabricksTablePreview = {
   truncated: Scalars['Boolean']['output'];
 };
 
+/** A planned, not yet executed, read of one Databricks table. */
+export type DatabricksTableQuery = {
+  __typename?: 'DatabricksTableQuery';
+  /** Columns the statement returns, in order, with types from Unity Catalog. */
+  columns: Array<DatabricksColumnRef>;
+  /**
+   * SHA-256 of the statement and its parameters. Pass it back as
+   * `result(expectedDigest:)` to run only the plan that was reviewed.
+   */
+  digest: Scalars['String']['output'];
+  /** Maximum rows `result` returns. */
+  limit: Scalars['Int']['output'];
+  /** Named parameters bound to the statement's markers. */
+  parameters: Array<DatabricksTableQueryParameter>;
+  /**
+   * Runs the planned statement against the warehouse. Fails without running when
+   * `expectedDigest` is given and no longer matches the plan, e.g. after the
+   * table's columns changed.
+   */
+  result: DatabricksTableQueryResult;
+  /**
+   * The exact statement `result` runs, with `:pN` parameter markers. Its LIMIT is
+   * one above `limit` so `result` can tell whether rows were cut off.
+   */
+  statement: Scalars['String']['output'];
+  /** Fully qualified table name, `catalog.schema.table`. */
+  table: Scalars['String']['output'];
+};
+
+
+/** A planned, not yet executed, read of one Databricks table. */
+export type DatabricksTableQueryResultArgs = {
+  expectedDigest?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** One row filter on a column. */
+export type DatabricksTableQueryFilterInput = {
+  /** Column to filter on, matched case-insensitively. */
+  column: Scalars['String']['input'];
+  /** Comparison to apply. */
+  operator: DatabricksTableQueryFilterOperator;
+  /**
+   * Values as strings, cast to the column's type in SQL. Exactly one for the
+   * comparisons and `like`, 1 to 100 for `in` / `not_in`, none for the null checks.
+   */
+  values?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Filter comparison. */
+export enum DatabricksTableQueryFilterOperator {
+  /** Equal (`=`). */
+  Eq = 'eq',
+  /** Greater than. */
+  Gt = 'gt',
+  /** Greater than or equal. */
+  Gte = 'gte',
+  /** Value is one of the given values. */
+  In = 'in',
+  /** Value is not NULL; takes no values. */
+  IsNotNull = 'is_not_null',
+  /** Value is NULL; takes no values. */
+  IsNull = 'is_null',
+  /** SQL `LIKE` pattern match; string columns only. */
+  Like = 'like',
+  /** Less than. */
+  Lt = 'lt',
+  /** Less than or equal. */
+  Lte = 'lte',
+  /** Not equal (`<>`). */
+  Ne = 'ne',
+  /** Value is none of the given values. */
+  NotIn = 'not_in'
+}
+
+/** Structured read of one Databricks table. */
+export type DatabricksTableQueryInput = {
+  /** Catalog name, [A-Za-z0-9_] only. */
+  catalog: Scalars['String']['input'];
+  /**
+   * Columns to return, in order, matched case-insensitively. Null or empty
+   * returns every column of the table.
+   */
+  columns?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Row filters; every one must hold (AND). */
+  filters?: InputMaybe<Array<DatabricksTableQueryFilterInput>>;
+  /** Maximum rows to return, 1 to 500. Null means 100. */
+  limit?: InputMaybe<Scalars['Int']['input']>;
+  /** Sort keys, applied in order. */
+  orderBy?: InputMaybe<Array<DatabricksTableQueryOrderInput>>;
+  /** Schema name, [A-Za-z0-9_] only. */
+  schema: Scalars['String']['input'];
+  /** Table name, [A-Za-z0-9_] only. */
+  table: Scalars['String']['input'];
+};
+
+/** One sort key. */
+export type DatabricksTableQueryOrderInput = {
+  /** Column to sort by, matched case-insensitively. */
+  column: Scalars['String']['input'];
+  /** Sort direction. Null means ascending. */
+  direction?: InputMaybe<DatabricksTableQuerySortDirection>;
+};
+
+/** A named parameter of a planned statement. */
+export type DatabricksTableQueryParameter = {
+  __typename?: 'DatabricksTableQueryParameter';
+  /** Marker name, without the leading colon. */
+  name: Scalars['String']['output'];
+  /** Databricks SQL type the value is sent as. */
+  type: Scalars['String']['output'];
+  /** Value as sent. */
+  value: Scalars['String']['output'];
+};
+
+/** Rows returned by a planned table read. */
+export type DatabricksTableQueryResult = {
+  __typename?: 'DatabricksTableQueryResult';
+  /** Returned columns, in statement order. */
+  columns: Array<DatabricksColumnRef>;
+  /** Warehouse round-trip time in milliseconds. */
+  durationMs: Scalars['Int']['output'];
+  /**
+   * Rows keyed by column name. Types richer than JSON (timestamps, decimals,
+   * big integers, binary) arrive as strings.
+   */
+  rows: Array<Scalars['JSONObject']['output']>;
+  /** True when more rows matched than `limit` and the extra rows were dropped. */
+  truncated: Scalars['Boolean']['output'];
+};
+
+/** Sort direction. */
+export enum DatabricksTableQuerySortDirection {
+  /** Ascending. */
+  Asc = 'asc',
+  /** Descending. */
+  Desc = 'desc'
+}
+
 export type DatabricksTableRef = {
   __typename?: 'DatabricksTableRef';
   catalog: Scalars['String']['output'];
@@ -2579,6 +3038,146 @@ export type DatabricksTableRef = {
   schema: Scalars['String']['output'];
   tableType?: Maybe<Scalars['String']['output']>;
 };
+
+/** A column the write sets. */
+export type DatabricksTableWriteColumn = {
+  __typename?: 'DatabricksTableWriteColumn';
+  /** True when the write adds this column first. */
+  added: Scalars['Boolean']['output'];
+  /** Column name as spelled in Unity Catalog, or as declared for an added column. */
+  name: Scalars['String']['output'];
+  /** Databricks SQL type text, lower case for an added column. */
+  type: Scalars['String']['output'];
+};
+
+/** Structured update of existing rows in one Databricks table. */
+export type DatabricksTableWriteInput = {
+  /** New nullable columns to add before the update. Null or empty adds none. */
+  addColumns?: InputMaybe<Array<DatabricksTableWriteNewColumnInput>>;
+  /** Catalog name, [A-Za-z0-9_] only. */
+  catalog: Scalars['String']['input'];
+  /**
+   * 1 to 3 existing columns that identify a row, matched case-insensitively.
+   * Every row must carry a value for each.
+   */
+  keyColumns: Array<Scalars['String']['input']>;
+  /**
+   * 1 to 200 objects keyed by column name: the key columns plus the columns to
+   * set, the same properties in every row. Values are strings, numbers, booleans
+   * or null; string columns take strings only.
+   */
+  rows: Array<Scalars['JSONObject']['input']>;
+  /** Schema name, [A-Za-z0-9_] only. */
+  schema: Scalars['String']['input'];
+  /** Table name, [A-Za-z0-9_] only. */
+  table: Scalars['String']['input'];
+};
+
+/** A column to add to the table before the update. */
+export type DatabricksTableWriteNewColumnInput = {
+  /** Column name: a letter or underscore, then [A-Za-z0-9_]. */
+  name: Scalars['String']['input'];
+  /** Databricks SQL type: string, int, bigint, double, boolean or decimal(p,s). */
+  type: Scalars['String']['input'];
+};
+
+/** A planned, not yet executed, write. */
+export type DatabricksTableWritePlan = {
+  __typename?: 'DatabricksTableWritePlan';
+  /** SHA-256 of the steps. Pass it as `expectedDigest` to run only this plan. */
+  digest: Scalars['String']['output'];
+  /** Key columns, with catalog spelling and types. */
+  keyColumns: Array<DatabricksColumnRef>;
+  /**
+   * The rows to write, keyed by catalog column names, values as canonical
+   * strings for their column type, or null.
+   */
+  rows: Array<Scalars['JSONObject']['output']>;
+  /** Columns the write sets. */
+  setColumns: Array<DatabricksTableWriteColumn>;
+  /** Statements in execution order. */
+  steps: Array<DatabricksTableWriteStep>;
+  /** Fully qualified table name, `catalog.schema.table`. */
+  table: Scalars['String']['output'];
+};
+
+/**
+ * What a write that started running did. Runtime failures are reported here, not
+ * as GraphQL errors.
+ */
+export type DatabricksTableWriteResult = {
+  __typename?: 'DatabricksTableWriteResult';
+  /** Columns that exist because this write added them. */
+  addedColumns: Array<Scalars['String']['output']>;
+  /**
+   * Matched rows after the write: key columns and every set column. Null when
+   * they were not read.
+   */
+  after?: Maybe<Array<Scalars['JSONObject']['output']>>;
+  /** Matched rows before the write: key columns and the existing set columns. */
+  before: Array<Scalars['JSONObject']['output']>;
+  /** Digest of the plan that ran. */
+  digest: Scalars['String']['output'];
+  /** Step that failed, for every status except `verified`. */
+  failedStep?: Maybe<DatabricksTableWriteStepKind>;
+  /** What went wrong, for every status except `verified`. */
+  message?: Maybe<Scalars['String']['output']>;
+  /**
+   * For a `verified` write whose statement reported an error, how the read-back
+   * showed the statement had done its work anyway. Null otherwise.
+   */
+  reconciliationNote?: Maybe<Scalars['String']['output']>;
+  /** Registered data sources of this table, after recording the write. */
+  registeredSources: Array<DataWarehouseSource>;
+  /** How the write ended. */
+  status: DatabricksTableWriteStatus;
+  /** Delta table version after the write. Null when it could not be read. */
+  tableVersion?: Maybe<Scalars['String']['output']>;
+  /** Requested key values that matched no row; nothing was inserted for them. */
+  unmatchedKeys: Array<Scalars['JSONObject']['output']>;
+  /** Rows the update changed, as reported by Databricks. Null when unknown. */
+  updatedRowCount?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Outcome of a write that started running. */
+export enum DatabricksTableWriteStatus {
+  /**
+   * No row was changed; see `failedStep` and `message`. Columns the write added
+   * before the failure remain and are listed in `addedColumns`.
+   */
+  NotWritten = 'not_written',
+  /** A change statement failed in a way that does not tell whether it committed. */
+  Unknown = 'unknown',
+  /** The update ran, but the matched rows could not be read back or differ. */
+  Unverified = 'unverified',
+  /** The matched rows hold the requested values. */
+  Verified = 'verified'
+}
+
+/** One planned statement. */
+export type DatabricksTableWriteStep = {
+  __typename?: 'DatabricksTableWriteStep';
+  /** Named parameters bound to the statement's markers, all sent as strings. */
+  parameters: Array<DatabricksTableQueryParameter>;
+  /** The exact statement, with `:name` parameter markers. */
+  statement: Scalars['String']['output'];
+  /** What the statement does. */
+  step: DatabricksTableWriteStepKind;
+};
+
+/** Step of a planned write, in execution order. */
+export enum DatabricksTableWriteStepKind {
+  /** Adds the new columns. */
+  AddColumns = 'add_columns',
+  /** Reads the matched rows again to verify the values. */
+  After = 'after',
+  /** Reads the matched rows' current values. */
+  Before = 'before',
+  /** Updates the matched rows (matched-only MERGE). */
+  Update = 'update',
+  /** Reads the table's latest commit version. */
+  Version = 'version'
+}
 
 export type DateIntervalFilter = {
   after?: InputMaybe<Scalars['DateTime']['input']>;
@@ -2659,6 +3258,12 @@ export type DetachProjectGroupInput = {
   groupId: Scalars['ID']['input'];
   projectId: Scalars['ID']['input'];
   workspaceId: Scalars['ID']['input'];
+};
+
+/** Input for removing a Google connection. */
+export type DisconnectGoogleDriveInput = {
+  /** The connection's id, as `GoogleDriveConnection.id`. */
+  connectionId: Scalars['String']['input'];
 };
 
 export enum DiscoverableStreamsSortType {
@@ -3027,6 +3632,12 @@ export type FinishFileImportInput = {
 
 export type GenerateFileUploadUrlInput = {
   fileName: Scalars['String']['input'];
+  /**
+   * The extension of the file this one is uploaded beside as a linked file (e.g. `rvm`
+   * for an attribute export). The file is then accepted by what that host type takes
+   * as linked files, not as a model of its own.
+   */
+  linkedToFileType?: InputMaybe<Scalars['String']['input']>;
   projectId: Scalars['String']['input'];
 };
 
@@ -3050,6 +3661,129 @@ export type GetModelUploadsInput = {
 export type GetUngroupedViewGroupInput = {
   /** Viewer resource ID string that identifies which resources should be loaded */
   resourceIdString: Scalars['String']['input'];
+};
+
+/** Identifies a Google Drive sync to claim. */
+export type GoogleDriveClaimInput = {
+  fileFolderPath?: InputMaybe<Array<Scalars['String']['input']>>;
+  /**
+   * Claim onto this file instead, continuing the same model (required when the
+   * sync's file went to the Drive bin).
+   */
+  fileId?: InputMaybe<Scalars['String']['input']>;
+  fileParentFolderId?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  syncId: Scalars['String']['input'];
+};
+
+/** A Google account connected to Speckle. Its tokens stay on the server. */
+export type GoogleDriveConnection = {
+  __typename?: 'GoogleDriveConnection';
+  /** The Google account's email address. */
+  email: Scalars['String']['output'];
+  /** The Google Workspace domain of the account, or null for a personal account. */
+  hostedDomain?: Maybe<Scalars['String']['output']>;
+  /** The stored connection's id. */
+  id: Scalars['ID']['output'];
+  /** When the account was last connected or reconnected. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** A Drive file, or a shortcut to one. */
+export type GoogleDriveFile = {
+  __typename?: 'GoogleDriveFile';
+  /** Drive's id for the file, or for the shortcut when it is one. */
+  id: Scalars['ID']['output'];
+  /**
+   * Drive's MIME type. BIM binaries usually report `application/octet-stream`, so
+   * the file extension is what decides whether Speckle can convert it.
+   */
+  mimeType: Scalars['String']['output'];
+  /** When the file's content or metadata last changed in Drive. */
+  modifiedTime?: Maybe<Scalars['DateTime']['output']>;
+  /** The file name as shown in Drive. */
+  name: Scalars['String']['output'];
+  /** For a shortcut, the id of the file it points to; syncs are created on that. */
+  shortcutTargetId?: Maybe<Scalars['String']['output']>;
+  /**
+   * Size in bytes, as a string because Drive files can exceed 32-bit integers.
+   * Null for native Google files and shortcuts.
+   */
+  size?: Maybe<Scalars['String']['output']>;
+};
+
+/** A Drive folder, My Drive, or a shared drive. */
+export type GoogleDriveFolder = {
+  __typename?: 'GoogleDriveFolder';
+  /** Files in the folder, by name, shortcuts included. */
+  files: Array<GoogleDriveFile>;
+  /** Subfolders, by name. Shortcuts to folders are not included. */
+  folders: Array<GoogleDriveFolder>;
+  /** Drive's id for the folder or shared drive. */
+  id: Scalars['ID']['output'];
+  /** The folder's name; `My Drive` for the root of My Drive. */
+  name: Scalars['String']['output'];
+};
+
+/** Google Drive integration for one workspace, seen by the requesting user. */
+export type GoogleDriveIntegration = {
+  __typename?: 'GoogleDriveIntegration';
+  /**
+   * The workspace's Enterprise gate: on Enterprise, Google Drive works only when a
+   * workspace admin has turned it on, and only for Google accounts from the
+   * workspace's verified domains. Other plans pass on member consent.
+   */
+  access: GoogleDriveWorkspaceAccess;
+  /**
+   * The requesting user's connected Google account, or null when they have not
+   * connected one. A Google account has one connection per server, shared by
+   * every workspace its user works in.
+   */
+  connection?: Maybe<GoogleDriveConnection>;
+  /** A folder or shared drive by id, read with the user's connected Google account. */
+  folder: GoogleDriveFolder;
+  /**
+   * Where browsing starts: My Drive, then every shared drive the connected Google
+   * account can see. Fails when the user has no connection.
+   */
+  roots: Array<GoogleDriveFolder>;
+};
+
+
+/** Google Drive integration for one workspace, seen by the requesting user. */
+export type GoogleDriveIntegrationFolderArgs = {
+  id: Scalars['String']['input'];
+};
+
+/**
+ * The file a Google Drive sync continues with after Re-link, or a claim onto
+ * another file.
+ */
+export type GoogleDriveRelinkInput = {
+  fileFolderPath?: InputMaybe<Array<Scalars['String']['input']>>;
+  fileId: Scalars['String']['input'];
+  fileParentFolderId?: InputMaybe<Scalars['String']['input']>;
+  projectId: Scalars['String']['input'];
+  syncId: Scalars['String']['input'];
+};
+
+/** A workspace's Google Drive access under the Enterprise gate. */
+export type GoogleDriveWorkspaceAccess = {
+  __typename?: 'GoogleDriveWorkspaceAccess';
+  /**
+   * Whether a workspace admin has approved Google Drive for the workspace. On
+   * Enterprise, Drive works only once approved.
+   */
+  adminApproved: Scalars['Boolean']['output'];
+  /**
+   * The workspace's verified domains; on Enterprise, only Google accounts from
+   * these can connect and sync.
+   */
+  allowedDomains: Array<Scalars['String']['output']>;
+  /** Whether the requesting user can approve Google Drive or withdraw approval. */
+  canManage: Scalars['Boolean']['output'];
+  /** Whether the workspace is on the Enterprise plan, where the gate applies. */
+  enterprise: Scalars['Boolean']['output'];
 };
 
 /** One capability a role may confer, at one verb. */
@@ -3108,6 +3842,19 @@ export type HistoricalUser = {
   __typename?: 'HistoricalUser';
   id: Scalars['ID']['output'];
   user?: Maybe<LimitedUser>;
+};
+
+/** The historical source versions of a sync's file to import. */
+export type ImportSourceVersionsInput = {
+  /** Id of the sync. */
+  id: Scalars['ID']['input'];
+  /** Id of the project that owns the sync. */
+  projectId: Scalars['String']['input'];
+  /**
+   * Ids from `Sync.sourceVersions`. One run is queued per version; at most five
+   * distinct ids per request (`SYNC_SOURCE_VERSION_IMPORT_LIMIT`).
+   */
+  sourceVersionIds: Array<Scalars['String']['input']>;
 };
 
 export type IngestionHistoryInput = {
@@ -3428,6 +4175,13 @@ export type Issue = {
   /** Human-readable unique identifier for the issue within the project */
   identifier: Scalars['String']['output'];
   labels: Array<AssignedLabel>;
+  /**
+   * What the server-side v1 -> v2 viewer-state conversion could not carry over:
+   * { fromVersion, toVersion, migratedAt, dropped: LegacyDropReason[] } (types in
+   * @speckle/shared/saved-views). Null when the issue's state was never converted,
+   * was re-saved since, or is still waiting to be converted.
+   */
+  migrationReport?: Maybe<Scalars['JSONObject']['output']>;
   /** Sequence number for the issue */
   number: Scalars['Int']['output'];
   permissions: IssuePermissionChecks;
@@ -3824,6 +4578,8 @@ export type LimitedWorkspace = {
   __typename?: 'LimitedWorkspace';
   /** Workspace admins ordered by join date */
   adminTeam: Array<LimitedWorkspaceCollaborator>;
+  /** Measurement display unit for views without an override; defaults to meters. */
+  defaultMeasurementUnit: MeasurementUnit;
   /** Workspace description */
   description?: Maybe<Scalars['String']['output']>;
   /** If true, the users with a matching domain may join the workspace directly */
@@ -3886,6 +4642,17 @@ export type LimitedWorkspaceJoinRequestCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/**
+ * One linked file uploaded beside its host, identified like the host is at
+ * startFileIngestion.
+ */
+export type LinkedFileUploadInput = {
+  /** The etag the blob storage provider returned for the linked file's upload. */
+  etag: Scalars['String']['input'];
+  /** The blob id generateUploadUrl handed out for the linked file. */
+  fileId: Scalars['String']['input'];
+};
+
 export type MarkCommentViewedInput = {
   commentId: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
@@ -3907,6 +4674,26 @@ export type MarkReceivedVersionInput = {
   /** Set to true, if the version was received w/ a shared public token */
   withSharedToken?: InputMaybe<Scalars['Boolean']['input']>;
 };
+
+/** Length units used for measurement labels; areas use the squared unit. */
+export enum MeasurementUnit {
+  /** Centimeters. */
+  Cm = 'cm',
+  /** Feet. */
+  Ft = 'ft',
+  /** Inches. */
+  In = 'in',
+  /** Kilometers. */
+  Km = 'km',
+  /** Meters. */
+  M = 'm',
+  /** Miles. */
+  Mi = 'mi',
+  /** Millimeters. */
+  Mm = 'mm',
+  /** Yards. */
+  Yd = 'yd'
+}
 
 export type MicrosoftFabricColumnRef = {
   __typename?: 'MicrosoftFabricColumnRef';
@@ -4035,11 +4822,14 @@ export type ModelExecutionResult = {
 export type ModelIngestion = {
   __typename?: 'ModelIngestion';
   authorUser?: Maybe<LimitedUser>;
+  /** What `requestCancellation` can achieve for this ingestion, derived from its handler. */
+  cancellationMode: ModelIngestionCancellationMode;
   cancellationRequested: Scalars['Boolean']['output'];
   createdAt: Scalars['DateTime']['output'];
   handler: ModelIngestionHandler;
   id: Scalars['ID']['output'];
   modelId: Scalars['String']['output'];
+  permissions: ModelIngestionPermissionChecks;
   projectId: Scalars['String']['output'];
   sourceData?: Maybe<SourceData>;
   statusData: ModelIngestionStatusData;
@@ -4068,6 +4858,25 @@ export type ModelIngestionAutomateFileUpload = HasHandlerType & {
   blobId: Scalars['String']['output'];
   handlerType: ModelIngestionHandlerType;
 };
+
+/** How a cancellation request reaches the ingestion's executor. */
+export enum ModelIngestionCancellationMode {
+  /**
+   * Only the client running the ingestion can stop it (connector publishes). A request is
+   * recorded, but nothing on the server enforces it.
+   */
+  Client = 'CLIENT',
+  /**
+   * No executor honours a request (Automate-backed and legacy-send ingestions); the
+   * ingestion ends by completing or timing out.
+   */
+  None = 'NONE',
+  /**
+   * The server stops the executor itself when cancellation is requested (conversion
+   * runner and file-import queue rails).
+   */
+  Server = 'SERVER'
+}
 
 export type ModelIngestionCancelledInput = {
   cancellationMessage: Scalars['String']['input'];
@@ -4173,6 +4982,17 @@ export type ModelIngestionLegacySendHandler = HasHandlerType & {
   handlerType: ModelIngestionHandlerType;
 };
 
+export type ModelIngestionPermissionChecks = {
+  __typename?: 'ModelIngestionPermissionChecks';
+  /**
+   * Whether the caller may drive this ingestion's lifecycle: request or land a cancellation,
+   * requeue it. Granted to the ingestion's author (or anyone with write access when it has no
+   * author) and to project owners. Says nothing about whether the executor will honour a
+   * cancellation; see `ModelIngestion.cancellationMode` for that.
+   */
+  canUpdate: PermissionCheckResult;
+};
+
 /**
  * The producer-reported slice of the processing pipeline: producing the bundle
  * (CONVERTING) vs shipping it (PUBLISHING — property-table postpass, viewer
@@ -4271,6 +5091,8 @@ export type ModelMutations = {
   __typename?: 'ModelMutations';
   create: Model;
   delete: Scalars['Boolean']['output'];
+  /** Atomically move models and return the full moved subtrees, including descendants. */
+  move: Array<Model>;
   update: Model;
 };
 
@@ -4282,6 +5104,11 @@ export type ModelMutationsCreateArgs = {
 
 export type ModelMutationsDeleteArgs = {
   input: DeleteModelInput;
+};
+
+
+export type ModelMutationsMoveArgs = {
+  input: MoveModelsInput;
 };
 
 
@@ -4333,6 +5160,16 @@ export enum ModelsTreeSortByField {
   Name = 'name',
   UpdatedAt = 'updatedAt'
 }
+
+/** Move models and their descendants together within one project. */
+export type MoveModelsInput = {
+  /** Model IDs to move; descendants are included and overlapping selections collapse. */
+  modelIds: Array<Scalars['ID']['input']>;
+  /** The project containing every model being moved. */
+  projectId: Scalars['ID']['input'];
+  /** Existing model or virtual folder path; null means the project root. */
+  targetFolderName?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type MoveVersionsInput = {
   projectId: Scalars['ID']['input'];
@@ -5043,6 +5880,11 @@ export type Project = {
   /** Source apps used in any models of this project */
   sourceApps: Array<Scalars['String']['output']>;
   sync: Sync;
+  /**
+   * Every sync execution in the project across all of its syncs, newest first.
+   * The timeline pages this feed instead of walking each sync's history.
+   */
+  syncRuns: SyncItemCollection;
   syncs: SyncCollection;
   team: Array<ProjectCollaborator>;
   ungroupedViewGroup: SavedViewGroup;
@@ -5250,6 +6092,12 @@ export type ProjectShareTokensArgs = {
 
 export type ProjectSyncArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type ProjectSyncRunsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -6113,6 +6961,13 @@ export type ProjectPermissionChecks = {
   canDelete: PermissionCheckResult;
   canDeleteResourceMeta: PermissionCheckResult;
   canDetachGroup: PermissionCheckResult;
+  /**
+   * Whether the caller can import earlier source versions into this project's ACC syncs
+   * (`SyncMutations.importSourceVersions`). Requires ACC integration-settings update access,
+   * and the workspace's conversions must run on the conversion runner: on the legacy rail the
+   * code is `SYNC_SOURCE_VERSION_IMPORT_UNSUPPORTED_ON_RAIL`.
+   */
+  canImportSyncSourceVersions: PermissionCheckResult;
   canInvite: PermissionCheckResult;
   /**
    * Every role somebody could be invited into this project as, with the per-role answer.
@@ -6122,6 +6977,8 @@ export type ProjectPermissionChecks = {
   canLeave: PermissionCheckResult;
   canListAutomations: PermissionCheckResult;
   canListIssues: PermissionCheckResult;
+  /** Whether the active user can list reports in this project */
+  canListReports: PermissionCheckResult;
   canListShareTokens: PermissionCheckResult;
   canListUsers: PermissionCheckResult;
   canLoad: PermissionCheckResult;
@@ -6133,6 +6990,11 @@ export type ProjectPermissionChecks = {
   canReadEmbedTokens: PermissionCheckResult;
   canReadResourceMeta: PermissionCheckResult;
   canReadSettings: PermissionCheckResult;
+  /**
+   * Whether the caller can read this project's CDE syncs (`Project.syncs`, `Project.sync`,
+   * `Model.sync`). Requires project read access and a workspace plan with any sync integration.
+   */
+  canReadSyncs: PermissionCheckResult;
   canReadWebhooks: PermissionCheckResult;
   canRequestRender: PermissionCheckResult;
   canRevokeAllShareTokens: PermissionCheckResult;
@@ -6415,7 +7277,8 @@ export type ProjectWiseIntegration = {
   native?: Maybe<ProjectWiseNativeIntegration>;
   /**
    * Entry point for on-premises ProjectWise using a previously saved credential.
-   * The server decrypts the stored credentials and uses them for the request.
+   * Only the user who saved the credential can use it. The server decrypts the
+   * stored credentials and uses them for the request.
    */
   stored?: Maybe<ProjectWiseNativeIntegration>;
 };
@@ -6642,7 +7505,10 @@ export type PublicAiConversation = {
    * reports depend on, so a shared report can re-attach and re-render them
    * client-side (the share token has no workspace access to fetch them itself).
    * Scoped to ONLY the sources the conversation actually references; empty when the
-   * warehouses module is disabled or no warehouse sources are used.
+   * warehouses module is disabled or no warehouse sources are used. While the
+   * server runs with `FF_AI_DATABRICKS_TOOLS_ENABLED`, a Databricks source is left
+   * out unless the owner holds the Databricks integration grant and the owner's link
+   * consent is newer than the source's last table or column change.
    */
   reportDataSourceSnapshots: Array<PublicReportDataSourceSnapshot>;
   surface: Scalars['String']['output'];
@@ -6671,9 +7537,11 @@ export type PublicReport = {
    * bindings depend on (extracted from the saved layout's `section.datasources`).
    * The share token has no workspace access, so the server presigns them here —
    * scoped to ONLY the sources the report references. Empty when the warehouses
-   * module is disabled or nothing is referenced. The existing snapshot is served
-   * as-is (no refresh) so an anonymous public load never triggers warehouse
-   * materialisation.
+   * module is disabled or nothing is referenced. While the server runs with
+   * `FF_AI_DATABRICKS_TOOLS_ENABLED`, Databricks sources are never included: a
+   * report link records no owner consent to share their data. The
+   * existing snapshot is served as-is (no refresh) so an anonymous public load
+   * never triggers warehouse materialisation.
    */
   reportDataSourceSnapshots: Array<PublicReportDataSourceSnapshot>;
   schemaVersion: Scalars['Int']['output'];
@@ -7458,6 +8326,7 @@ export type RevitUploadSettings = {
   __typename?: 'RevitUploadSettings';
   appendRoomsAndAreasMode: RevitUploadAppendMode;
   categories: Array<Scalars['String']['output']>;
+  extractRoomRelations: Scalars['Boolean']['output'];
   publishMethod: RevitUploadPublishMethod;
   referencePoint: RevitUploadReferencePoint;
   viewName?: Maybe<Scalars['String']['output']>;
@@ -7466,6 +8335,11 @@ export type RevitUploadSettings = {
 export type RevitUploadSettingsInput = {
   appendRoomsAndAreasMode: RevitUploadAppendMode;
   categories: Array<Scalars['String']['input']>;
+  /**
+   * Extract which room each element is in and which rooms its doors and windows
+   * connect. Off by default: it slows down conversions of models with many rooms.
+   */
+  extractRoomRelations?: InputMaybe<Scalars['Boolean']['input']>;
   publishMethod: RevitUploadPublishMethod;
   referencePoint: RevitUploadReferencePoint;
   viewName?: InputMaybe<Scalars['String']['input']>;
@@ -7592,6 +8466,13 @@ export type SavedView = {
   markup: Scalars['JSONObject']['output'];
   /** Measurement item-bag doc, same shape as markup. */
   measurements: Scalars['JSONObject']['output'];
+  /**
+   * What the server-side v1 -> v2 viewer-state conversion could not carry over:
+   * { fromVersion, toVersion, migratedAt, dropped: LegacyDropReason[] } (types in
+   * @speckle/shared/saved-views). Null when the view was never converted, was
+   * re-saved since, or is still waiting to be converted.
+   */
+  migrationReport?: Maybe<Scalars['JSONObject']['output']>;
   name: Scalars['String']['output'];
   permissions: SavedViewPermissionChecks;
   /** For figuring out position in the group */
@@ -8054,6 +8935,12 @@ export enum SessionPaymentStatus {
   Unpaid = 'unpaid'
 }
 
+/** Input for approving Google Drive for a workspace, or withdrawing approval. */
+export type SetGoogleDriveAdminApprovalInput = {
+  adminApproved: Scalars['Boolean']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
 export type SetPrimaryUserEmailInput = {
   id: Scalars['ID']['input'];
 };
@@ -8086,6 +8973,171 @@ export type SetWorkspaceSsoRoleRequirementInput = {
   /** A workspace-kind role id from this workspace's catalog — built-in or authored. */
   roleId: Scalars['String']['input'];
   workspaceId: Scalars['ID']['input'];
+};
+
+/** SharePoint browsing surface, reached via `SharePointIntegration.cloud`. */
+export type SharePointCloudIntegration = {
+  __typename?: 'SharePointCloudIntegration';
+  /** A document library by its drive id. */
+  drive: SharePointDrive;
+  /** A folder by its library's drive id and its own item id. */
+  folder: SharePointFolder;
+  /**
+   * The sites the member follows (SharePoint's Favorites), the whole list in one
+   * read. A member without a OneDrive follows nothing.
+   */
+  followedSites: SharePointSiteCollection;
+  /** A site by its Graph id (the `host,siteId,webId` form followed sites carry). */
+  site: SharePointSite;
+  /**
+   * Every site the member can open, the whole list in one read however many
+   * pages Graph hands out. SharePoint's background Content Type Hub is left out.
+   */
+  sites: SharePointSiteCollection;
+};
+
+
+/** SharePoint browsing surface, reached via `SharePointIntegration.cloud`. */
+export type SharePointCloudIntegrationDriveArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+/** SharePoint browsing surface, reached via `SharePointIntegration.cloud`. */
+export type SharePointCloudIntegrationFolderArgs = {
+  driveId: Scalars['String']['input'];
+  itemId: Scalars['String']['input'];
+};
+
+
+/** SharePoint browsing surface, reached via `SharePointIntegration.cloud`. */
+export type SharePointCloudIntegrationSiteArgs = {
+  id: Scalars['String']['input'];
+};
+
+/** A document library: a SharePoint drive. */
+export type SharePointDrive = {
+  __typename?: 'SharePointDrive';
+  /** Graph drive id. */
+  id: Scalars['ID']['output'];
+  /** The library's title as SharePoint shows it. */
+  name: Scalars['String']['output'];
+  /** The library's root folder, named after the library: the folder tree's root. */
+  root: SharePointFolder;
+  /** The library's address in SharePoint. */
+  webUrl: Scalars['String']['output'];
+};
+
+/** A list of document libraries. */
+export type SharePointDriveCollection = {
+  __typename?: 'SharePointDriveCollection';
+  /** The libraries, in the order Graph returned them. */
+  items: Array<SharePointDrive>;
+};
+
+/** A file inside a document library. */
+export type SharePointFile = {
+  __typename?: 'SharePointFile';
+  /**
+   * Content tag: changes only when the file's content changes, never on a rename
+   * or a column edit.
+   */
+  cTag?: Maybe<Scalars['String']['output']>;
+  /** Drive id of the library the file belongs to. */
+  driveId: Scalars['String']['output'];
+  /** Entity tag: changes on any change to the item, content or metadata. */
+  eTag?: Maybe<Scalars['String']['output']>;
+  /** Graph drive-item id of the file. */
+  id: Scalars['ID']['output'];
+  /** Display name of the person who last modified the file. */
+  lastModifiedByName?: Maybe<Scalars['String']['output']>;
+  /** ISO 8601 timestamp of the last modification, as Graph reports it. */
+  lastModifiedDateTime?: Maybe<Scalars['String']['output']>;
+  /** The file's name, extension included. */
+  name: Scalars['String']['output'];
+  /** Item id of the containing folder. */
+  parentId?: Maybe<Scalars['String']['output']>;
+  /** Size in bytes. */
+  size?: Maybe<Scalars['Int']['output']>;
+  /** The file's address in SharePoint. */
+  webUrl?: Maybe<Scalars['String']['output']>;
+};
+
+/** A list of files. */
+export type SharePointFileCollection = {
+  __typename?: 'SharePointFileCollection';
+  /** The files, in the order Graph returned them. */
+  items: Array<SharePointFile>;
+};
+
+/** A folder inside a document library. */
+export type SharePointFolder = {
+  __typename?: 'SharePointFolder';
+  /** The folders directly inside this one. */
+  children: SharePointFolderCollection;
+  /**
+   * Drive id of the library the folder belongs to, carried through the tree so
+   * child reads hit the right library.
+   */
+  driveId: Scalars['String']['output'];
+  /** The files directly inside this one. */
+  files: SharePointFileCollection;
+  /** Graph drive-item id of the folder. */
+  id: Scalars['ID']['output'];
+  /** The folder's name; the library's name for a root folder. */
+  name: Scalars['String']['output'];
+};
+
+/** A list of folders. */
+export type SharePointFolderCollection = {
+  __typename?: 'SharePointFolderCollection';
+  /** The folders, in the order Graph returned them. */
+  items: Array<SharePointFolder>;
+};
+
+/** Namespace grouping the SharePoint browsing entry points for a single workspace. */
+export type SharePointIntegration = {
+  __typename?: 'SharePointIntegration';
+  /**
+   * SharePoint browsing through Microsoft Graph with the delegated access token
+   * the member obtained at sign-in. The token is passed per request and never
+   * stored server-side; Graph answers only with what that member can open.
+   */
+  cloud?: Maybe<SharePointCloudIntegration>;
+};
+
+
+/** Namespace grouping the SharePoint browsing entry points for a single workspace. */
+export type SharePointIntegrationCloudArgs = {
+  token: Scalars['String']['input'];
+};
+
+/** A SharePoint site the member can open. */
+export type SharePointSite = {
+  __typename?: 'SharePointSite';
+  /**
+   * Id of the site's default library. Match it against `drives` by id, never by
+   * name.
+   */
+  defaultDriveId: Scalars['String']['output'];
+  /** The site's title as SharePoint shows it. */
+  displayName: Scalars['String']['output'];
+  /**
+   * The site's document libraries as Graph lists them: user-facing libraries
+   * only, never system ones.
+   */
+  drives: SharePointDriveCollection;
+  /** Graph site id, in the `host,siteId,webId` form. */
+  id: Scalars['ID']['output'];
+  /** The site's address in SharePoint. */
+  webUrl: Scalars['String']['output'];
+};
+
+/** A list of sites. */
+export type SharePointSiteCollection = {
+  __typename?: 'SharePointSiteCollection';
+  /** The sites, in the order Graph returned them. */
+  items: Array<SharePointSite>;
 };
 
 export enum ShareSourceType {
@@ -8261,6 +9313,8 @@ export enum SortOrder {
 
 export type SourceData = {
   __typename?: 'SourceData';
+  /** Version of the Speckle connector / client that ran the ingestion; null when the client did not report it. */
+  connectorVersion?: Maybe<Scalars['String']['output']>;
   fileName?: Maybe<Scalars['String']['output']>;
   fileSizeBytes?: Maybe<Scalars['BigInt']['output']>;
   revitUploadSettings?: Maybe<RevitUploadSettings>;
@@ -8269,10 +9323,36 @@ export type SourceData = {
 };
 
 export type SourceDataInput = {
+  /**
+   * Version of the Speckle connector / client that ran the ingestion, as distinct from the host
+   * application's release. Optional: older clients never report it.
+   */
+  connectorVersion?: InputMaybe<Scalars['String']['input']>;
   fileName?: InputMaybe<Scalars['String']['input']>;
   fileSizeBytes?: InputMaybe<Scalars['BigInt']['input']>;
   sourceApplicationSlug: Scalars['String']['input'];
+  /** Release of the host application (Revit 2024 -> "2024") or of the converter that produced the version. */
   sourceApplicationVersion: Scalars['String']['input'];
+};
+
+/** One saved state of the synced file as the source platform records it. */
+export type SourceVersion = {
+  __typename?: 'SourceVersion';
+  /**
+   * When the source platform created this version. Null when it reports no time;
+   * such a version cannot be imported.
+   */
+  createdAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Display name of the source platform user who created this version. */
+  createdBy?: Maybe<Scalars['String']['output']>;
+  /** The source platform's id for this version; pass it to `importSourceVersions`. */
+  id: Scalars['ID']['output'];
+  /** The file name at this version, as the source platform reports it. */
+  name?: Maybe<Scalars['String']['output']>;
+  /** The source platform's sequential version number of the file. */
+  number: Scalars['Int']['output'];
+  /** The latest run that synced exactly this source version, if any. */
+  syncItem?: Maybe<SyncItem>;
 };
 
 export type StartAnonTurnInput = {
@@ -8294,6 +9374,14 @@ export type StartFileImportInput = {
    */
   etag: Scalars['String']['input'];
   fileId: Scalars['String']['input'];
+  /**
+   * Files converted into the same version as the uploaded file, each uploaded through
+   * generateUploadUrl like the host: for .rvt the models it links (read from the file
+   * itself), for .rvm its attribute export (.txt/.att, at most one) and DEXPI P&IDs
+   * (.xml), for .edb its analysis result files (.msh, .Y*). Omit or empty converts the
+   * host alone.
+   */
+  linkedFiles?: InputMaybe<Array<LinkedFileUploadInput>>;
   modelId: Scalars['String']['input'];
   projectId: Scalars['String']['input'];
   /**
@@ -8693,11 +9781,13 @@ export type SubscriptionProjectPendingVersionsUpdatedArgs = {
 
 export type SubscriptionProjectSavedViewGroupsUpdatedArgs = {
   projectId: Scalars['ID']['input'];
+  resourceIdString?: InputMaybe<Scalars['String']['input']>;
 };
 
 
 export type SubscriptionProjectSavedViewsUpdatedArgs = {
   projectId: Scalars['ID']['input'];
+  resourceIdString?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -8801,6 +9891,11 @@ export type Sync = {
    */
   modelIngestion?: Maybe<ModelIngestion>;
   project: Project;
+  /**
+   * The source platform's version history of the synced file, newest first, read
+   * live from the integration. Null when the integration cannot list versions.
+   */
+  sourceVersions?: Maybe<Array<SourceVersion>>;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -8841,6 +9936,7 @@ export type SyncItem = {
    */
   modelIngestion?: Maybe<ModelIngestion>;
   modelIngestionId: Scalars['String']['output'];
+  sync: Sync;
   syncId: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -8856,6 +9952,32 @@ export type SyncMutations = {
   __typename?: 'SyncMutations';
   create: Sync;
   delete: Scalars['Boolean']['output'];
+  /**
+   * Makes a Google Drive sync the requesting user's: a running sync, or one
+   * paused because Speckle could no longer read the file with its owner's
+   * access or its owner lost access to the project. The requesting user's own
+   * Google account must open the same file; the sync then reads with it, and
+   * the previous owner is emailed.
+   */
+  googleDriveClaim: Sync;
+  /**
+   * The owner points a Google Drive sync whose file went to the Drive bin at the
+   * file that replaced it (macOS Finder replace writes a new file), continuing
+   * the same model. Publishes nothing when the new file's content matches the
+   * last published version.
+   */
+  googleDriveRelink: Sync;
+  /**
+   * Sync chosen historical versions of the file. Each created Speckle version is
+   * dated at its source version's creation time, so an older source state never
+   * becomes the model's latest version. Rejected for more than five versions in
+   * one request, while the sync is paused, for
+   * versions older than the version history the workspace plan keeps, and when the
+   * workspace's conversions run on the legacy rail, which cannot date a version
+   * (`SYNC_SOURCE_VERSION_IMPORT_UNSUPPORTED_ON_RAIL`; see
+   * `ProjectPermissionChecks.canImportSyncSourceVersions`).
+   */
+  importSourceVersions: Sync;
   /**
    * Pause or resume a sync. Paused syncs skip polling/webhook-driven executions
    * and reject `update(..., triggerNow: true)`. In-flight executions finish.
@@ -8875,6 +9997,21 @@ export type SyncMutationsDeleteArgs = {
 };
 
 
+export type SyncMutationsGoogleDriveClaimArgs = {
+  input: GoogleDriveClaimInput;
+};
+
+
+export type SyncMutationsGoogleDriveRelinkArgs = {
+  input: GoogleDriveRelinkInput;
+};
+
+
+export type SyncMutationsImportSourceVersionsArgs = {
+  input: ImportSourceVersionsInput;
+};
+
+
 export type SyncMutationsSetActiveArgs = {
   input: SetSyncActiveInput;
 };
@@ -8887,6 +10024,15 @@ export type SyncMutationsUpdateArgs = {
 export type TaxIdData = {
   type: Scalars['String']['input'];
   value: Scalars['String']['input'];
+};
+
+/** A template blob copied into a workspace */
+export type TemplateBlobCopy = {
+  __typename?: 'TemplateBlobCopy';
+  /** The copy's blob id in the target workspace */
+  blobId: Scalars['String']['output'];
+  /** The blob id the template references */
+  sourceBlobId: Scalars['String']['output'];
 };
 
 export type TestAutomationRun = {
@@ -9755,6 +10901,14 @@ export type Version = {
    */
   schemaVersion?: Maybe<Scalars['Int']['output']>;
   sourceApplication?: Maybe<Scalars['String']['output']>;
+  /**
+   * Facts the producer computed about this version while converting it, keyed by
+   * namespace, each namespace a flat map of scalars — e.g.
+   * `{ "modelHealth": { "warnings": 49, "views": 302, "isWorkshared": false } }`.
+   * Handed over at bundle complete; null when the producer sent none. The keys a
+   * namespace may carry are documented by the bundle spec (`modelHealth.*`).
+   */
+  summary?: Maybe<Scalars['JSON']['output']>;
   totalChildrenCount?: Maybe<Scalars['Int']['output']>;
 };
 
@@ -10066,6 +11220,26 @@ export type Workspace = {
    */
   aiCapacity?: Maybe<WorkspaceAiCapacity>;
   /**
+   * When true, only workspace admins can enable AI; members asking to opt in are
+   * told to contact an admin. Defaults to false.
+   */
+  aiChatAdminOnlyEnabled: Scalars['Boolean']['output'];
+  /**
+   * When true, public AI conversation links cannot be created and existing ones
+   * are denied. Signed-in project sharing is unaffected. Defaults to false.
+   */
+  aiChatPublicSharingDisabled: Scalars['Boolean']['output'];
+  /**
+   * Every AI conversation in the workspace, across all members and projects —
+   * the admin audit view behind the Conversations settings page. Workspace admin
+   * only (see WorkspacePermissionChecks.canListAiConversations). Returns summary
+   * rows (no `messages`), newest activity first; pass the cursor from the
+   * previous response to page further back.
+   *
+   * Null when the AI chat module is disabled on this server.
+   */
+  aiConversations?: Maybe<WorkspaceAiConversationCollection>;
+  /**
    * The workspace's AI rules, admin-managed instructions injected into the
    * system prompt of every authenticated AI turn in this workspace (enabled
    * ones only; disabled rules are listed but not applied). Readable by every
@@ -10134,6 +11308,8 @@ export type Workspace = {
   customerPortalUrl?: Maybe<Scalars['String']['output']>;
   dashboards: DashboardCollection;
   dataWarehouses: WorkspaceDataWarehouses;
+  /** Measurement display unit for views without an override; defaults to meters. */
+  defaultMeasurementUnit: MeasurementUnit;
   /**
    * The default role workspace members will receive for workspace projects.
    * @deprecated Always the reviewer role. Will be removed in the future.
@@ -10180,6 +11356,14 @@ export type Workspace = {
    * feature ships.
    */
   grantableFeatures: Array<GrantableFeature>;
+  /**
+   * One group by id, or null when the id names no group in this workspace.
+   *
+   * Exists because `groups` is paginated: an editor deep-linked to a group cannot find it by walking
+   * the listing, which is how the role editor resolves its own subject only because that listing is
+   * unpaginated. Same gate as `groups`.
+   */
+  group?: Maybe<WorkspaceGroup>;
   /** The user groups this workspace has authored. */
   groups: WorkspaceGroupCollection;
   /** @deprecated Use specific auth policies instead */
@@ -10245,6 +11429,13 @@ export type Workspace = {
    * Only accessible to workspace admins.
    */
   supportSessions: WorkspaceSupportSessionCollection;
+  /**
+   * When true, the workspace's admins are emailed about every sync pause in its
+   * projects. Otherwise a pause goes to the project's named owners (and the sync's
+   * author while they can still edit), and reaches workspace admins only when a
+   * project has no named owner. Defaults to false.
+   */
+  syncPauseEmailsToWorkspaceAdmins: Scalars['Boolean']['output'];
   team: WorkspaceCollaboratorCollection;
   /** @deprecated Only counts the three built-in roles, so anyone holding a role the workspace created itself is counted in none of the buckets and the three do not add up to `team.totalCount`. Use `teamComposition`. */
   teamByRole: WorkspaceTeamByRole;
@@ -10274,6 +11465,13 @@ export type WorkspaceAdminWorkspacesJoinRequestsArgs = {
   cursor?: InputMaybe<Scalars['String']['input']>;
   filter?: InputMaybe<AdminWorkspaceJoinRequestFilter>;
   limit?: Scalars['Int']['input'];
+};
+
+
+export type WorkspaceAiConversationsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  filter?: InputMaybe<WorkspaceAiConversationsFilter>;
+  limit?: InputMaybe<Scalars['Int']['input']>;
 };
 
 
@@ -10326,6 +11524,11 @@ export type WorkspaceExternalDataSourcesArgs = {
 
 export type WorkspaceGrantableFeaturesArgs = {
   resourceType: WorkspaceRoleResourceType;
+};
+
+
+export type WorkspaceGroupArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -10451,8 +11654,9 @@ export enum WorkspaceAiCapacityStatus {
 export type WorkspaceAiChatMutations = {
   __typename?: 'WorkspaceAiChatMutations';
   /**
-   * Opt the workspace into AI, accepting the current AI terms on its behalf. Any
-   * workspace member may call this, guests excluded (see
+   * Opt the workspace into AI, accepting the current AI terms on its behalf.
+   * Workspace members may call this unless admin-only enablement is configured;
+   * guests are always excluded (see
    * WorkspacePermissionChecks.canOptInToAiChat). Fails when the workspace already
    * has AI. Returns the updated workspace.
    */
@@ -10472,6 +11676,12 @@ export type WorkspaceAiChatMutations = {
    * enabled. Returns the updated workspace.
    */
   setOpenAIEnabled: Workspace;
+  /**
+   * Update workspace-wide AI controls. Requires the enterprise AI settings
+   * entitlement and workspace AI admin capability. Omitted fields are left
+   * unchanged. Returns the updated workspace.
+   */
+  setSettings: Workspace;
 };
 
 
@@ -10504,6 +11714,52 @@ export type WorkspaceAiChatMutationsSetEnabledArgs = {
 export type WorkspaceAiChatMutationsSetOpenAiEnabledArgs = {
   enabled: Scalars['Boolean']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+
+/**
+ * Workspace-level AI settings. AI enablement rides the `aiChat` workspace plan
+ * feature and records terms acceptance; provider rollout choices use their own
+ * workspace feature grants.
+ */
+export type WorkspaceAiChatMutationsSetSettingsArgs = {
+  input: WorkspaceAiChatSettingsInput;
+};
+
+/**
+ * Workspace-wide AI controls. Each boolean is optional; null or omitted leaves
+ * that control unchanged.
+ */
+export type WorkspaceAiChatSettingsInput = {
+  /**
+   * When true, workspace members cannot opt the workspace into AI; an admin must
+   * enable it.
+   */
+  aiChatAdminOnlyEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /**
+   * When true, public AI conversation links cannot be created or read. Existing
+   * links become inaccessible immediately.
+   */
+  aiChatPublicSharingDisabled?: InputMaybe<Scalars['Boolean']['input']>;
+  /** The workspace whose controls to update. */
+  workspaceId: Scalars['String']['input'];
+};
+
+export type WorkspaceAiConversationCollection = {
+  __typename?: 'WorkspaceAiConversationCollection';
+  cursor?: Maybe<Scalars['String']['output']>;
+  items: Array<AiConversation>;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type WorkspaceAiConversationsFilter = {
+  /**
+   * Only conversations bound to one of these projects. Omit for every project,
+   * workspace-level (project-less) chats included.
+   */
+  projectIds?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Only conversations from this UI surface (`widget` or `magic`). */
+  surface?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type WorkspaceBillingMutations = {
@@ -10639,6 +11895,16 @@ export type WorkspaceDataWarehouseMutations = {
   updateMicrosoftFabricConnection: WorkspaceMicrosoftFabricConnection;
   upsertDatabricksConnection: WorkspaceDatabricksConnection;
   upsertSnowflakeConnection: WorkspaceSnowflakeConnection;
+  /**
+   * Re-plans the write from Unity Catalog and runs it only when the fresh plan's
+   * digest equals `expectedDigest`; otherwise it fails with
+   * `DATABRICKS_TABLE_WRITE_CHANGED` and runs nothing; invalid input fails with
+   * `DATABRICKS_TABLE_WRITE_INVALID` and runs nothing. Once statements run, every
+   * outcome is reported in the result, including failures. Gated by
+   * `canUseDatabricksIntegration`; fails with `DATABRICKS_TABLE_API_DISABLED`
+   * when the server runs without `FF_AI_DATABRICKS_TOOLS_ENABLED`.
+   */
+  writeDatabricksTable?: Maybe<DatabricksTableWriteResult>;
 };
 
 
@@ -10664,6 +11930,7 @@ export type WorkspaceDataWarehouseMutationsDeleteSnowflakeConnectionArgs = {
 
 
 export type WorkspaceDataWarehouseMutationsRefreshSourceArgs = {
+  expectedConfiguration?: InputMaybe<DataWarehouseSourceExpectedConfiguration>;
   id: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
 };
@@ -10716,6 +11983,11 @@ export type WorkspaceDataWarehouseMutationsUpsertSnowflakeConnectionArgs = {
   input: UpsertWorkspaceSnowflakeConnectionInput;
 };
 
+
+export type WorkspaceDataWarehouseMutationsWriteDatabricksTableArgs = {
+  input: WriteDatabricksTableInput;
+};
+
 export type WorkspaceDataWarehouses = {
   __typename?: 'WorkspaceDataWarehouses';
   databricksConnections: Array<WorkspaceDatabricksConnection>;
@@ -10755,6 +12027,27 @@ export type WorkspaceDatabricksConnection = {
   schemas: Array<Scalars['String']['output']>;
   tableColumns: Array<DatabricksColumnRef>;
   tablePreview: DatabricksTablePreview;
+  /**
+   * Plans a read-only, parameterized SELECT on one table from structured input.
+   * Columns, filters and sort keys are checked against the table's Unity Catalog
+   * columns, read over REST, so resolving this field never starts the SQL
+   * warehouse; filter values travel as named parameters, never inside the SQL
+   * text. Select `result` to run the planned statement. Gated by
+   * `canUseDatabricksIntegration`, like the browse fields; fails with
+   * `DATABRICKS_TABLE_API_DISABLED` when the server runs without
+   * `FF_AI_DATABRICKS_TOOLS_ENABLED`.
+   */
+  tableQuery?: Maybe<DatabricksTableQuery>;
+  /**
+   * Plans an update of existing rows in one Delta table from structured input,
+   * without running it. Columns and types come from Unity Catalog over REST, so
+   * resolving this field never starts the SQL warehouse. Values travel as named
+   * parameters, never inside the SQL text. Run the plan with
+   * `WorkspaceDataWarehouseMutations.writeDatabricksTable`. Gated by
+   * `canUseDatabricksIntegration`; fails with `DATABRICKS_TABLE_API_DISABLED`
+   * when the server runs without `FF_AI_DATABRICKS_TOOLS_ENABLED`.
+   */
+  tableWritePlan?: Maybe<DatabricksTableWritePlan>;
   tables: Array<DatabricksTableRef>;
   updatedAt: Scalars['DateTime']['output'];
   workspaceId: Scalars['String']['output'];
@@ -10778,6 +12071,16 @@ export type WorkspaceDatabricksConnectionTablePreviewArgs = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   schema: Scalars['String']['input'];
   table: Scalars['String']['input'];
+};
+
+
+export type WorkspaceDatabricksConnectionTableQueryArgs = {
+  input: DatabricksTableQueryInput;
+};
+
+
+export type WorkspaceDatabricksConnectionTableWritePlanArgs = {
+  input: DatabricksTableWriteInput;
 };
 
 
@@ -10828,6 +12131,7 @@ export enum WorkspaceFeatureName {
   AccIntegration = 'accIntegration',
   AiChat = 'aiChat',
   AiChatOpenAi = 'aiChatOpenAI',
+  AiChatSettings = 'aiChatSettings',
   Automate = 'automate',
   BentleyIntegration = 'bentleyIntegration',
   DashboardsExperimental = 'dashboardsExperimental',
@@ -10836,6 +12140,13 @@ export enum WorkspaceFeatureName {
   DomainDiscoverability = 'domainDiscoverability',
   DynamicRoles = 'dynamicRoles',
   ExclusiveMembership = 'exclusiveMembership',
+  /**
+   * Full-year CSV report downloads (member/project access, project activity) on the
+   * Usage page for workspace admins. Admin-granted, never part of a plan tier.
+   */
+  FullWorkspaceUsageDownloads = 'fullWorkspaceUsageDownloads',
+  /** Sync Google Drive files to Speckle models. */
+  GoogleDriveIntegration = 'googleDriveIntegration',
   HelpCenter = 'helpCenter',
   HideSpeckleBranding = 'hideSpeckleBranding',
   /**
@@ -10850,6 +12161,7 @@ export enum WorkspaceFeatureName {
   PortfolioDashboards = 'portfolioDashboards',
   ProjectArchival = 'projectArchival',
   Scim2Provisioning = 'scim2Provisioning',
+  SharepointIntegration = 'sharepointIntegration',
   SnowflakeIntegration = 'snowflakeIntegration',
   TrimbleIntegration = 'trimbleIntegration',
   WorkspaceDataRegionSpecificity = 'workspaceDataRegionSpecificity'
@@ -10862,13 +12174,44 @@ export enum WorkspaceFeatureName {
  */
 export type WorkspaceGroup = {
   __typename?: 'WorkspaceGroup';
+  /**
+   * The projects this group is attached to — its reach, and the impact list a delete dialog needs.
+   *
+   * Scoped to what the caller can already read: `workspace.group.read` is grantable and every
+   * workspace member holds it, so an unscoped list would name private projects to somebody with no
+   * clearance to them. Anyone who may *manage* a group holds the reserved `workspace.group.write`, and
+   * reaches every project in the workspace, so the impact list is exact for everyone who can act on it.
+   *
+   * `totalCount` is batched across a listing; `items` costs one query per group, so select it for one
+   * group at a time.
+   */
+  attachedProjects: ProjectCollection;
   createdAt: Scalars['DateTime']['output'];
   description?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
   members: WorkspaceGroupMemberCollection;
   name: Scalars['String']['output'];
   permissions: WorkspaceGroupPermissionChecks;
+  /**
+   * Which project roles this group's members carry, and how many hold each. One entry per role
+   * somebody actually holds, so the counts add up to `members.totalCount`.
+   *
+   * Ordered by share, largest first. Deliberately NOT ordered by what the roles confer: grant
+   * containment is a partial order, so two authored roles are routinely incomparable.
+   */
+  roleComposition: Array<WorkspaceRoleComposition>;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+
+/**
+ * A named set of workspace members, each carrying the project role they hold wherever the group is
+ * attached. Membership confers nothing on its own — a group reaches a project only once it is attached,
+ * which is what makes a group one action instead of twenty invites rather than twenty hidden ones.
+ */
+export type WorkspaceGroupAttachedProjectsArgs = {
+  cursor?: InputMaybe<Scalars['String']['input']>;
+  limit?: Scalars['Int']['input'];
 };
 
 
@@ -10897,6 +12240,13 @@ export type WorkspaceGroupFilter = {
 export type WorkspaceGroupMember = {
   __typename?: 'WorkspaceGroupMember';
   createdAt: Scalars['DateTime']['output'];
+  /**
+   * The identity behind `roleId`. Null only if the id names a definition that no longer exists.
+   *
+   * Resolves through degradation, unlike `Workspace.assignableRoles` — which is what lets a member
+   * editor show the name of a role the workspace may no longer hand out, instead of a raw `custom:` id.
+   */
+  roleDefinition?: Maybe<RoleIdentity>;
   roleId: Scalars['String']['output'];
   user: LimitedUser;
 };
@@ -10984,12 +12334,24 @@ export type WorkspaceIntegrations = {
   __typename?: 'WorkspaceIntegrations';
   acc?: Maybe<AccIntegration>;
   /**
+   * Google Drive integration entry point for this workspace. Nullable so that a
+   * disabled module or a missing plan feature isolates to this field.
+   */
+  googleDrive?: Maybe<GoogleDriveIntegration>;
+  /**
    * Bentley ProjectWise integration entry point for this workspace. Nullable so
    * that a disabled Bentley module / missing plan feature isolates to this field.
    * Authorization (workspace membership + the `bentleyIntegration` plan feature)
    * is enforced once here; the whole subtree below inherits it.
    */
   projectWise?: Maybe<ProjectWiseIntegration>;
+  /**
+   * SharePoint integration entry point for this workspace. Nullable so that a
+   * disabled SharePoint module / missing plan feature isolates to this field.
+   * Authorization (workspace membership + the `sharepointIntegration` plan
+   * feature) is enforced once here; the whole subtree below inherits it.
+   */
+  sharePoint?: Maybe<SharePointIntegration>;
   /**
    * Trimble Connect integration entry point for this workspace. Nullable so that
    * a disabled Trimble module / missing plan feature isolates to this field.
@@ -11264,6 +12626,13 @@ export type WorkspaceMutations = {
    */
   aiChat: WorkspaceAiChatMutations;
   billing: WorkspaceBillingMutations;
+  /**
+   * Completes a Google sign-in started at the Google Drive auth login route:
+   * claims the sign-in identified by `authState` and stores it as the
+   * requesting user's connection. Reconnecting the same Google account replaces
+   * its stored tokens.
+   */
+  connectGoogleDrive: GoogleDriveConnection;
   create: Workspace;
   dataWarehouses: WorkspaceDataWarehouseMutations;
   delete: Scalars['Boolean']['output'];
@@ -11289,6 +12658,13 @@ export type WorkspaceMutations = {
    */
   deleteTrimbleCredential: Scalars['Boolean']['output'];
   disableScim: Scalars['Boolean']['output'];
+  /**
+   * Removes one of the requesting user's own Google connections: their Drive
+   * syncs that read with it pause, the token is revoked at Google, and the
+   * stored connection is deleted. Reconnecting the same Google account resumes
+   * those syncs.
+   */
+  disconnectGoogleDrive: Scalars['Boolean']['output'];
   /** Dismiss a workspace from the discoverable list, behind the scene a join request is created with the status "dismissed" */
   dismiss: Scalars['Boolean']['output'];
   enableScim: WorkspaceScimTokenResult;
@@ -11314,6 +12690,12 @@ export type WorkspaceMutations = {
   saveTrimbleCredential: TrimbleConnectCredentialInfo;
   /** Set the default region where project data will be stored. Only available to admins. */
   setDefaultRegion: Workspace;
+  /**
+   * Approves Google Drive for an Enterprise workspace, or withdraws that
+   * approval. Withdrawing pauses the workspace's Drive syncs; approving resumes
+   * those that pass the domain check. Workspace admins only.
+   */
+  setGoogleDriveAdminApproval: GoogleDriveWorkspaceAccess;
   setProjectMetadataSchema: Workspace;
   /**
    * Turn the SSO session requirement on or off for one workspace role. Requires an SSO provider to
@@ -11333,11 +12715,21 @@ export type WorkspaceMutations = {
   updateSeatType: Workspace;
   /** Update the SSO provider details for a workspace. */
   updateSsoProvider: Scalars['Boolean']['output'];
+  /**
+   * Change the workspace's sync settings. Requires permission to update the
+   * workspace's settings. Returns the updated workspace.
+   */
+  updateSyncSettings: Workspace;
 };
 
 
 export type WorkspaceMutationsAddDomainArgs = {
   input: AddDomainToWorkspaceInput;
+};
+
+
+export type WorkspaceMutationsConnectGoogleDriveArgs = {
+  input: ConnectGoogleDriveInput;
 };
 
 
@@ -11389,6 +12781,11 @@ export type WorkspaceMutationsDisableScimArgs = {
 };
 
 
+export type WorkspaceMutationsDisconnectGoogleDriveArgs = {
+  input: DisconnectGoogleDriveInput;
+};
+
+
 export type WorkspaceMutationsDismissArgs = {
   input: WorkspaceDismissInput;
 };
@@ -11427,6 +12824,11 @@ export type WorkspaceMutationsSaveTrimbleCredentialArgs = {
 export type WorkspaceMutationsSetDefaultRegionArgs = {
   regionKey: Scalars['String']['input'];
   workspaceId: Scalars['String']['input'];
+};
+
+
+export type WorkspaceMutationsSetGoogleDriveAdminApprovalArgs = {
+  input: SetGoogleDriveAdminApprovalInput;
 };
 
 
@@ -11469,6 +12871,11 @@ export type WorkspaceMutationsUpdateSsoProviderArgs = {
   input: WorkspaceSsoProviderUpdateInput;
 };
 
+
+export type WorkspaceMutationsUpdateSyncSettingsArgs = {
+  input: WorkspaceSyncSettingsInput;
+};
+
 export type WorkspacePaidPlanPrices = {
   __typename?: 'WorkspacePaidPlanPrices';
   business: WorkspacePlanPrice;
@@ -11509,6 +12916,13 @@ export type WorkspacePermissionChecks = {
    */
   canCreateAiSkill: PermissionCheckResult;
   canCreateDashboards: PermissionCheckResult;
+  /**
+   * Whether a new group may be created here — the gate on the create route and its empty-state CTA.
+   *
+   * Write-tier where `canListGroups` is read-tier, so the two genuinely differ: managing a group deals
+   * project access, which makes it a reserved capability no authored role can hold.
+   */
+  canCreateGroup: PermissionCheckResult;
   canCreateProject: PermissionCheckResult;
   canCreateResourceMeta: PermissionCheckResult;
   /**
@@ -11522,6 +12936,11 @@ export type WorkspacePermissionChecks = {
   canDeleteInvite: PermissionCheckResult;
   canDeleteResourceMeta: PermissionCheckResult;
   canDeleteSsoSession: PermissionCheckResult;
+  /**
+   * Whether the user can download the full-year usage CSV reports: requires usage
+   * analytics access plus the fullWorkspaceUsageDownloads feature grant.
+   */
+  canDownloadUsageReports: PermissionCheckResult;
   canEditEmbedOptions: PermissionCheckResult;
   canEditWorkspaceIssueLabels: PermissionCheckResult;
   canEditWorkspaceProjectLabels: PermissionCheckResult;
@@ -11537,6 +12956,12 @@ export type WorkspacePermissionChecks = {
   canInviteAs: Array<RoleAssignability>;
   canLeave: PermissionCheckResult;
   /**
+   * Whether the current user can list every AI conversation in this workspace,
+   * across all members and projects. Workspace admin only. Frontend gates the
+   * Conversations settings page on this.
+   */
+  canListAiConversations: PermissionCheckResult;
+  /**
    * Whether the current user can read this workspace's AI rules. Any member,
    * guests included, AND the workspace plan granting `aiChat`. Frontend gates the
    * rules settings page visibility on this.
@@ -11544,6 +12969,13 @@ export type WorkspacePermissionChecks = {
   canListAiRules: PermissionCheckResult;
   canListArchivedProjects: PermissionCheckResult;
   canListDashboards: PermissionCheckResult;
+  /**
+   * Whether this workspace's user groups can be listed — the gate on the Groups tab of the team page.
+   *
+   * Folds in the dynamic-roles plan grant, so a client needs no second entitlement check, and answers
+   * unauthorised rather than throwing when the module is off.
+   */
+  canListGroups: PermissionCheckResult;
   /**
    * Whether this workspace's role catalog can be listed — the gate on the Roles settings surface.
    *
@@ -11559,6 +12991,11 @@ export type WorkspacePermissionChecks = {
    * toggle in workspace settings.
    */
   canManageAiChatEnabled: PermissionCheckResult;
+  /**
+   * Whether the current user can configure enterprise AI workspace controls.
+   * Requires the AI settings plan entitlement and workspace AI admin capability.
+   */
+  canManageAiChatSettings: PermissionCheckResult;
   /**
    * Whether the current user can administer this workspace's AI rules. Workspace
    * admin AND the workspace plan granting `aiChat`. Drives every management
@@ -11706,6 +13143,8 @@ export type WorkspacePlan = {
   paymentMethod: WorkspacePaymentMethod;
   /** Persisted routing outcome for Explorer-to-Team upgrade intents. */
   qualification?: Maybe<WorkspacePlanQualification>;
+  /** Whether Team checkout eligibility was explicitly set by a server administrator. */
+  qualificationIsAdminOverride: Scalars['Boolean']['output'];
   /** Time at which the workspace was classified. */
   qualifiedAt?: Maybe<Scalars['DateTime']['output']>;
   /** User who classified the workspace. Null when that user has been deleted. */
@@ -12046,7 +13485,10 @@ export type WorkspaceRoleCollection = {
   totalCount: Scalars['Int']['output'];
 };
 
-/** How many people hold one particular role in this workspace. */
+/**
+ * How many people hold one particular role, within whatever set the field returning this describes —
+ * a workspace's membership, a group's, and so on.
+ */
 export type WorkspaceRoleComposition = {
   __typename?: 'WorkspaceRoleComposition';
   role: RoleIdentity;
@@ -12505,6 +13947,11 @@ export enum WorkspaceSupportSessionUpdatedMessageType {
   Revoked = 'REVOKED'
 }
 
+export type WorkspaceSyncSettingsInput = {
+  pauseEmailsToWorkspaceAdmins: Scalars['Boolean']['input'];
+  workspaceId: Scalars['String']['input'];
+};
+
 export type WorkspaceSyncUsage = {
   __typename?: 'WorkspaceSyncUsage';
   versionSyncsMonthly: Scalars['Int']['output'];
@@ -12545,6 +13992,8 @@ export type WorkspaceUpdateEmbedOptionsInput = {
 };
 
 export type WorkspaceUpdateInput = {
+  /** Set the default measurement display unit. Omitted or null leaves it unchanged. */
+  defaultMeasurementUnit?: InputMaybe<MeasurementUnit>;
   defaultSeatType?: InputMaybe<WorkspaceSeatType>;
   description?: InputMaybe<Scalars['String']['input']>;
   discoverabilityAutoJoinEnabled?: InputMaybe<Scalars['Boolean']['input']>;
@@ -13019,6 +14468,16 @@ export type WorkspaceVersionCount = {
   versionCount: Scalars['Int']['output'];
 };
 
+/** A reviewed write to run against the workspace's Databricks connection. */
+export type WriteDatabricksTableInput = {
+  /** `DatabricksTableWritePlan.digest` of the plan that was reviewed. */
+  expectedDigest: Scalars['String']['input'];
+  /** Workspace whose Databricks connection runs the write. */
+  workspaceId: Scalars['String']['input'];
+  /** The same input the reviewed plan was made from. */
+  write: DatabricksTableWriteInput;
+};
+
 export type SetActiveWorkspaceMutationMutationVariables = Exact<{
   slug?: InputMaybe<Scalars['String']['input']>;
 }>;
@@ -13346,7 +14805,7 @@ export type UpdateIssueMutationVariables = Exact<{
 }>;
 
 
-export type UpdateIssueMutation = { __typename?: 'Mutation', projectMutations: { __typename?: 'ProjectMutations', issues: { __typename?: 'ProjectIssueMutations', updateIssue: { __typename?: 'Issue', id: string, status: IssueStatus } } } };
+export type UpdateIssueMutation = { __typename?: 'Mutation', projectMutations: { __typename?: 'ProjectMutations', issues: { __typename?: 'ProjectIssueMutations', updateIssue: { __typename?: 'Issue', id: string, status: IssueStatus, priority: IssuePriority, assignee?: { __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, avatar?: string | null, name: string } } | null, labels: Array<{ __typename?: 'AssignedLabel', hexColor: string, id: string, name: string }> } } } };
 
 export type IssuesListQueryVariables = Exact<{
   projectId: Scalars['String']['input'];
@@ -13365,6 +14824,29 @@ export type IssueResourceMetaSearchQueryVariables = Exact<{
 
 
 export type IssueResourceMetaSearchQuery = { __typename?: 'Query', resourceMetaSearch: Array<{ __typename?: 'ResourceMeta', id: string, data: any }> };
+
+export type IssueEditPermissionsQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+  issueId: Scalars['ID']['input'];
+}>;
+
+
+export type IssueEditPermissionsQuery = { __typename?: 'Query', project: { __typename?: 'Project', id: string, issue: { __typename?: 'Issue', id: string, permissions: { __typename?: 'IssuePermissionChecks', canEditStatus: { __typename?: 'PermissionCheckResult', authorized: boolean, message: string }, canEditPriority: { __typename?: 'PermissionCheckResult', authorized: boolean, message: string }, canEditAssignee: { __typename?: 'PermissionCheckResult', authorized: boolean, message: string }, canEditLabels: { __typename?: 'PermissionCheckResult', authorized: boolean, message: string } } } } };
+
+export type IssueAssigneesQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+  search?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type IssueAssigneesQuery = { __typename?: 'Query', project: { __typename?: 'Project', id: string, allowedIssueAssignees: { __typename?: 'IssueParticipantCollection', items: Array<{ __typename?: 'IssueParticipant', id: string, user: { __typename?: 'LimitedUser', id: string, name: string, avatar?: string | null } }> } } };
+
+export type IssueLabelsQueryVariables = Exact<{
+  projectId: Scalars['String']['input'];
+}>;
+
+
+export type IssueLabelsQuery = { __typename?: 'Query', project: { __typename?: 'Project', id: string, issueLabels: { __typename?: 'IssueLabelCollection', items: Array<{ __typename?: 'IssueLabel', id: string, name: string, hexColor: string }> } } };
 
 export type WorkspaceIntercomPermissionQueryVariables = Exact<{
   workspaceId: Scalars['String']['input'];
@@ -13430,8 +14912,11 @@ export const FailModelIngestionWithCancelDocument = {"kind":"Document","definiti
 export const CanCreateIngestionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"CanCreateIngestion"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"model"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"modelId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canCreateIngestion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"code"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<CanCreateIngestionQuery, CanCreateIngestionQueryVariables>;
 export const ProjectModelIngestionUpdatedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"subscription","name":{"kind":"Name","value":"ProjectModelIngestionUpdated"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ProjectModelIngestionSubscriptionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectModelIngestionUpdated"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"type"}},{"kind":"Field","name":{"kind":"Name","value":"modelIngestion"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"statusData"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"__typename"}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionSuccessStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"versionId"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionProcessingStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"progressMessage"}},{"kind":"Field","name":{"kind":"Name","value":"progress"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionFailedStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"errorReason"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionCancelledStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"cancellationMessage"}}]}},{"kind":"InlineFragment","typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"ModelIngestionQueuedStatus"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"progressMessage"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<ProjectModelIngestionUpdatedSubscription, ProjectModelIngestionUpdatedSubscriptionVariables>;
 export const DeleteResourceMetaDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"DeleteResourceMeta"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"DeleteResourceMetaInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resourceMetaMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"delete"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]}}]} as unknown as DocumentNode<DeleteResourceMetaMutation, DeleteResourceMetaMutationVariables>;
-export const UpdateIssueDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateIssue"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateIssueInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"issues"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateIssue"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}}]}}]}}]}}]}}]} as unknown as DocumentNode<UpdateIssueMutation, UpdateIssueMutationVariables>;
+export const UpdateIssueDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"mutation","name":{"kind":"Name","value":"UpdateIssue"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"UpdateIssueInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"projectMutations"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"issues"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"updateIssue"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"assignee"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"labels"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hexColor"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<UpdateIssueMutation, UpdateIssueMutationVariables>;
 export const IssuesListDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssuesList"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"issues"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"FragmentSpread","name":{"kind":"Name","value":"IssuesItem"}}]}}]}}]}}]}},{"kind":"FragmentDefinition","name":{"kind":"Name","value":"IssuesItem"},"typeCondition":{"kind":"NamedType","name":{"kind":"Name","value":"Issue"}},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"status"}},{"kind":"Field","name":{"kind":"Name","value":"title"}},{"kind":"Field","name":{"kind":"Name","value":"priority"}},{"kind":"Field","name":{"kind":"Name","value":"viewerState"}},{"kind":"Field","name":{"kind":"Name","value":"identifier"}},{"kind":"Field","name":{"kind":"Name","value":"resourceIdString"}},{"kind":"Field","name":{"kind":"Name","value":"activities"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"limit"},"value":{"kind":"IntValue","value":"1"}},{"kind":"ObjectField","name":{"kind":"Name","value":"sortDirection"},"value":{"kind":"EnumValue","value":"asc"}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"actor"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"eventType"}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"replies"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"totalCount"}},{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"createdAt"}},{"kind":"Field","name":{"kind":"Name","value":"description"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"doc"}}]}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"description"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"doc"}}]}},{"kind":"Field","name":{"kind":"Name","value":"labels"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"hexColor"}},{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}},{"kind":"Field","name":{"kind":"Name","value":"author"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}},{"kind":"Field","name":{"kind":"Name","value":"dueDate"}},{"kind":"Field","name":{"kind":"Name","value":"assignee"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}},{"kind":"Field","name":{"kind":"Name","value":"name"}}]}}]}}]}}]} as unknown as DocumentNode<IssuesListQuery, IssuesListQueryVariables>;
 export const IssueResourceMetaSearchDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueResourceMetaSearch"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ResourceMetaType"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"resourceMetaSearch"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"workspaceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceType"}}},{"kind":"Argument","name":{"kind":"Name","value":"resourceId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"resourceId"}}},{"kind":"Argument","name":{"kind":"Name","value":"projectId"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}},{"kind":"Argument","name":{"kind":"Name","value":"metaType"},"value":{"kind":"Variable","name":{"kind":"Name","value":"metaType"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"data"}}]}}]}}]} as unknown as DocumentNode<IssueResourceMetaSearchQuery, IssueResourceMetaSearchQueryVariables>;
+export const IssueEditPermissionsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueEditPermissions"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"issueId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"ID"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"issue"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"issueId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canEditStatus"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canEditPriority"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canEditAssignee"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}},{"kind":"Field","name":{"kind":"Name","value":"canEditLabels"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}},{"kind":"Field","name":{"kind":"Name","value":"message"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<IssueEditPermissionsQuery, IssueEditPermissionsQueryVariables>;
+export const IssueAssigneesDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueAssignees"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}},{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"search"}},"type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"allowedIssueAssignees"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"limit"},"value":{"kind":"IntValue","value":"20"}},{"kind":"Argument","name":{"kind":"Name","value":"search"},"value":{"kind":"Variable","name":{"kind":"Name","value":"search"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"user"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"avatar"}}]}}]}}]}}]}}]}}]} as unknown as DocumentNode<IssueAssigneesQuery, IssueAssigneesQueryVariables>;
+export const IssueLabelsDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"IssueLabels"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"project"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"projectId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"issueLabels"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"ObjectValue","fields":[{"kind":"ObjectField","name":{"kind":"Name","value":"limit"},"value":{"kind":"IntValue","value":"100"}}]}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"items"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"name"}},{"kind":"Field","name":{"kind":"Name","value":"hexColor"}}]}}]}}]}}]}}]} as unknown as DocumentNode<IssueLabelsQuery, IssueLabelsQueryVariables>;
 export const WorkspaceIntercomPermissionDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"query","name":{"kind":"Name","value":"WorkspaceIntercomPermission"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"String"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"workspace"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"id"},"value":{"kind":"Variable","name":{"kind":"Name","value":"workspaceId"}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"id"}},{"kind":"Field","name":{"kind":"Name","value":"permissions"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"canAccessHelpCenter"},"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"authorized"}}]}}]}}]}}]}}]} as unknown as DocumentNode<WorkspaceIntercomPermissionQuery, WorkspaceIntercomPermissionQueryVariables>;
 export const WorkspacePlanUsageUpdatedDocument = {"kind":"Document","definitions":[{"kind":"OperationDefinition","operation":"subscription","name":{"kind":"Name","value":"WorkspacePlanUsageUpdated"},"variableDefinitions":[{"kind":"VariableDefinition","variable":{"kind":"Variable","name":{"kind":"Name","value":"input"}},"type":{"kind":"NonNullType","type":{"kind":"NamedType","name":{"kind":"Name","value":"WorkspacePlanUsageSubscriptionInput"}}}}],"selectionSet":{"kind":"SelectionSet","selections":[{"kind":"Field","name":{"kind":"Name","value":"workspacePlanUsageUpdated"},"arguments":[{"kind":"Argument","name":{"kind":"Name","value":"input"},"value":{"kind":"Variable","name":{"kind":"Name","value":"input"}}}]}]}}]} as unknown as DocumentNode<WorkspacePlanUsageUpdatedSubscription, WorkspacePlanUsageUpdatedSubscriptionVariables>;
