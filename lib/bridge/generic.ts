@@ -1,6 +1,9 @@
 import { ArchicadBridge } from '~/lib/bridge/server'
 import { BaseBridge } from '~/lib/bridge/base'
-import type { IRawBridge } from '~/lib/bridge/definitions'
+import {
+  OTEL_TRACE_CONTEXT_CAPABILITY,
+  type IRawBridge
+} from '~/lib/bridge/definitions'
 import type { Span } from '@opentelemetry/api'
 import {
   endBridgeSpan,
@@ -9,7 +12,6 @@ import {
   startBridgeSpan
 } from '~/lib/core/utils/otelTrace'
 
-const OTEL_TRACE_CONTEXT_CAPABILITY = 'otelTraceContext'
 const CAPABILITY_PROBE_TIMEOUT_MS = 750
 
 /**

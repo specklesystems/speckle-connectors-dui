@@ -1,3 +1,6 @@
+/** Advertised by `GetBridgeCapabilities` when the host accepts `RunMethodTraced`. */
+export const OTEL_TRACE_CONTEXT_CAPABILITY = 'otelTraceContext'
+
 /**
  * Defines the expected contract of the host application bound object.
  */
@@ -6,7 +9,8 @@ export type IRawBridge = {
   RunMethod: (methodName: string, requestId: string, args: string) => Promise<string>
   /**
    * Absent on connectors predating trace-context support, and on the Archicad
-   * adapter. Only call it when `GetBridgeCapabilities` advertises 'otelTraceContext'.
+   * adapter. Only call it when `GetBridgeCapabilities` advertises
+   * `OTEL_TRACE_CONTEXT_CAPABILITY`.
    */
   RunMethodTraced?: (
     methodName: string,

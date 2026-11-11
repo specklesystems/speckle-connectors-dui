@@ -140,7 +140,15 @@
             </div>
           </LayoutPanel>
         </div>
-        <div v-if="accounts.length !== 0 && !hasNoModelCards" class="space-y-2 pb-24">
+        <div v-if="store.isLoadingDocumentState" class="space-y-2 pb-24">
+          <CommonLoadingBar loading />
+          <div class="h-8 rounded-md bg-foundation-2 animate-pulse" />
+          <div class="h-24 rounded-md bg-foundation-2 animate-pulse" />
+        </div>
+        <div
+          v-else-if="accounts.length !== 0 && !hasNoModelCards"
+          class="space-y-2 pb-24"
+        >
           <div v-for="project in store.projectModelGroups" :key="project.projectId">
             <CommonProjectModelGroup :project="project" />
           </div>
@@ -248,7 +256,9 @@ const handleReceiveClick = () => {
 }
 
 const hasNoModelCards = computed(
-  () => store.projectModelGroups.length === 0 || hasNoValidProjects.value
+  () =>
+    !store.isLoadingDocumentState &&
+    (store.projectModelGroups.length === 0 || hasNoValidProjects.value)
 )
 const hasNoValidProjects = computed(() => {
   const serverUrls = accounts.value
