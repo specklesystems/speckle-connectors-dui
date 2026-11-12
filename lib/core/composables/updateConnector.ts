@@ -1,6 +1,8 @@
 import type { ToastNotification } from '@speckle/ui-components'
 import { ToastNotificationType } from '@speckle/ui-components'
 import { useHostAppStore } from '~/store/hostApp'
+import { isEto } from '~/lib/bridge/eto'
+import { FeedOs, stableVersionsFor } from '~/lib/core/updates/feed'
 
 export class UpdateError extends Error {
   constructor(message: string) {
@@ -60,10 +62,10 @@ export function useUpdateConnector() {
       }
 
       const data = (await response.json()) as unknown as Versions
-      const stable = data.Versions.filter((v) => v.Prerelease !== true)
-      const sortedVersions = [...stable].sort(function (a: Version, b: Version) {
-        return new Date(b.Date).getTime() - new Date(a.Date).getTime()
-      })
+      const sortedVersions = stableVersionsFor(
+        data.Versions,
+        isEto() ? FeedOs.MacOS : FeedOs.Windows
+      )
       versions.value = sortedVersions
       latestAvailableVersion.value = sortedVersions[0]
       hostApp.setLatestAvailableVersion(sortedVersions[0])
