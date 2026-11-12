@@ -59,7 +59,7 @@
 <script setup lang="ts">
 import { useAccountStore } from '~~/store/accounts'
 import { useDesktopService } from '~/lib/core/composables/desktopService'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 import { useHostAppStore } from '~/store/hostApp'
 
 const accountStore = useAccountStore()
@@ -70,13 +70,8 @@ const customServerUrl = ref<string>(hostAppStore.defaultSpeckleServerUrl)
 const defaultServerUrl = hostAppStore.defaultSpeckleServerUrl
 
 const { $accountBinding } = useNuxtApp()
-const canStartAuthAccount = ['AuthenticateAccount', 'authenticateAccount'].some(
-  (name) =>
-    ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
-const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
-  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
+const canStartAuthAccount = bindingHasMethod($accountBinding, 'authenticateAccount')
+const canAddAccount = bindingHasMethod($accountBinding, 'addAccount')
 
 const isDesktopServiceAvailable = ref(false) // this should be false default because there is a delay if /ping is not successful.
 

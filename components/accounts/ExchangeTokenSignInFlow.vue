@@ -75,7 +75,7 @@ import { useAuthManager } from '~/lib/authn/useAuthManager'
 import { useTokenExchange, supportsOAuthToken } from '~/lib/authn/useTokenExchange'
 import { useAnalytics } from '~/lib/core/composables/analytics'
 import { useAccountStore } from '~/store/accounts'
-import type { BaseBridge } from '~/lib/bridge/base'
+import { bindingHasMethod } from '~/lib/bridge/base'
 
 const props = defineProps<{
   serverUrl: string
@@ -92,9 +92,7 @@ const { trackEvent } = useAnalytics()
 const accountStore = useAccountStore()
 
 const { $accountBinding } = useNuxtApp()
-const canAddAccount = ['AddAccount', 'addAccount'].some((name) =>
-  ($accountBinding as unknown as BaseBridge).availableMethodNames.includes(name)
-)
+const canAddAccount = bindingHasMethod($accountBinding, 'addAccount')
 
 const state = ref<'idle' | 'waiting' | 'submitting' | 'error'>('idle')
 const exchangeCode = ref<string | undefined>()
