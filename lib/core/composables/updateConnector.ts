@@ -35,9 +35,9 @@ export function useUpdateConnector() {
       hostApp.setLatestAvailableVersion(feed.latest)
     } catch (err) {
       if (err instanceof TypeError && err.message === 'Failed to fetch') {
-        throw new Error('Network error')
+        throw new Error('Network error', { cause: err })
       }
-      throw new Error('Unknown error occurred')
+      throw new Error('Unknown error occurred', { cause: err })
     }
   }
 

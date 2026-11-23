@@ -469,7 +469,7 @@ const canCreateProject = computed(() => {
     return selectedWorkspace.value.permissions.canCreateProject.authorized //as boolean
   }
   // Otherwise, check for personal projects
-  if (canCreatePersonalProjectResult) {
+  if (canCreatePersonalProjectResult.value) {
     return canCreatePersonalProjectResult.value?.activeUser?.permissions
       .canCreatePersonalProject.authorized
   }
@@ -481,7 +481,7 @@ const canCreateProjectPermissionCheck = computed(() => {
   if (selectedWorkspace.value && selectedWorkspace.value.permissions) {
     return selectedWorkspace.value.permissions.canCreateProject
   }
-  if (canCreatePersonalProjectResult) {
+  if (canCreatePersonalProjectResult.value) {
     return canCreatePersonalProjectResult.value?.activeUser?.permissions
       .canCreatePersonalProject
   }

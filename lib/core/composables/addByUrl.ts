@@ -63,8 +63,8 @@ export function useAddByUrl() {
     const apollo = (acc as DUIAccount).client
     const userInfoRes = await apollo.query({ query: userInfoAndServerRoleQuery })
 
-    let project: ProjectListProjectItemFragment | undefined = undefined,
-      model: ModelListModelItemFragment | undefined = undefined,
+    let project: ProjectListProjectItemFragment | undefined,
+      model: ModelListModelItemFragment | undefined,
       version: VersionListItemFragment | undefined = undefined
     try {
       if (versionId) {
