@@ -124,7 +124,10 @@
     "@babel/traverse/globals": "13.13.0",
     "@hyperdx/otel-web-session-recorder/fflate": "0.7.5",
     "@hyperdx/otel-web-session-recorder/protobufjs": "~7.6.5",
-    "@opentelemetry/core@npm:2.7.1": "2.8.0"
+    "@opentelemetry/core@npm:2.7.1": "2.8.0",
+    "@ardatan/relay-compiler/immutable": "~3.8.4",
+    "@graphql-codegen/plugin-helpers/lodash": "^4.18.0",
+    "external-editor/tmp": "^0.2.6"
   },
   "packageManager": "yarn@4.14.1"
 }
