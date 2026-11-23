@@ -80,6 +80,8 @@
     "portal-vue": "^3.0.0",
     "subscriptions-transport-ws": "^0.11.0",
     "vee-validate": "4.7.0",
+    "vue": "^3.5.45",
+    "vue-router": "^4.6.5",
     "vue-tippy": "^6.2.0",
     "zod": "^4.6.6"
   },
