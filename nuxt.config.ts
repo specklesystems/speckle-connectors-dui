@@ -48,8 +48,6 @@ export default defineNuxtConfig({
     },
 
     build: {
-      // older chrome version for CEF 65 support. all identifiers except the chrome one are default ones.
-      target: ['es2020', 'edge88', 'firefox78', 'chrome65', 'safari14'],
       // optionally disable minification for debugging
       minify: false
     },
@@ -57,6 +55,9 @@ export default defineNuxtConfig({
       // again - only for CEF 65
       legacy({
         renderLegacyChunks: false,
+        // plugin-legacy 8 replaces build.target with these, so the CEF 65 target lives here.
+        // older chrome version for CEF 65 support. all identifiers except the chrome one are default ones.
+        modernTargets: ['chrome >= 65', 'edge >= 88', 'firefox >= 78', 'safari >= 14'],
         // only adding the specific polyfills we need to reduce bundle size
         modernPolyfills: ['es.global-this', 'es/object', 'es/array']
       })
