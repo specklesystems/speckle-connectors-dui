@@ -4,7 +4,9 @@ import legacy from '@vitejs/plugin-legacy'
 export default defineNuxtConfig({
   typescript: {
     shim: false,
-    strict: true
+    strict: true,
+    // Nuxt 4 turns this on by default; keep Nuxt 3's typing so the upgrade changes no source
+    tsConfig: { compilerOptions: { noUncheckedIndexedAccess: false } }
   },
   modules: [
     '@nuxt/eslint',

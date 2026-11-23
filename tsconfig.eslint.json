@@ -1,5 +1,5 @@
 {
   // https://v3.nuxtjs.org/concepts/typescript
   "extends": "./tsconfig.json",
-  "include": ["./.nuxt/nuxt.d.ts", "**/*", ".*.js"]
+  "include": ["./.nuxt/nuxt.d.ts", "./.nuxt/nuxt.node.d.ts", "**/*", ".*.js"]
 }
