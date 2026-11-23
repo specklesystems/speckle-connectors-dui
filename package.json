@@ -49,7 +49,7 @@
     "@speckle/tailwind-theme": "2.25.0",
     "@speckle/ui-components": "^2.25.0",
     "@speckle/ui-components-nuxt": "^2.25.0",
-    "@tiptap/core": "2.10.3",
+    "@tiptap/core": "3.30.5",
     "@tiptap/extension-bold": "2.10.3",
     "@tiptap/extension-document": "2.10.3",
     "@tiptap/extension-hard-break": "2.10.3",

@@ -2829,16 +2829,17 @@ __metadata:
   linkType: hard
 
 "@graphql-tools/utils@npm:^10.0.0, @graphql-tools/utils@npm:^10.5.6, @graphql-tools/utils@npm:^10.8.1, @graphql-tools/utils@npm:^10.8.6":
-  version: 10.11.0
-  resolution: "@graphql-tools/utils@npm:10.11.0"
+  version: 10.8.6
+  resolution: "@graphql-tools/utils@npm:10.8.6"
   dependencies:
     "@graphql-typed-document-node/core": "npm:^3.1.1"
     "@whatwg-node/promise-helpers": "npm:^1.0.0"
     cross-inspect: "npm:1.0.1"
+    dset: "npm:^3.1.4"
     tslib: "npm:^2.4.0"
   peerDependencies:
     graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0
-  checksum: 10c0/73459332c199d8f3aa698bdee4ac6ce802274dba95cc7eff1f0219b6fe6e3a8f314d2e824168e296df8f5ce18f6dbd23ca14406b71890a41ce80b7548e8ccd6d
+  checksum: 10c0/17f727eb85415c15c5920ab9ef4648e0d205e1ca8b7d8539ac84f55da04ed60464313792456ebbde30bb883c0abde8df81919fd22f2ed5096b873920e84bef4b
   languageName: node
   linkType: hard
 
@@ -5850,12 +5851,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tiptap/core@npm:2.10.3":
-  version: 2.10.3
-  resolution: "@tiptap/core@npm:2.10.3"
+"@tiptap/core@npm:3.30.5":
+  version: 3.30.5
+  resolution: "@tiptap/core@npm:3.30.5"
   peerDependencies:
-    "@tiptap/pm": ^2.7.0
-  checksum: 10c0/b72a6956720f766bc909954a919870907379875ba41b122db28eadc4e8f67b5b2ebe01cfc9df9dae715ef5d585853b97714c00607514d040ae4fd4d1c2ce70e2
+    "@tiptap/pm": 3.30.5
+  checksum: 10c0/d64a695926b2db554a1faec7652c24bd34488be0d1fcfaa036a74094aefaed87c032c2a93fa8b8c0170c7f35b168fa942358a494a44597e1236acf5bd16026cc
   languageName: node
   linkType: hard
 
@@ -9350,7 +9351,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dset@npm:^3.1.2":
+"dset@npm:^3.1.2, dset@npm:^3.1.4":
   version: 3.1.4
   resolution: "dset@npm:3.1.4"
   checksum: 10c0/b67bbd28dd8a539e90c15ffb61100eb64ef995c5270a124d4f99bbb53f4d82f55a051b731ba81f3215dd9dce2b4c8d69927dc20b3be1c5fc88bab159467aa438
@@ -16441,7 +16442,7 @@ __metadata:
     "@speckle/tailwind-theme": "npm:2.25.0"
     "@speckle/ui-components": "npm:^2.25.0"
     "@speckle/ui-components-nuxt": "npm:^2.25.0"
-    "@tiptap/core": "npm:2.10.3"
+    "@tiptap/core": "npm:3.30.5"
     "@tiptap/extension-bold": "npm:2.10.3"
     "@tiptap/extension-document": "npm:2.10.3"
     "@tiptap/extension-hard-break": "npm:2.10.3"
