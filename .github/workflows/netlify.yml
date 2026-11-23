@@ -59,7 +59,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
-          node-version: '22.14.0'
+          node-version: '22.23.5'
           cache: 'yarn'
 
       - name: Connect to Tailscale (private npm registry)

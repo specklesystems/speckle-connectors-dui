@@ -1,4 +1,4 @@
-FROM node:22-bookworm@sha256:7e791fc54bd02fc89fd4fb39eb37e5bea753c75679c8022478d81679367d995a AS build-stage
+FROM node:22-bookworm@sha256:e13726ca604184d7a91fcacab1fc09eefd642dc28e79ac34e85540dd93b78cfb AS build-stage
 WORKDIR /app
 RUN corepack enable
 COPY package.json .
