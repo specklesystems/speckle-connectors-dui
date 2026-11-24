@@ -22,10 +22,10 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     name: Publish Speckle DUI Helm Chart
     container:
-      image: speckle/pre-commit-runner:latest # zizmor: ignore[unpinned-images] Speckle own this image repository
+      image: ghcr.io/specklesystems/pre-commit-runner:latest # zizmor: ignore[unpinned-images] Speckle own this image repository
     permissions:
       contents: read
-      packages: write # publish helm chart to ghcr.io registry if that is the target
+      packages: write # publish helm chart to ghcr.io registry if that is the target; also covers pulling the pre-commit-runner image from ghcr.io
     env:
       IMAGE_PREFIX: ghcr.io/specklesystems
       IMAGE_VERSION_TAG: ${{ inputs.IMAGE_VERSION_TAG }}
