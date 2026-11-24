@@ -33,7 +33,9 @@ export interface IMapperBindingEvents extends IBindingSharedEvents {
   layersChanged: (layers: LayerOption[]) => void
 }
 
-export interface Category {
+// A type alias, not an interface: FormSelectBase infers its item type only from
+// types assignable to Record<string, unknown>, and interfaces are not.
+export type Category = {
   value: string
   label: string
 }
