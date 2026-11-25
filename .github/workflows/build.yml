@@ -53,7 +53,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
-          tags: ${{ github.actor == 'dependabot[bot]' && 'tag:ci-dependabot' || 'tag:ci' }}
+          tags: tag:ci
           ping: npmregistry.mermaid-emperor.ts.net
       - name: Resolve npm registry address for the docker build
         id: npm-registry
