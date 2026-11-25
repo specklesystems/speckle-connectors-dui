@@ -80,3 +80,22 @@ jobs:
     permissions:
       contents: read
       packages: write # to be able to push helm charts to ghcr.io
+  # No job needs this one, so the scan never holds a release back (ENG-11742).
+  image-scan:
+    needs:
+      - build
+      - get-version
+    uses: specklesystems/.github/.github/workflows/image-scan.yml@9167d221308fe012d5b4a18b53e29fb0b10b9647 # 1.3.0
+    with:
+      IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
+      IMAGE_REGISTRY_DOMAIN: ghcr.io
+      IMAGE_REGISTRY_USERNAME: ${{ github.actor }}
+      IMAGE_PREFIX: ghcr.io/specklesystems
+      IMAGES: speckle-dui
+      runner: blacksmith-4vcpu-ubuntu-2404
+    secrets:
+      # The job token alone: the scanner must not hold push rights to the image.
+      IMAGE_REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: read # The scan reads .trivyignore.yaml.
+      packages: read
