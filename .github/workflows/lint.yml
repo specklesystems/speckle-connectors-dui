@@ -39,7 +39,7 @@ jobs:
         with:
           oauth-client-id: ${{ secrets.TAILSCALE_OAUTH_CLIENT_ID }}
           audience: ${{ secrets.TAILSCALE_OAUTH_CLIENT_AUDIENCE }}
-          tags: tag:ci
+          tags: ${{ github.actor == 'dependabot[bot]' && 'tag:ci-dependabot' || 'tag:ci' }}
           ping: npmregistry.mermaid-emperor.ts.net
 
       - name: Install Dependencies
