@@ -8,10 +8,13 @@
 title = "speckle-connectors-dui betterleaks config"
 
 filter = '''
+let path = attributes["path"];
 let rule = finding["rule_id"];
+let secret = finding["secret"];
 
-// PostHog project keys (`phc_`) are sent by every client and are public by design.
-(rule == "posthog-project-api-key")
+// The PostHog project key of this app: sent by every client, public by design. It is
+// also excepted in this file, which the scan reads too.
+(rule == "posthog-project-api-key" && secret == "phc_7zaDwBgrBYb1yUe0Ff3Sn0DUibq0NoPNxYNC90M7cfg" && matchesAny(path, [`^(?:\.github/workflows/netlify\.yml|deployment/docker/Dockerfile|env\.example|\.betterleaks\.toml)$`]))
 '''
 
 [extend]
