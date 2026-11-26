@@ -32,7 +32,8 @@ jobs:
   netlify:
     uses: ./.github/workflows/netlify.yml
     # A Dependabot run gets Dependabot secrets only, so it goes without a
-    # Netlify token (ADR-0002 rule 6, kept by ADR-0004).
+    # Netlify token (atlas change-gate rollout ADR-0002 amendment item 6,
+    # kept by ADR-0004).
     if: github.actor != 'dependabot[bot]'
     needs:
       - get-version
