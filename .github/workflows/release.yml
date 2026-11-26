@@ -85,7 +85,7 @@ jobs:
     needs:
       - build
       - get-version
-    uses: specklesystems/.github/.github/workflows/image-scan.yml@9167d221308fe012d5b4a18b53e29fb0b10b9647 # 1.3.0
+    uses: specklesystems/.github/.github/workflows/image-scan.yml@b5bb55d90932d0912695e0d72c3e65bf7fdcdd2a # 1.4.0
     with:
       IMAGE_VERSION_TAG: ${{ needs.get-version.outputs.IMAGE_VERSION_TAG }}
       IMAGE_REGISTRY_DOMAIN: ghcr.io
